@@ -1431,6 +1431,10 @@ html body.game-mode:not(.gm-ui) .card img,html body.game-mode:not(.gm-ui) .revea
 #gmTtsRow span{flex:1;text-align:left}
 #gmTtsRow button{min-width:64px;height:26px;padding:0 10px;border-radius:8px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font:inherit;font-size:12px;font-weight:900;cursor:pointer}
 #gmTtsRow button.on{background:var(--accent,#2563eb);border-color:var(--accent,#2563eb);color:#fff}
+#gmSwapRow{display:flex;align-items:center;gap:8px;margin-top:5px;font-size:12px;font-weight:800;color:var(--text-soft)}
+#gmSwapRow span{flex:1;text-align:left}
+#gmSwapRow button{min-width:84px;height:26px;padding:0 10px;border-radius:8px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font:inherit;font-size:12px;font-weight:900;cursor:pointer}
+#gmSwapRow button.on{background:var(--accent,#2563eb);border-color:var(--accent,#2563eb);color:#fff}
 #gmRevRow span:first-child,#gmMissRow span:first-child,#gmKnewRow span:first-child{flex:1;text-align:left}
 #gmRevRow button,#gmMissRow button,#gmKnewRow button{width:30px;height:26px;padding:0;border-radius:8px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font:inherit;font-size:16px;font-weight:900;line-height:1;cursor:pointer}
 #gmRevRow input,#gmMissRow input,#gmKnewRow input{width:54px;height:26px;margin:0;padding:0 4px;text-align:center;border-radius:8px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font:inherit;font-size:13px;font-weight:800}
@@ -2184,7 +2188,7 @@ var result=mk("div","gmResult","gm-ov");
 var sw=mk("div","gmSwitch","gm-ov");
 mk("div","gmFlash");
 var banner=mk("div","gmBanner");
-mk("div","gmHud","",'<div class="gm-row"><span id="gmCards">0 / 0</span><span id="gmToday" title="Total cards done today">Today 0</span><span class="sc" id="gmScore">⭐ 0</span><span id="gmCombo"></span><button id="gmInfo" type="button" aria-label="More details">ⓘ</button><button id="gmMute" type="button" aria-label="Sound">🔊</button><button id="gmQuit" type="button">✖ Exit</button></div><div class="gm-track"><div class="gm-fill" id="gmFill"></div><span class="gm-mk" id="gmGhost">👻</span><span class="gm-mk" id="gmRocket">🚀</span><span id="gmFlag">🏁</span></div><div id="gmLine"><span id="gmClock"></span><span id="gmBatt" title="Battery"></span><span id="gmPace"></span></div><div id="gmRoundRow"></div><div class="gm-sw"><button type="button" id="gmFileBtn"></button><button type="button" id="gmModeBtn"></button><button type="button" id="gmOrderBtn"></button></div><div id="gmImgRow"><span>\ud83d\uddbc Image size</span><input type="range" id="gmImg" min="10" max="100" step="5" aria-label="Card image size"><span id="gmImgV"></span></div><div id="gmTxtRow"><span>\ud83d\udd24 Text size</span><input type="range" id="gmTxt" min="40" max="250" step="10" aria-label="Card text size"><span id="gmTxtV"></span></div><div id="gmRevRow"><span>\u23f1 Auto-reveal time</span><button type="button" id="gmRevDn" aria-label="Less">\u2212</button><input type="number" id="gmRevIn" min="1" max="9999" step="1" inputmode="numeric" aria-label="Auto-reveal seconds"><button type="button" id="gmRevUp" aria-label="More">+</button><span style="flex:none">s</span></div><div id="gmMissRow"><span>\u23f1 Auto-miss time</span><button type="button" id="gmMissDn" aria-label="Less">\u2212</button><input type="number" id="gmMissIn" min="1" max="9999" step="1" inputmode="numeric" aria-label="Auto-miss seconds"><button type="button" id="gmMissUp" aria-label="More">+</button><span style="flex:none">s</span></div><div id="gmKnewRow"><span>✓ Knew it clicks to finish a card</span><button type="button" id="gmKnewDn" aria-label="Less">−</button><input type="number" id="gmKnewIn" min="1" max="99" step="1" inputmode="numeric" aria-label="Knew it clicks needed per card"><button type="button" id="gmKnewUp" aria-label="More">+</button><span style="flex:none">×</span></div><div id="gmTtsRow"><span>\ud83d\udd0a Read aloud</span><button type="button" id="gmTtsBtn"></button></div><div id="gmMore"><div id="gmStat"></div><div id="gmEtaYou"></div><div id="gmEtaTgt"></div><div class="gm-cp"><span id="gmDone">Completed: 0</span><span id="gmPend">Pending: 0</span></div></div>');
+mk("div","gmHud","",'<div class="gm-row"><span id="gmCards">0 / 0</span><span id="gmToday" title="Total cards done today">Today 0</span><span class="sc" id="gmScore">⭐ 0</span><span id="gmCombo"></span><button id="gmInfo" type="button" aria-label="More details">ⓘ</button><button id="gmMute" type="button" aria-label="Sound">🔊</button><button id="gmQuit" type="button">✖ Exit</button></div><div class="gm-track"><div class="gm-fill" id="gmFill"></div><span class="gm-mk" id="gmGhost">👻</span><span class="gm-mk" id="gmRocket">🚀</span><span id="gmFlag">🏁</span></div><div id="gmLine"><span id="gmClock"></span><span id="gmBatt" title="Battery"></span><span id="gmPace"></span></div><div id="gmRoundRow"></div><div class="gm-sw"><button type="button" id="gmFileBtn"></button><button type="button" id="gmModeBtn"></button><button type="button" id="gmOrderBtn"></button></div><div id="gmImgRow"><span>\ud83d\uddbc Image size</span><input type="range" id="gmImg" min="10" max="100" step="5" aria-label="Card image size"><span id="gmImgV"></span></div><div id="gmTxtRow"><span>\ud83d\udd24 Text size</span><input type="range" id="gmTxt" min="40" max="250" step="10" aria-label="Card text size"><span id="gmTxtV"></span></div><div id="gmRevRow"><span>\u23f1 Auto-reveal time</span><button type="button" id="gmRevDn" aria-label="Less">\u2212</button><input type="number" id="gmRevIn" min="1" max="9999" step="1" inputmode="numeric" aria-label="Auto-reveal seconds"><button type="button" id="gmRevUp" aria-label="More">+</button><span style="flex:none">s</span></div><div id="gmMissRow"><span>\u23f1 Auto-miss time</span><button type="button" id="gmMissDn" aria-label="Less">\u2212</button><input type="number" id="gmMissIn" min="1" max="9999" step="1" inputmode="numeric" aria-label="Auto-miss seconds"><button type="button" id="gmMissUp" aria-label="More">+</button><span style="flex:none">s</span></div><div id="gmKnewRow"><span>✓ Knew it clicks to finish a card</span><button type="button" id="gmKnewDn" aria-label="Less">−</button><input type="number" id="gmKnewIn" min="1" max="99" step="1" inputmode="numeric" aria-label="Knew it clicks needed per card"><button type="button" id="gmKnewUp" aria-label="More">+</button><span style="flex:none">×</span></div><div id="gmTtsRow"><span>\ud83d\udd0a Read aloud</span><button type="button" id="gmTtsBtn"></button></div><div id="gmSwapRow"><span>\ud83d\udc46 Tap right half =</span><button type="button" id="gmSwapBtn"></button></div><div id="gmMore"><div id="gmStat"></div><div id="gmEtaYou"></div><div id="gmEtaTgt"></div><div class="gm-cp"><span id="gmDone">Completed: 0</span><span id="gmPend">Pending: 0</span></div></div>');
 var fx=mk("canvas","gmFx");fx.style.display="none";
 // One icon that shows / hides everything (time, cards done, score, bar, Exit, Pause, Prev, Next).
 var uiBtn=mk("button","gmUiBtn","","\u2630");uiBtn.type="button";uiBtn.setAttribute("aria-label","Show or hide game info");
@@ -2282,6 +2286,12 @@ function syncTts(){var b=$("gmTtsBtn");b.textContent=cfg.tts?"ON":"OFF";b.classN
 $("gmTtsBtn").addEventListener("click",function(){cfg.tts=!cfg.tts;sj("stenoGameCfg2",cfg);syncTts();try{A().setTts(cfg.tts)}catch(e){}});
 ["click","contextmenu","dblclick"].forEach(function(ev){$("gmTtsRow").addEventListener(ev,function(e){e.stopPropagation();if(ev==="contextmenu")e.preventDefault()})});
 syncTts();
+// Touch: tap the right half = Knew it, left half = Missed it. This button swaps the two sides.
+function tapSwapOn(){try{return localStorage.getItem("stenoTapSwap")==="1"}catch(e){return false}}
+function syncSwap(){var b=$("gmSwapBtn");if(!b)return;var sw=tapSwapOn();b.textContent=sw?"Missed it":"Knew it";b.className=sw?"on":""}
+$("gmSwapBtn").addEventListener("click",function(){try{localStorage.setItem("stenoTapSwap",tapSwapOn()?"0":"1")}catch(e){}syncSwap()});
+["click","contextmenu","dblclick"].forEach(function(ev){$("gmSwapRow").addEventListener(ev,function(e){e.stopPropagation();if(ev==="contextmenu")e.preventDefault()})});
+syncSwap();
 // Exit sits in the top-right corner (outside the info panel) and works in ONE click. Progress is saved.
 (function(){var q=$("gmQuit");if(q)document.body.appendChild(q)})();
 $("gmQuit").addEventListener("click",function(e){
@@ -6135,6 +6145,8 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   //    (right click anywhere = "Knew it", see the contextmenu handler)
   // Clicks on real controls (buttons, inputs, links) are left alone so
   // those keep working exactly as before.
+  var lastPtrType = "mouse";
+  document.addEventListener("pointerdown", function(e){ lastPtrType = e.pointerType || "mouse"; }, true);
   document.addEventListener("click", function(e){
     if(!state.session || state.session.finished) return;
     var trainerPanel = document.getElementById("panel-trainer");
@@ -6148,7 +6160,17 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       reveal();
       return;
     }
-    // Revealed: left click anywhere = Missed it. No left/right split.
+    // Game mode on a touch screen: right half of the screen = Knew it, left half = Missed it.
+    // The game's info panel has a switch that swaps the two sides. A mouse is unchanged
+    // (left click = Missed it, right click = Knew it).
+    if(document.body.classList.contains("game-mode") && window.stenoGameLive && lastPtrType !== "mouse"){
+      var onRight = e.clientX >= (window.innerWidth / 2);
+      var swapped = false;
+      try{ swapped = localStorage.getItem("stenoTapSwap") === "1"; }catch(err){}
+      judge((onRight !== swapped) ? "knew" : "missed");
+      return;
+    }
+    // Revealed: left click anywhere = Missed it.
     judge("missed");
   });
 
