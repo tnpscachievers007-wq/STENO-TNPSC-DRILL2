@@ -1395,8 +1395,9 @@ body.game-mode.gm-paused #trainerBody::after{content:"\23F8  PAUSED\A click the 
 .lib-top-btn:active{transform:scale(.97)}
 #gmUiBtn,#gmFsBtn,#gmCleanBtn{display:none;position:fixed;left:calc(10px + env(safe-area-inset-left,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:106;width:46px;height:46px;padding:0;border-radius:50%;align-items:center;justify-content:center;font:inherit;font-size:21px;font-weight:800;line-height:1;color:var(--text);background:var(--surface);border:1px solid var(--border-strong);box-shadow:var(--shadow-md);opacity:.5;cursor:pointer;-webkit-tap-highlight-color:transparent}
 #gmUiBtn:active,#gmFsBtn:active,#gmCleanBtn:active{transform:scale(.93)}
-#gmFsBtn{left:calc(66px + env(safe-area-inset-left,0px))}
-#gmCleanBtn{left:calc(122px + env(safe-area-inset-left,0px))}
+#gmUiBtn{left:calc(66px + env(safe-area-inset-left,0px))}
+#gmFsBtn{left:calc(122px + env(safe-area-inset-left,0px))}
+#gmCleanBtn{left:calc(10px + env(safe-area-inset-left,0px))}
 /* Clean view: hide everything in game play except Pause, Exit and this button. The card itself stays. */
 html body.game-mode.gm-clean #gmHud,
 html body.game-mode.gm-clean #gmMore,
@@ -2217,7 +2218,8 @@ function setUi(on){document.body.classList.toggle("gm-ui",!!on);uiBtn.textConten
 uiBtn.addEventListener("click",function(e){e.stopPropagation();setUi(!document.body.classList.contains("gm-ui"))});
 // Extra button: hides everything except Pause and Exit; touch it again and everything comes back.
 var cleanBtn=mk("button","gmCleanBtn","","\uD83D\uDE48");cleanBtn.type="button";cleanBtn.setAttribute("aria-label","Hide or show everything except Pause and Exit");
-function setClean(on){document.body.classList.toggle("gm-clean",!!on);cleanBtn.textContent=on?"\uD83D\uDC41":"\uD83D\uDE48";if(on){var mo=$("gmMore");if(mo)mo.classList.remove("open")}lastPad=-1;fitPad()}
+function cleanSaved(){try{return localStorage.getItem("stenoGameClean")==="1"}catch(e){return false}}
+function setClean(on,noSave){document.body.classList.toggle("gm-clean",!!on);if(!noSave){try{localStorage.setItem("stenoGameClean",on?"1":"0")}catch(e){}}cleanBtn.textContent=on?"\uD83D\uDC41":"\uD83D\uDE48";if(on){var mo=$("gmMore");if(mo)mo.classList.remove("open")}lastPad=-1;fitPad()}
 cleanBtn.addEventListener("click",function(e){e.stopPropagation();setClean(!document.body.classList.contains("gm-clean"))});
 uiBtn.addEventListener("contextmenu",function(e){e.stopPropagation();e.preventDefault()});
 // Full screen toggle (hides the browser address bar). Sits next to the show/hide button.
@@ -2443,7 +2445,7 @@ function drawSetup(){
 function openSetup(){cfg.order=true;cfg.setRandom=false;sj("stenoGameCfg2",cfg);result.classList.remove("open");drawSetup();setup.classList.add("open");setup.scrollTop=0}
 function enterFocus(){
   var t=document.querySelector('.tab-btn[data-tab="trainer"]');if(t&&!t.classList.contains("active"))t.click();
-  document.documentElement.classList.add("focus-mode");document.body.classList.add("focus-mode","game-mode");setUi(false);setClean(false);window.scrollTo(0,0);
+  document.documentElement.classList.add("focus-mode");document.body.classList.add("focus-mode","game-mode");setUi(false);setClean(cleanSaved(),true);window.scrollTo(0,0);
   var el=document.documentElement,fn=el.requestFullscreen||el.webkitRequestFullscreen;try{var p=fn&&fn.call(el);if(p&&p.catch)p.catch(function(){})}catch(e){}
 }
 btn.addEventListener("click",function(){enterFocus();g.active=true;A().hold();openSetup()});
@@ -2621,7 +2623,7 @@ function fmtDur(sec){
 }
 function fmtAt(sec){
   var d=new Date(Date.now()+sec*1000),n=new Date();
-  var t=d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+  var t=d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit",hour12:true});
   if(d.toDateString()!==n.toDateString())t=d.toLocaleDateString([],{weekday:"short"})+" "+t;
   return t;
 }
@@ -2670,7 +2672,7 @@ function track(){
 var lastClockTxt="";
 function clock(){
   var c=$("gmClock");if(!c)return;
-  var t=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit",second:"2-digit"});
+  var t=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit",second:"2-digit",hour12:true});
   if(t!==lastClockTxt){lastClockTxt=t;c.textContent="🕒 "+t}
 }
 var battObj=null,battTried=false,lastBattTxt="";
@@ -2814,7 +2816,7 @@ function leave(){
   var mo=$("gmMore");if(mo)mo.classList.remove("open");
   g.active=false;g.running=false;window.stenoGameLive=false;
   [setup,cd,result,sw].forEach(function(e){e.classList.remove("open")});
-  document.body.classList.remove("game-mode");setUi(false);setClean(false);
+  document.body.classList.remove("game-mode");setUi(false);setClean(false,true);
   A().release();A().restore();A().refresh();
   var x=$("exitFocusBtn");if(x)x.click();
 }
@@ -5317,7 +5319,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   }
   function formatClock(d){
     try{
-      return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
     }catch(e){
       var h = d.getHours(), mi = d.getMinutes(), ap = h >= 12 ? "PM" : "AM";
       h = h % 12; if(h === 0) h = 12;
@@ -5414,7 +5416,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   // (state.daily[today].cards). Done >= due means green, otherwise red.
   function dtTime(d){
     try{
-      return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
+      return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true });
     }catch(e){
       var h = d.getHours(), mi = d.getMinutes(), s = d.getSeconds(), ap = h >= 12 ? "PM" : "AM";
       h = h % 12; if(h === 0) h = 12;
@@ -7537,7 +7539,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       var nw = new Date(), dl = "", tl = "";
       try{
         dl = nw.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
-        tl = nw.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", second: "2-digit" });
+        tl = nw.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true });
       }catch(e){ dl = nw.toDateString(); tl = nw.toTimeString().slice(0, 8); }
       var dot = paused ? "#ffd23d" : (live ? "#3ddc84" : "#999");
       pill.innerHTML = "<div>" + dl + " &middot; <b>" + tl + "</b></div><div><span style='color:" + dot + ";margin-right:5px'>&#9679;</span>Playing <b>" + fmt(ms) + "</b> &middot; Today <b>" + fmt(todayMs) + "</b></div>";
