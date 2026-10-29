@@ -1393,10 +1393,31 @@ body.game-mode.gm-paused #trainerBody::after{content:"\23F8  PAUSED\A click the 
 .lib-top-btn small{font-size:11px;font-weight:700;opacity:.8;letter-spacing:.02em}
 .lib-top-btn.gm{color:#fff;border:none;background:linear-gradient(110deg,#ff3d81,#8a3dff,#3d7bff,#ff3d81);background-size:250% 100%;animation:gmShine 5s linear infinite}
 .lib-top-btn:active{transform:scale(.97)}
-#gmUiBtn,#gmFsBtn{display:none;position:fixed;left:calc(10px + env(safe-area-inset-left,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:106;width:46px;height:46px;padding:0;border-radius:50%;align-items:center;justify-content:center;font:inherit;font-size:21px;font-weight:800;line-height:1;color:var(--text);background:var(--surface);border:1px solid var(--border-strong);box-shadow:var(--shadow-md);opacity:.5;cursor:pointer;-webkit-tap-highlight-color:transparent}
-#gmUiBtn:active,#gmFsBtn:active{transform:scale(.93)}
+#gmUiBtn,#gmFsBtn,#gmCleanBtn{display:none;position:fixed;left:calc(10px + env(safe-area-inset-left,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:106;width:46px;height:46px;padding:0;border-radius:50%;align-items:center;justify-content:center;font:inherit;font-size:21px;font-weight:800;line-height:1;color:var(--text);background:var(--surface);border:1px solid var(--border-strong);box-shadow:var(--shadow-md);opacity:.5;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#gmUiBtn:active,#gmFsBtn:active,#gmCleanBtn:active{transform:scale(.93)}
 #gmFsBtn{left:calc(66px + env(safe-area-inset-left,0px))}
-body.game-mode #gmUiBtn,body.game-mode #gmFsBtn{display:flex}
+#gmCleanBtn{left:calc(122px + env(safe-area-inset-left,0px))}
+/* Clean view: hide everything in game play except Pause, Exit and this button. The card itself stays. */
+html body.game-mode.gm-clean #gmHud,
+html body.game-mode.gm-clean #gmMore,
+html body.game-mode.gm-clean #gmDonePill,
+html body.game-mode.gm-clean #gmRoundPill,
+html body.game-mode.gm-clean #gmCardPill,
+html body.game-mode.gm-clean #gmRoundList,
+html body.game-mode.gm-clean #gmKnewCount,
+html body.game-mode.gm-clean #gmUiBtn,
+html body.game-mode.gm-clean #gmFsBtn,
+html body.game-mode.gm-clean #fmPrevBtn,
+html body.game-mode.gm-clean #fmNextBtn,
+html body.game-mode.gm-clean #fmPace,
+html body.game-mode.gm-clean #fmTodayCount,
+html body.game-mode.gm-clean #cardCountdown,
+html body.game-mode.gm-clean .direction-label,
+html body.game-mode.gm-clean .audio-indicator,
+html body.game-mode.gm-clean .speak-btn,
+html body.game-mode.gm-clean .status-line,
+html body.game-mode.gm-clean .judge-row{display:none!important}
+body.game-mode #gmUiBtn,body.game-mode #gmFsBtn,body.game-mode #gmCleanBtn{display:flex}
 body.game-mode.gm-ui #gmUiBtn,body.game-mode.gm-ui #gmFsBtn{opacity:1}
 /* Hidden by default: time, cards done, score, bar live behind the icon. The left and right arrow buttons now stay visible. */
 body.game-mode:not(.gm-ui) #gmHud,
@@ -1619,7 +1640,7 @@ html body.game-mode #gmQuit:active{background:var(--bad-soft);color:var(--bad-st
 #gmPlayPill{background:var(--surface)!important;border:1px solid var(--border-strong)!important;color:var(--text)!important;box-shadow:var(--shadow-md)!important}
 #gmPlayPill b{color:var(--accent)}
 body.game-mode #fmPrevBtn,body.game-mode #fmNextBtn{background:var(--surface);border:1px solid var(--border);color:var(--accent);box-shadow:var(--shadow-sm)}
-html body.game-mode #gmUiBtn,html body.game-mode #gmFsBtn{background:var(--surface);border:1px solid var(--border-strong);color:var(--accent);box-shadow:var(--shadow-md)}
+html body.game-mode #gmUiBtn,html body.game-mode #gmFsBtn,html body.game-mode #gmCleanBtn{background:var(--surface);border:1px solid var(--border-strong);color:var(--accent);box-shadow:var(--shadow-md)}
 #gmKnewCount{background:var(--surface);border:1px solid var(--border-strong);color:var(--good-strong);box-shadow:var(--shadow-md)}
 body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d81);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
 </style>
@@ -2178,7 +2199,7 @@ function mk(tag,id,cls,html){var e=document.createElement(tag);if(id)e.id=id;if(
 // not exist yet at that moment (otherwise every copy would carry a second set).
 function boot(){
 // Remove any old game elements (from copies made by older versions).
-["gameModeBtn","gmSetup","gmCount","gmResult","gmSwitch","gmBanner","gmHud","gmFlash","gmFx","gmBar","gmTime","gmUiBtn","gmFsBtn","gmDonePill","gmRoundPill","gmCardPill","gmRoundList","gmQuit"].forEach(function(id){var e=document.getElementById(id);if(e&&e.parentNode)e.parentNode.removeChild(e)});
+["gameModeBtn","gmSetup","gmCount","gmResult","gmSwitch","gmBanner","gmHud","gmFlash","gmFx","gmBar","gmTime","gmUiBtn","gmFsBtn","gmCleanBtn","gmDonePill","gmRoundPill","gmCardPill","gmRoundList","gmQuit"].forEach(function(id){var e=document.getElementById(id);if(e&&e.parentNode)e.parentNode.removeChild(e)});
 
 var btn=mk("button","gameModeBtn","",'<span>🎮 GAME MODE</span><small>SET YOUR CARDS FOR THE DAY</small>');
 btn.type="button";
@@ -2194,6 +2215,10 @@ var fx=mk("canvas","gmFx");fx.style.display="none";
 var uiBtn=mk("button","gmUiBtn","","\u2630");uiBtn.type="button";uiBtn.setAttribute("aria-label","Show or hide game info");
 function setUi(on){document.body.classList.toggle("gm-ui",!!on);uiBtn.textContent=on?"\u2715":"\u2630";if(!on){var mo=$("gmMore");if(mo)mo.classList.remove("open")}lastPad=-1;fitPad()}
 uiBtn.addEventListener("click",function(e){e.stopPropagation();setUi(!document.body.classList.contains("gm-ui"))});
+// Extra button: hides everything except Pause and Exit; touch it again and everything comes back.
+var cleanBtn=mk("button","gmCleanBtn","","\uD83D\uDE48");cleanBtn.type="button";cleanBtn.setAttribute("aria-label","Hide or show everything except Pause and Exit");
+function setClean(on){document.body.classList.toggle("gm-clean",!!on);cleanBtn.textContent=on?"\uD83D\uDC41":"\uD83D\uDE48";if(on){var mo=$("gmMore");if(mo)mo.classList.remove("open")}lastPad=-1;fitPad()}
+cleanBtn.addEventListener("click",function(e){e.stopPropagation();setClean(!document.body.classList.contains("gm-clean"))});
 uiBtn.addEventListener("contextmenu",function(e){e.stopPropagation();e.preventDefault()});
 // Full screen toggle (hides the browser address bar). Sits next to the show/hide button.
 var donePill=mk("div","gmDonePill","","\u2705 0 / 0");donePill.title="Cards finished";
@@ -2217,7 +2242,7 @@ fsBtn.addEventListener("contextmenu",function(e){e.stopPropagation();e.preventDe
 document.addEventListener("fullscreenchange",fsSync);document.addEventListener("webkitfullscreenchange",fsSync);
 
 // Clicks and right clicks on these screens must never reach the card behind them.
-[setup,cd,result,sw,$("gmHud"),uiBtn].forEach(function(e){
+[setup,cd,result,sw,$("gmHud"),uiBtn,cleanBtn].forEach(function(e){
   e.addEventListener("click",function(x){x.stopPropagation()});
   e.addEventListener("contextmenu",function(x){x.stopPropagation();x.preventDefault()});
 });
@@ -2418,7 +2443,7 @@ function drawSetup(){
 function openSetup(){cfg.order=true;cfg.setRandom=false;sj("stenoGameCfg2",cfg);result.classList.remove("open");drawSetup();setup.classList.add("open");setup.scrollTop=0}
 function enterFocus(){
   var t=document.querySelector('.tab-btn[data-tab="trainer"]');if(t&&!t.classList.contains("active"))t.click();
-  document.documentElement.classList.add("focus-mode");document.body.classList.add("focus-mode","game-mode");setUi(false);window.scrollTo(0,0);
+  document.documentElement.classList.add("focus-mode");document.body.classList.add("focus-mode","game-mode");setUi(false);setClean(false);window.scrollTo(0,0);
   var el=document.documentElement,fn=el.requestFullscreen||el.webkitRequestFullscreen;try{var p=fn&&fn.call(el);if(p&&p.catch)p.catch(function(){})}catch(e){}
 }
 btn.addEventListener("click",function(){enterFocus();g.active=true;A().hold();openSetup()});
@@ -2789,7 +2814,7 @@ function leave(){
   var mo=$("gmMore");if(mo)mo.classList.remove("open");
   g.active=false;g.running=false;window.stenoGameLive=false;
   [setup,cd,result,sw].forEach(function(e){e.classList.remove("open")});
-  document.body.classList.remove("game-mode");setUi(false);
+  document.body.classList.remove("game-mode");setUi(false);setClean(false);
   A().release();A().restore();A().refresh();
   var x=$("exitFocusBtn");if(x)x.click();
 }
