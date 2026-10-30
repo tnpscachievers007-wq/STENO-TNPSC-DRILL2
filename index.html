@@ -1650,7 +1650,7 @@ html body.game-mode.gm-clean #gmSched,html body.game-mode.gm-clean #gmSetPill{di
 #gmSched .sp-sub b{color:var(--text);font-weight:900}
 #gmSched .sp-list{margin-top:5px;padding-top:4px;border-top:1px solid var(--border-strong);display:none}
 #gmSched.open .sp-list{display:block;animation:popIn .2s ease}
-#gmSched .sp-row{display:grid;grid-template-columns:58px 1fr 56px;gap:6px;align-items:center;padding:1px 0}
+#gmSched .sp-row{display:grid;grid-template-columns:58px 1fr 62px;gap:6px;align-items:center;padding:1px 0}
 #gmSched .sp-row b{text-align:right;font-weight:900;white-space:nowrap}
 #gmSched .sp-row.pass b{color:var(--good-strong)}#gmSched .sp-row.pass .sp-mb u{background:var(--good-strong)}
 #gmSched .sp-row.fail b{color:var(--bad-strong)}#gmSched .sp-row.fail .sp-mb u{background:var(--bad-strong)}
@@ -2750,26 +2750,33 @@ function fmtLeft(m){m=Math.max(0,Math.round(m));return m>=60?Math.floor(m/60)+"h
 function schedRender(){
   if(sched.date!==today())sched=schedFresh();
   var now=new Date(),ci=schedIdx(now),hr=now.getHours(),i,pass=0,fail=0,rows="",top="",cls="";
+  // Extra minutes: every minute above 90 in any block is saved in a pool and fills the shortfall of other blocks (earliest first, the current block last).
+  var mins=[],cred=[0,0,0,0,0,0,0,0],pool=0,order=[];
+  for(i=0;i<8;i++){mins[i]=Math.floor(sched.ms[i]/60000);if(mins[i]>SCHED_NEED)pool+=mins[i]-SCHED_NEED}
+  for(i=0;i<8;i++){if(hr>=7+2*(i+1))order.push(i)}
+  if(ci>=0)order.push(ci);
+  order.forEach(function(k){if(mins[k]<SCHED_NEED&&pool>0){var u=Math.min(SCHED_NEED-mins[k],pool);cred[k]=u;pool-=u}});
   for(i=0;i<8;i++){
-    var m=Math.floor(sched.ms[i]/60000),ended=hr>=7+2*(i+1),rc,txt,w=Math.min(100,m/SCHED_NEED*100);
-    if(ended){if(m>=SCHED_NEED){pass++;rc="pass";txt=m+" \u2713"}else{fail++;rc="fail";txt=m+" \u2717 \u2212"+(SCHED_NEED-m)}}
-    else if(i===ci){if(m>=SCHED_NEED){rc="pass";txt=m+" \u2713"}else{rc="now";txt=m+"/"+SCHED_NEED}}
-    else{rc="fut";txt="\u2014";w=0}
+    var m=mins[i],c=cred[i],t=m+c,ended=hr>=7+2*(i+1),rc,txt,w=Math.min(100,t/SCHED_NEED*100),show=c?(m+"+"+c):String(m);
+    if(ended){if(t>=SCHED_NEED){pass++;rc="pass";txt=show+" \u2713"}else{fail++;rc="fail";txt=m+" \u2717 \u2212"+(SCHED_NEED-t)}}
+    else if(i===ci){if(t>=SCHED_NEED){rc="pass";txt=show+" \u2713"}else{rc="now";txt=t+"/"+SCHED_NEED}}
+    else{rc="fut";txt=m>SCHED_NEED?("+"+(m-SCHED_NEED)):"\u2014";w=m>0?Math.min(100,m/SCHED_NEED*100):0}
     rows+='<div class="sp-row '+rc+'"><span>'+SCHED_LABELS[i]+'</span><span class="sp-mb"><u style="width:'+w+'%"></u></span><b>'+txt+'</b></div>';
   }
+  var arrow='<i>'+(schedOpen?"\u25B4":"\u25BE")+'</i>';
   if(ci>=0){
-    var m2=Math.floor(sched.ms[ci]/60000),more=Math.max(0,SCHED_NEED-m2),endIn=(7+2*(ci+1))*60-(hr*60+now.getMinutes()),pc=Math.min(100,m2/SCHED_NEED*100);
-    var tag,sub;
-    if(m2>=SCHED_NEED){cls="pass";tag="PASS \u2713";sub='Studied <b>'+m2+'</b> min \u00b7 target done'}
-    else if(more>endIn){cls="risk";tag=more+" min more";sub='Studied <b>'+m2+'</b> \u00b7 only '+fmtLeft(endIn)+' left \u00b7 will fail'}
-    else{tag=more+" min more";sub='Studied <b>'+m2+'</b> \u00b7 Study <b>'+more+'</b> more \u00b7 ends in '+fmtLeft(endIn)}
-    top='<div class="sp-top"><span class="sp-lab">'+SCHED_LABELS[ci]+'</span><span class="sp-tag">'+tag+'</span><i>'+(schedOpen?"\u25B4":"\u25BE")+'</i></div><div class="sp-bar"><u style="width:'+pc+'%"></u></div><div class="sp-sub">'+sub+'</div>';
+    var m2=mins[ci],c2=cred[ci],t2=m2+c2,more=Math.max(0,SCHED_NEED-t2),endIn=(7+2*(ci+1))*60-(hr*60+now.getMinutes()),pc=Math.min(100,t2/SCHED_NEED*100);
+    var tag,sub,ex=c2?(' <b>+'+c2+'</b> extra'):'';
+    if(t2>=SCHED_NEED){cls="pass";tag="PASS \u2713";sub='Studied <b>'+m2+'</b>'+ex+' \u00b7 target done'+(m2>SCHED_NEED?' \u00b7 <b>+'+(m2-SCHED_NEED)+'</b> saved':'')}
+    else if(more>endIn){cls="risk";tag=more+" min more";sub='Studied <b>'+m2+'</b>'+ex+' \u00b7 only '+fmtLeft(endIn)+' left \u00b7 will fail'}
+    else{tag=more+" min more";sub='Studied <b>'+m2+'</b>'+ex+' \u00b7 Study <b>'+more+'</b> more \u00b7 ends in '+fmtLeft(endIn)}
+    top='<div class="sp-top"><span class="sp-lab">'+SCHED_LABELS[ci]+'</span><span class="sp-tag">'+tag+'</span>'+arrow+'</div><div class="sp-bar"><u style="width:'+pc+'%"></u></div><div class="sp-sub">'+sub+'</div>';
   }else if(hr<7){
-    top='<div class="sp-top"><span class="sp-lab">STUDY PLAN</span><span class="sp-tag">starts 7 AM</span><i>'+(schedOpen?"\u25B4":"\u25BE")+'</i></div>';
+    top='<div class="sp-top"><span class="sp-lab">STUDY PLAN</span><span class="sp-tag">starts 7 AM</span>'+arrow+'</div>';
   }else{
-    top='<div class="sp-top"><span class="sp-lab">DAY OVER</span><span class="sp-tag">'+pass+' pass \u00b7 '+fail+' fail</span><i>'+(schedOpen?"\u25B4":"\u25BE")+'</i></div>';
+    top='<div class="sp-top"><span class="sp-lab">DAY OVER</span><span class="sp-tag">'+pass+' pass \u00b7 '+fail+' fail</span>'+arrow+'</div>';
   }
-  var h=top+'<div class="sp-list">'+rows+'<div class="sp-foot">Passed '+pass+' \u00b7 Failed '+fail+' \u00b7 need '+SCHED_NEED+' min of play in each 2 hours</div></div>';
+  var h=top+'<div class="sp-list">'+rows+'<div class="sp-foot">Passed '+pass+' \u00b7 Failed '+fail+' \u00b7 extra saved '+pool+' min<br>Minutes above '+SCHED_NEED+' fill other blocks</div></div>';
   var on=!!g.running,key=(on?"1":"0")+(schedOpen?"o":"c")+cls+h;
   if(key!==schedKey){schedKey=key;schedBox.innerHTML=h;schedBox.className=(on?"on ":"")+(schedOpen?"open ":"")+cls}
   var st="SET "+(g.setIdx+1)+" / "+Math.max(1,g.setTotal),sk=(on?"1":"0")+st;
