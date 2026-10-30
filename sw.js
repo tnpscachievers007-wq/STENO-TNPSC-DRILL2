@@ -1,27 +1,49 @@
-const CACHE = "steno-drill-v7"; // change v7 -> v8 when you upload a new index.html
-const FILES = ["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png","./icon-maskable-512.png","./apple-touch-icon.png"];
+// Steno + TNPSC Drill service worker.
+// Network first: when you are online you always get the newest index.html.
+// When you are offline the last saved copy is used. Change CACHE to force a clean start.
+var CACHE = "steno-drill-2026-10-30-plan-v2";
 
-self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
-});
-
-self.addEventListener("activate", e => {
+self.addEventListener("install", function (e) {
+  self.skipWaiting();
   e.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
+    caches.open(CACHE).then(function (c) {
+      return Promise.all(
+        ["./", "./index.html", "./manifest.webmanifest"].map(function (u) {
+          return c.add(u).catch(function () {});
+        })
+      );
+    })
   );
 });
 
-self.addEventListener("fetch", e => {
-  const req = e.request;
-  if (req.method !== "GET" || new URL(req.url).origin !== location.origin) return;
+self.addEventListener("activate", function (e) {
+  e.waitUntil(
+    caches.keys().then(function (keys) {
+      return Promise.all(
+        keys.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); })
+      );
+    }).then(function () { return self.clients.claim(); })
+  );
+});
+
+self.addEventListener("fetch", function (e) {
+  var req = e.request;
+  if (req.method !== "GET") return;
+  var url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
   e.respondWith(
-    caches.match(req, { ignoreSearch: true }).then(hit => {
-      if (hit) return hit;
-      return fetch(req).then(res => {
-        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
-        return res;
-      }).catch(() => req.mode === "navigate" ? caches.match("./index.html") : Response.error());
+    fetch(req).then(function (res) {
+      if (res && res.status === 200) {
+        var copy = res.clone();
+        caches.open(CACHE).then(function (c) { c.put(req, copy); }).catch(function () {});
+      }
+      return res;
+    }).catch(function () {
+      return caches.match(req).then(function (hit) {
+        if (hit) return hit;
+        if (req.mode === "navigate") return caches.match("./index.html");
+        return Response.error();
+      });
     })
   );
 });

@@ -1633,6 +1633,36 @@ html body.game-mode:not(.gm-ui) #gmRoundList.on{display:flex;flex-direction:colu
 #gmRoundList .live{background:none;box-shadow:none}
 html body.game-mode:not(.gm-ui) #gmCardPill.on{background:var(--surface);border:1px solid var(--border-strong);color:var(--accent);box-shadow:var(--shadow-md)}
 html body.game-mode:not(.gm-ui) #gmRoundPill.on{background:var(--surface);border:1px solid var(--border-strong);color:var(--good-strong);box-shadow:var(--shadow-md)}
+/* Study plan panel (right side, game mode only): 7 AM to 11 PM, 90 minutes of play in every 2-hour block. Tap it to open or close the full list. */
+#gmSched,#gmSetPill{display:none}
+html body.game-mode #gmSched.on{display:block;position:fixed;right:calc(8px + env(safe-area-inset-right,0px));top:calc(86px + var(--safe-top));z-index:106;width:196px;padding:6px 9px 7px;border-radius:12px;background:var(--surface);border:1px solid var(--border-strong);box-shadow:var(--shadow-md);color:var(--text);font-size:11px;font-weight:800;line-height:1.45;font-variant-numeric:tabular-nums;cursor:pointer;user-select:none;-webkit-user-select:none;transition:border-color .2s,box-shadow .2s}
+html body.game-mode #gmSched.on:hover{border-color:var(--accent)}
+html body.game-mode.gm-ui #gmSched.on{top:calc(var(--gm-pad,0px) + var(--safe-top) + 8px)}
+html body.game-mode.gm-clean #gmSched,html body.game-mode.gm-clean #gmSetPill{display:none!important}
+#gmSched .sp-top{display:flex;align-items:center;gap:6px}
+#gmSched .sp-lab{font-size:10px;letter-spacing:.06em;color:var(--text-soft)}
+#gmSched .sp-tag{margin-left:auto;font-size:13px;font-weight:900;color:var(--accent)}
+#gmSched .sp-top i{font-style:normal;font-size:10px;color:var(--text-soft)}
+#gmSched .sp-bar,#gmSched .sp-mb{display:block;height:6px;border-radius:4px;background:var(--surface-sunken);overflow:hidden}
+#gmSched .sp-bar{margin:3px 0 2px;height:7px}
+#gmSched .sp-bar u,#gmSched .sp-mb u{display:block;height:100%;border-radius:4px;background:var(--accent);text-decoration:none;transition:width .5s ease}
+#gmSched .sp-sub{font-size:10.5px;font-weight:700;color:var(--text-soft)}
+#gmSched .sp-sub b{color:var(--text);font-weight:900}
+#gmSched .sp-list{margin-top:5px;padding-top:4px;border-top:1px solid var(--border-strong);display:none}
+#gmSched.open .sp-list{display:block;animation:popIn .2s ease}
+#gmSched .sp-row{display:grid;grid-template-columns:58px 1fr 56px;gap:6px;align-items:center;padding:1px 0}
+#gmSched .sp-row b{text-align:right;font-weight:900;white-space:nowrap}
+#gmSched .sp-row.pass b{color:var(--good-strong)}#gmSched .sp-row.pass .sp-mb u{background:var(--good-strong)}
+#gmSched .sp-row.fail b{color:var(--bad-strong)}#gmSched .sp-row.fail .sp-mb u{background:var(--bad-strong)}
+#gmSched .sp-row.now{color:var(--accent)}
+#gmSched .sp-row.fut{color:var(--text-soft);font-weight:700}
+#gmSched .sp-foot{margin-top:3px;font-size:10px;font-weight:800;color:var(--text-soft);text-align:center}
+#gmSched.pass{border-color:var(--good-strong)}#gmSched.pass .sp-tag{color:var(--good-strong)}#gmSched.pass .sp-bar u{background:var(--good-strong)}
+#gmSched.risk{border-color:var(--bad-strong)}#gmSched.risk .sp-tag{color:var(--bad-strong)}#gmSched.risk .sp-bar u{background:var(--bad-strong)}
+html body.game-mode #gmSetPill.on{display:flex;position:fixed;left:calc(8px + env(safe-area-inset-left,0px));top:calc(86px + var(--safe-top));z-index:106;height:30px;padding:0 12px;align-items:center;border-radius:var(--radius-pill);background:var(--surface);border:1px solid var(--border-strong);box-shadow:var(--shadow-md);color:var(--accent);font-size:14px;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none}
+html body.game-mode.gm-ui #gmSetPill.on{top:calc(var(--gm-pad,0px) + var(--safe-top) + 8px)}
+@media (max-width:600px){html body.game-mode #gmSched.on{width:164px;font-size:10px;padding:5px 7px 6px}#gmSched .sp-row{grid-template-columns:50px 1fr 48px}#gmSched .sp-tag{font-size:12px}}
+
 html body.game-mode #gmDonePill{background:var(--surface);border:1px solid var(--border-strong);color:#2b7be4;box-shadow:var(--shadow-md)}
 html body.game-mode #fmPauseBtn{background:var(--surface);border:1px solid var(--border-strong);color:#f59e0b;box-shadow:var(--shadow-md)}
 html body.game-mode #fmPauseBtn.paused{background:var(--surface);color:var(--accent)}
@@ -2200,7 +2230,7 @@ function mk(tag,id,cls,html){var e=document.createElement(tag);if(id)e.id=id;if(
 // not exist yet at that moment (otherwise every copy would carry a second set).
 function boot(){
 // Remove any old game elements (from copies made by older versions).
-["gameModeBtn","gmSetup","gmCount","gmResult","gmSwitch","gmBanner","gmHud","gmFlash","gmFx","gmBar","gmTime","gmUiBtn","gmFsBtn","gmCleanBtn","gmDonePill","gmRoundPill","gmCardPill","gmRoundList","gmQuit"].forEach(function(id){var e=document.getElementById(id);if(e&&e.parentNode)e.parentNode.removeChild(e)});
+["gameModeBtn","gmSetup","gmCount","gmResult","gmSwitch","gmBanner","gmHud","gmFlash","gmFx","gmBar","gmTime","gmUiBtn","gmFsBtn","gmCleanBtn","gmDonePill","gmRoundPill","gmCardPill","gmRoundList","gmSched","gmSetPill","gmQuit"].forEach(function(id){var e=document.getElementById(id);if(e&&e.parentNode)e.parentNode.removeChild(e)});
 
 var btn=mk("button","gameModeBtn","",'<span>🎮 GAME MODE</span><small>SET YOUR CARDS FOR THE DAY</small>');
 btn.type="button";
@@ -2226,7 +2256,7 @@ uiBtn.addEventListener("contextmenu",function(e){e.stopPropagation();e.preventDe
 var donePill=mk("div","gmDonePill","","\u2705 0 / 0");donePill.title="Cards finished";
 var roundPill=mk("div","gmRoundPill","","✓ Knew 0 / 0");roundPill.title="Cards marked Knew it in this round";
 var cardPill=mk("div","gmCardPill","","Card 0 / 0");cardPill.title="Which card of this round is on screen";
-var roundList=mk("div","gmRoundList","","");roundList.title="Knew it percentage in each round";
+// The ROUNDS / KNEW IT % box was removed.
 // Sit right next to the Pause button (its width changes between "Pause" and "Resume").
 function placePill(){try{var pb=document.getElementById("fmPauseBtn");if(pb&&document.body.classList.contains("game-mode")){var r=pb.getBoundingClientRect();if(r.width>0)donePill.style.left=Math.round(r.right+8)+"px"}}catch(e){}}
 setInterval(placePill,400);window.addEventListener("resize",placePill);
@@ -2379,7 +2409,7 @@ function setBlock(f){
   h+='<div class="gm-pre" style="margin-top:8px">';
   [[0,'Auto'],[10,'10'],[20,'20'],[30,'30'],[50,'50']].forEach(function(p){h+='<button type="button" data-st="'+p[0]+'"'+(cfg.setSize===p[0]?' style="outline:2px solid #8a3dff"':'')+'>'+p[1]+'</button>'});
   h+='</div>';
-  h+='<button type="button" class="gm-ordset'+(cfg.setRandom?' on':'')+'" id="gmSetRand" style="margin-top:8px"><span>🎲 RANDOM SETS</span><b>'+(cfg.setRandom?'ON · cut from random cards':'OFF · cut in file order')+'</b></button>';
+  h+='<button type="button" class="gm-ordset'+(cfg.setRandom?' on':'')+'" id="gmSetRand" style="margin-top:8px"><span>🎲 RANDOM SETS</span><b>'+(cfg.setRandom?'ON · cut from random cards · remembered':'OFF · cut in file order · remembered')+'</b></button>';
   h+='<p class="gm-sub" style="margin-top:8px">'+(n?(cfg.setSize?'Exactly '+cfg.setSize+' cards in each set.':'Auto: sets of 20. Up to 10 extra cards are shared equally; more than 10 extra stay as their own last set.')+'<br><b>'+n+' cards → '+lens.length+' set'+(lens.length===1?'':'s')+': '+lens.slice(0,8).join(' + ')+(lens.length>8?' + …':'')+'</b>':'No cards in this mode.')+'<br>Only the first set shows. Each set is played in both modes, one after the other. When every card is Knew in both, the next set starts by itself. After the last set, the next file starts.</p>';
   return h;
 }
@@ -2442,7 +2472,7 @@ function drawSetup(){
   $("gmCancel").onclick=function(){if(!g.running)leave()};
   if($("gmResume"))$("gmResume").onclick=resumeRun;
 }
-function openSetup(){cfg.order=true;cfg.setRandom=false;sj("stenoGameCfg2",cfg);result.classList.remove("open");drawSetup();setup.classList.add("open");setup.scrollTop=0}
+function openSetup(){cfg.order=true;sj("stenoGameCfg2",cfg);result.classList.remove("open");drawSetup();setup.classList.add("open");setup.scrollTop=0}
 function enterFocus(){
   var t=document.querySelector('.tab-btn[data-tab="trainer"]');if(t&&!t.classList.contains("active"))t.click();
   document.documentElement.classList.add("focus-mode");document.body.classList.add("focus-mode","game-mode");setUi(false);setClean(cleanSaved(),true);window.scrollTo(0,0);
@@ -2499,14 +2529,8 @@ function launch(){
   var started=false;
   function countdown(){
     if(started)return;started=true;
-    if(window.stenoNoCd){window.stenoNoCd=false;return begin()}
-    var n=3;cd.classList.add("open");
-    (function step(){
-      if(!g.active){cd.classList.remove("open");return}
-      cd.innerHTML="<b>"+(n>0?n:"GO!")+"</b>";tone(n>0?440:880,.25,"square",.06);
-      if(n<0){cd.classList.remove("open");return begin()}
-      n--;setTimeout(step,700);
-    })();
+    window.stenoNoCd=false;cd.classList.remove("open");
+    return begin();
   }
   countdown();
 }
@@ -2701,14 +2725,65 @@ function battery(){
   var key=txt+"|"+cls;
   if(key!==lastBattTxt){lastBattTxt=key;el.textContent=txt;el.className=cls}
 }
+// ---- Study plan: 7 AM to 11 PM, 8 blocks of 2 hours. Each block needs 90 minutes of GAME MODE play. ----
+var SCHED_LABELS=["7\u20139 AM","9\u201311 AM","11 AM\u20131 PM","1\u20133 PM","3\u20135 PM","5\u20137 PM","7\u20139 PM","9\u201311 PM"];
+var SCHED_NEED=90;
+var schedBox=mk("div","gmSched","");
+var setPill=mk("div","gmSetPill","");setPill.title="Which set is playing now";
+function schedFresh(){return {date:today(),ms:[0,0,0,0,0,0,0,0]}}
+var sched=(function(){var o=lj("stenoGameBlocks");return (o.date===today()&&Array.isArray(o.ms)&&o.ms.length===8)?o:schedFresh()})();
+var schedSaved=0,schedKey="",setKey="",schedOpen=false;
+try{schedOpen=localStorage.getItem("stenoGameSchedOpen")==="1"}catch(e){}
+// The box can be tapped (open / close the full list). Its clicks never reach the card behind it.
+["dblclick","mousedown","mouseup","auxclick","pointerdown","pointerup","touchstart","touchend","wheel"].forEach(function(t){schedBox.addEventListener(t,function(e){e.stopPropagation()},{passive:true})});
+schedBox.addEventListener("contextmenu",function(e){e.stopPropagation();e.preventDefault()});
+schedBox.addEventListener("click",function(e){e.stopPropagation();schedOpen=!schedOpen;try{localStorage.setItem("stenoGameSchedOpen",schedOpen?"1":"0")}catch(x){}schedKey="";schedRender()});
+function schedIdx(d){var h=d.getHours();return (h>=7&&h<23)?Math.floor((h-7)/2):-1}
+function schedAdd(dt){
+  if(sched.date!==today())sched=schedFresh();
+  var i=schedIdx(new Date());if(i<0||!(dt>0))return;
+  sched.ms[i]+=dt;
+  if(Date.now()-schedSaved>5000){schedSaved=Date.now();sj("stenoGameBlocks",sched)}
+}
+window.addEventListener("pagehide",function(){sj("stenoGameBlocks",sched)});
+function fmtLeft(m){m=Math.max(0,Math.round(m));return m>=60?Math.floor(m/60)+"h "+(m%60)+"m":m+"m"}
+function schedRender(){
+  if(sched.date!==today())sched=schedFresh();
+  var now=new Date(),ci=schedIdx(now),hr=now.getHours(),i,pass=0,fail=0,rows="",top="",cls="";
+  for(i=0;i<8;i++){
+    var m=Math.floor(sched.ms[i]/60000),ended=hr>=7+2*(i+1),rc,txt,w=Math.min(100,m/SCHED_NEED*100);
+    if(ended){if(m>=SCHED_NEED){pass++;rc="pass";txt=m+" \u2713"}else{fail++;rc="fail";txt=m+" \u2717 \u2212"+(SCHED_NEED-m)}}
+    else if(i===ci){if(m>=SCHED_NEED){rc="pass";txt=m+" \u2713"}else{rc="now";txt=m+"/"+SCHED_NEED}}
+    else{rc="fut";txt="\u2014";w=0}
+    rows+='<div class="sp-row '+rc+'"><span>'+SCHED_LABELS[i]+'</span><span class="sp-mb"><u style="width:'+w+'%"></u></span><b>'+txt+'</b></div>';
+  }
+  if(ci>=0){
+    var m2=Math.floor(sched.ms[ci]/60000),more=Math.max(0,SCHED_NEED-m2),endIn=(7+2*(ci+1))*60-(hr*60+now.getMinutes()),pc=Math.min(100,m2/SCHED_NEED*100);
+    var tag,sub;
+    if(m2>=SCHED_NEED){cls="pass";tag="PASS \u2713";sub='Studied <b>'+m2+'</b> min \u00b7 target done'}
+    else if(more>endIn){cls="risk";tag=more+" min more";sub='Studied <b>'+m2+'</b> \u00b7 only '+fmtLeft(endIn)+' left \u00b7 will fail'}
+    else{tag=more+" min more";sub='Studied <b>'+m2+'</b> \u00b7 Study <b>'+more+'</b> more \u00b7 ends in '+fmtLeft(endIn)}
+    top='<div class="sp-top"><span class="sp-lab">'+SCHED_LABELS[ci]+'</span><span class="sp-tag">'+tag+'</span><i>'+(schedOpen?"\u25B4":"\u25BE")+'</i></div><div class="sp-bar"><u style="width:'+pc+'%"></u></div><div class="sp-sub">'+sub+'</div>';
+  }else if(hr<7){
+    top='<div class="sp-top"><span class="sp-lab">STUDY PLAN</span><span class="sp-tag">starts 7 AM</span><i>'+(schedOpen?"\u25B4":"\u25BE")+'</i></div>';
+  }else{
+    top='<div class="sp-top"><span class="sp-lab">DAY OVER</span><span class="sp-tag">'+pass+' pass \u00b7 '+fail+' fail</span><i>'+(schedOpen?"\u25B4":"\u25BE")+'</i></div>';
+  }
+  var h=top+'<div class="sp-list">'+rows+'<div class="sp-foot">Passed '+pass+' \u00b7 Failed '+fail+' \u00b7 need '+SCHED_NEED+' min of play in each 2 hours</div></div>';
+  var on=!!g.running,key=(on?"1":"0")+(schedOpen?"o":"c")+cls+h;
+  if(key!==schedKey){schedKey=key;schedBox.innerHTML=h;schedBox.className=(on?"on ":"")+(schedOpen?"open ":"")+cls}
+  var st="SET "+(g.setIdx+1)+" / "+Math.max(1,g.setTotal),sk=(on?"1":"0")+st;
+  if(sk!==setKey){setKey=sk;setPill.textContent="\ud83c\udfaf "+st;setPill.classList.toggle("on",on)}
+}
 var lastTick=Date.now();
 window.stenoGameMs=function(){return g.ms};
 setInterval(function(){
   var now=Date.now(),dt=now-lastTick;lastTick=now;
   if(dt>2000)dt=0;
-  if(g.running&&!document.hidden&&!anyOpen()&&!(A()&&A().paused())){g.ms+=dt;try{if(window.stenoPlayTick)window.stenoPlayTick(dt)}catch(e){}}
+  if(g.running&&!document.hidden&&!anyOpen()&&!(A()&&A().paused())){g.ms+=dt;try{schedAdd(dt)}catch(e){}try{if(window.stenoPlayTick)window.stenoPlayTick(dt)}catch(e){}}
   clock();battery();
   if(g.running)track();
+  try{schedRender()}catch(e){}
 },250);
 function pop(txt,bad){var p=document.createElement("div");p.className="gm-pop"+(bad?" bad":"");p.textContent=txt;document.body.appendChild(p);setTimeout(function(){p.remove()},900)}
 function flash(c){var f=$("gmFlash");f.className="";void f.offsetWidth;f.className=c}
