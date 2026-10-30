@@ -6301,18 +6301,22 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     var cardEl = document.getElementById("cardEl");
     var insideCard = cardEl && cardEl.contains(e.target);
 
-    if(!state.session.revealed){
-      reveal();
+    // Game play: the click works straight away, whether or not the card has been revealed.
+    //  - Touch screen: right half = Knew it, left half = Missed it (the info panel has a switch to swap them).
+    //  - Mouse: left click = Missed it (right click = Knew it, handled below in the contextmenu handler).
+    if(document.body.classList.contains("game-mode") && window.stenoGameLive){
+      if(lastPtrType !== "mouse"){
+        var onRight = e.clientX >= (window.innerWidth / 2);
+        var swapped = false;
+        try{ swapped = localStorage.getItem("stenoTapSwap") === "1"; }catch(err){}
+        judge((onRight !== swapped) ? "knew" : "missed");
+      } else {
+        judge("missed");
+      }
       return;
     }
-    // Game mode on a touch screen: right half of the screen = Knew it, left half = Missed it.
-    // The game's info panel has a switch that swaps the two sides. A mouse is unchanged
-    // (left click = Missed it, right click = Knew it).
-    if(document.body.classList.contains("game-mode") && window.stenoGameLive && lastPtrType !== "mouse"){
-      var onRight = e.clientX >= (window.innerWidth / 2);
-      var swapped = false;
-      try{ swapped = localStorage.getItem("stenoTapSwap") === "1"; }catch(err){}
-      judge((onRight !== swapped) ? "knew" : "missed");
+    if(!state.session.revealed){
+      reveal();
       return;
     }
     // Revealed: left click anywhere = Missed it.
@@ -6682,9 +6686,12 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       if(e.target.closest("button, input, textarea, select, a")) return;
       e.preventDefault();
     }
+    if(document.body.classList.contains("game-mode") && window.stenoGameLive){
+      // Game play: right click = Knew it straight away, even if the card is not revealed yet.
+      judge("knew");
+      return;
+    }
     if(!state.session.revealed){
-      // In game play: right click reveals the card, and when auto-miss time ends it goes to "Knew it".
-      if(document.body.classList.contains("game-mode") && window.stenoGameLive) gameRightKnew = true;
       reveal();
     }
     else judge("knew");
