@@ -3006,9 +3006,14 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     }catch(e){
       console.warn("Could not save progress (storage may be full):", e);
     }
+    var af = activeFile();
+    if(af) af.words = state.words;
+    // Writing the library means turning every card and image into one huge text. With hundreds of
+    // cards that takes seconds, so only do it when the library really changed (not on every tap).
+    var sig = null;
+    try{ sig = libSignature(); }catch(e){ sig = null; }
+    if(sig !== null && sig === lastLibSig) return;
     try{
-      var af = activeFile();
-      if(af) af.words = state.words;
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         files: state.files,
         activeFileId: state.activeFileId,
@@ -3016,7 +3021,27 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       }));
     }catch(e){
       console.warn("Could not save library (storage may be full):", e);
+      if(!window.__stenoQuotaWarned){
+        window.__stenoQuotaWarned = true;
+        try{ alert("This phone's browser storage is full, so the cards you just imported may be lost when you close the app. Try importing fewer cards at a time, or remove files you no longer need."); }catch(e2){}
+      }
     }
+    lastLibSig = sig;
+  }
+  var lastLibSig = null;
+  function libSignature(){
+    var parts = [String(state.activeFileId), JSON.stringify(state.settings)];
+    var act = activeFile();
+    state.files.forEach(function(f){
+      var ws = (act && f.id === act.id) ? state.words : f.words;
+      parts.push(f.id + "|" + f.name + "|" + (f.kind || "") + "|" + ws.length);
+      ws.forEach(function(w){
+        var im = w.image, au = w.audio;
+        parts.push(w.id + "|" + w.text + "|" + (w.answer || "") + "|" + (w.answerBak || "") + "|" +
+          (im ? im.length + ":" + String(im).slice(-24) : 0) + "|" + (au ? au.length + ":" + String(au).slice(-24) : 0));
+      });
+    });
+    return parts.join("\n");
   }
 
   function load(){
@@ -3733,7 +3758,12 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   function growAll(){
     var l = document.getElementById("wordList");
     if(!l) return;
-    Array.prototype.forEach.call(l.querySelectorAll("textarea.inline-edit"), growBox);
+    // Batch it: reset all heights, read all heights, then write all heights. Doing it one box at a
+    // time forces a full page layout per card, which freezes the app when a file has hundreds of cards.
+    var tas = Array.prototype.filter.call(l.querySelectorAll("textarea.inline-edit"), function(t){ return !!t.offsetParent; });
+    tas.forEach(function(t){ t.style.height = "auto"; });
+    var hs = tas.map(function(t){ return t.scrollHeight + 2; });
+    tas.forEach(function(t, i){ t.style.height = hs[i] + "px"; });
   }
   window.addEventListener("resize", growAll);
 
@@ -4315,6 +4345,9 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       files.reduce(function(chain, file){
         return chain.then(function(){
           return readText(file).then(function(text){
+            status.textContent = "Importing " + file.name + "\u2026 please wait, big files take a few seconds.";
+            return new Promise(function(r){ setTimeout(r, 60); }).then(function(){ return text; });
+          }).then(function(text){
             try{ msgs.push(importFromHtmlFile(text, file.name)); }
             catch(e){ console.warn("HTML import failed:", e); msgs.push(file.name + ": could not read."); }
           }, function(){ msgs.push(file.name + ": could not read."); });
@@ -4375,24 +4408,32 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     // Scan for the matching closing brace, respecting JSON string literals
     // (which may contain escaped characters) so an embedded stroke image's
     // data URI or a word's text never confuses the brace count.
-    var depth = 0, inStr = false, esc = false;
-    for(var i = start; i < htmlText.length; i++){
-      var c = htmlText.charAt(i);
-      if(inStr){
-        if(esc) esc = false;
-        else if(c === "\\") esc = true;
-        else if(c === '"') inStr = false;
+    // Jump from quote to quote with indexOf instead of looking at every character; a file with
+    // hundreds of embedded images is tens of megabytes of text.
+    var depth = 0, i = start, n = htmlText.length;
+    while(i < n){
+      var c = htmlText.charCodeAt(i);
+      if(c === 34){
+        i++;
+        while(true){
+          var q = htmlText.indexOf('"', i);
+          if(q === -1) return null;
+          var b = q - 1, k = 0;
+          while(b >= i && htmlText.charCodeAt(b) === 92){ k++; b--; }
+          i = q + 1;
+          if(k % 2 === 0) break;
+        }
         continue;
       }
-      if(c === '"'){ inStr = true; continue; }
-      if(c === "{") depth++;
-      else if(c === "}"){
+      if(c === 123) depth++;
+      else if(c === 125){
         depth--;
         if(depth === 0){
           try{ return JSON.parse(htmlText.slice(start, i + 1)); }
           catch(e){ return null; }
         }
       }
+      i++;
     }
     return null;
   }

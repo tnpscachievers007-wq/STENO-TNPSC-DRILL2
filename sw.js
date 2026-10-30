@@ -1,4 +1,4 @@
-const CACHE = "steno-drill-v4"; // change v4 -> v5 when you upload a new index.html
+const CACHE = "steno-drill-v5"; // change v5 -> v6 when you upload a new index.html
 const FILES = ["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png","./icon-maskable-512.png","./apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
