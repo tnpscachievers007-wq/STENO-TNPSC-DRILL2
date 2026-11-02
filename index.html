@@ -1294,10 +1294,10 @@ body.game-mode #trainerBody{padding-top:calc(var(--gm-pad,310px) + var(--safe-to
 #gmBatt.chg{color:var(--good-strong)}
 #gmPace.ahead b{color:var(--good-strong)}#gmPace.behind b{color:var(--bad-strong)}
 .gm-cp{display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:13.5px;font-weight:800}
-#gmOrderQuick,#gmMissQuick{display:none;position:fixed;top:calc(6px + var(--safe-top));z-index:107;height:28px;padding:0 8px;align-items:center;justify-content:center;gap:5px;white-space:nowrap;font:800 11px/1 var(--font);font-variant-numeric:tabular-nums;border-radius:var(--radius-pill);background:var(--surface);border:1px solid var(--border-strong);color:var(--text);box-shadow:var(--shadow-md);cursor:pointer;-webkit-tap-highlight-color:transparent}
+#gmOrderQuick,#gmMissQuick{display:none;position:fixed;top:calc(6px + var(--safe-top));z-index:107;height:22px;padding:0 7px;align-items:center;justify-content:center;gap:3px;white-space:nowrap;font:800 10px/1 var(--font);font-variant-numeric:tabular-nums;border-radius:var(--radius-pill);background:var(--surface);border:1px solid var(--border-strong);color:var(--text);box-shadow:var(--shadow-md);cursor:pointer;-webkit-tap-highlight-color:transparent}
 #gmOrderQuick:active,#gmMissQuick:active{transform:scale(.95)}
 #gmOrderQuick.on{border-color:var(--good-strong);background:var(--good-soft);color:var(--good-strong)}
-#gmMissQuick .mq{padding:3px 7px;border-radius:999px;color:var(--text-soft);font-weight:800}
+#gmMissQuick .mq-unused{padding:3px 7px;border-radius:999px;color:var(--text-soft);font-weight:800}
 #gmMissQuick .mq.act{background:var(--bad-strong);color:#fff}
 #gmMissQuick .mqn{color:var(--text-soft);font-weight:700}
 #gmMissQuick{color:var(--bad-strong)}
@@ -2281,8 +2281,8 @@ function placePill(){try{
   var gm=document.body.classList.contains("game-mode")&&g.running;
   ordQ.style.display=missQ.style.display=gm?"flex":"none";
   ordQ.textContent="\uD83D\uDD22 Order "+(g.order?"ON":"OFF");ordQ.classList.toggle("on",!!g.order);
-  var mk5=cfg.miss===5,mk8=cfg.miss===8,mkh="\u23f1 Miss "+(mk5||mk8?"":'<span class="mqn">now '+cfg.miss+'s</span>')+'<span class="mq'+(mk5?" act":"")+'">5s</span><span class="mq'+(mk8?" act":"")+'">8s</span>';
-  if(missQ.dataset.h!==mkh){missQ.dataset.h=mkh;missQ.innerHTML=mkh}
+  var mkh="\u23f1 "+cfg.miss+"s";
+  if(missQ.dataset.h!==mkh){missQ.dataset.h=mkh;missQ.textContent=mkh}
   var pb=document.getElementById("fmPauseBtn");
   if(pb&&document.body.classList.contains("game-mode")){
     var r=pb.getBoundingClientRect();
