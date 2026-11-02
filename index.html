@@ -1294,6 +1294,10 @@ body.game-mode #trainerBody{padding-top:calc(var(--gm-pad,310px) + var(--safe-to
 #gmBatt.chg{color:var(--good-strong)}
 #gmPace.ahead b{color:var(--good-strong)}#gmPace.behind b{color:var(--bad-strong)}
 .gm-cp{display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:13.5px;font-weight:800}
+#gmOrderQuick,#gmMissQuick{display:none;position:fixed;top:calc(6px + var(--safe-top));z-index:107;height:36px;padding:0 11px;align-items:center;justify-content:center;white-space:nowrap;font:800 12.5px/1 var(--font);font-variant-numeric:tabular-nums;border-radius:var(--radius-pill);background:var(--surface);border:1px solid var(--border-strong);color:var(--text);box-shadow:var(--shadow-md);cursor:pointer;-webkit-tap-highlight-color:transparent}
+#gmOrderQuick:active,#gmMissQuick:active{transform:scale(.95)}
+#gmOrderQuick.on{border-color:var(--good-strong);color:var(--good-strong)}
+#gmMissQuick{color:var(--bad-strong)}
 #gmDone{color:#12a15b}
 #gmPend{color:#e08a00}
 #gmStat.ahead{color:var(--good-strong)}#gmStat.behind{color:var(--bad-strong)}
@@ -2230,7 +2234,7 @@ function mk(tag,id,cls,html){var e=document.createElement(tag);if(id)e.id=id;if(
 // not exist yet at that moment (otherwise every copy would carry a second set).
 function boot(){
 // Remove any old game elements (from copies made by older versions).
-["gameModeBtn","gmSetup","gmCount","gmResult","gmSwitch","gmBanner","gmHud","gmFlash","gmFx","gmBar","gmTime","gmUiBtn","gmFsBtn","gmCleanBtn","gmDonePill","gmRoundPill","gmCardPill","gmRoundList","gmSched","gmSetPill","gmQuit"].forEach(function(id){var e=document.getElementById(id);if(e&&e.parentNode)e.parentNode.removeChild(e)});
+["gameModeBtn","gmSetup","gmCount","gmResult","gmSwitch","gmBanner","gmHud","gmFlash","gmFx","gmBar","gmTime","gmUiBtn","gmFsBtn","gmCleanBtn","gmDonePill","gmRoundPill","gmCardPill","gmRoundList","gmSched","gmSetPill","gmQuit","gmOrderQuick","gmMissQuick"].forEach(function(id){var e=document.getElementById(id);if(e&&e.parentNode)e.parentNode.removeChild(e)});
 
 var btn=mk("button","gameModeBtn","",'<span>🎮 GAME MODE</span><small>SET YOUR CARDS FOR THE DAY</small>');
 btn.type="button";
@@ -2258,7 +2262,33 @@ var roundPill=mk("div","gmRoundPill","","✓ Knew 0 / 0");roundPill.title="Cards
 var cardPill=mk("div","gmCardPill","","Card 0 / 0");cardPill.title="Which card of this round is on screen";
 // The ROUNDS / KNEW IT % box was removed.
 // Sit right next to the Pause button (its width changes between "Pause" and "Resume").
-function placePill(){try{var pb=document.getElementById("fmPauseBtn");if(pb&&document.body.classList.contains("game-mode")){var r=pb.getBoundingClientRect();if(r.width>0)donePill.style.left=Math.round(r.right+8)+"px"}}catch(e){}}
+var ordQ=mk("button","gmOrderQuick","","");ordQ.type="button";ordQ.title="Card order ON / OFF";
+var missQ=mk("button","gmMissQuick","","");missQ.type="button";missQ.title="Auto-miss time: switch between 5 s and 8 s";
+[ordQ,missQ].forEach(function(b){
+  b.addEventListener("click",function(e){e.stopPropagation()});
+  b.addEventListener("contextmenu",function(e){e.stopPropagation();e.preventDefault()});
+  b.addEventListener("dblclick",function(e){e.stopPropagation()});
+  b.addEventListener("mousedown",function(e){e.stopPropagation()});
+  b.addEventListener("auxclick",function(e){e.stopPropagation()});
+});
+ordQ.addEventListener("click",function(){var b=$("gmOrderBtn");if(b)b.click();this.blur()});
+missQ.addEventListener("click",function(){setMiss(cfg.miss===5?8:5);say("\u23f1 Auto-miss "+cfg.miss+" s");this.blur()});
+// Sit right next to the Pause button (its width changes between "Pause" and "Resume"): Order, then Auto-miss, then the done pill.
+function placePill(){try{
+  var gm=document.body.classList.contains("game-mode")&&g.running;
+  ordQ.style.display=missQ.style.display=gm?"flex":"none";
+  ordQ.textContent="\uD83D\uDD22 Order "+(g.order?"ON":"OFF");ordQ.classList.toggle("on",!!g.order);
+  missQ.textContent="\u23f1 Miss "+cfg.miss+"s \u21c4 "+(cfg.miss===5?8:5)+"s";
+  var pb=document.getElementById("fmPauseBtn");
+  if(pb&&document.body.classList.contains("game-mode")){
+    var r=pb.getBoundingClientRect();
+    if(r.width>0){
+      var x=Math.round(r.right+8);
+      if(gm){ordQ.style.left=x+"px";x=Math.round(x+ordQ.getBoundingClientRect().width+8);missQ.style.left=x+"px";x=Math.round(x+missQ.getBoundingClientRect().width+8)}
+      donePill.style.left=x+"px";
+    }
+  }
+}catch(e){}}
 setInterval(placePill,400);window.addEventListener("resize",placePill);
 var fsBtn=mk("button","gmFsBtn","","\u26F6");fsBtn.type="button";fsBtn.setAttribute("aria-label","Full screen");
 function fsEl(){return document.fullscreenElement||document.webkitFullscreenElement||null}
