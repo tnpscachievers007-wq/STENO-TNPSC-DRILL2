@@ -1,6 +1,6 @@
 // Steno + TNPSC Drill service worker.
 // Bump CACHE_VERSION on every upload so phones and browsers pick up the new index.html.
-const CACHE_VERSION = 'steno-drill-v4-reels-voice';
+const CACHE_VERSION = 'steno-drill-v5-reels-voice';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', function (e) {

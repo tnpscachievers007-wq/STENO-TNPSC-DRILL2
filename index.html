@@ -8130,7 +8130,9 @@ function openSheet(mode){
   h+='<div class="rl-row"><label>Cards in each set (empty = Auto)</label><div class="rl-stp"><input type="number" inputmode="numeric" min="0" data-n="setSize" placeholder="Auto" value="'+(cfg.setSize||"")+'"></div><div class="rl-chips" style="margin-top:8px">'+[[0,"Auto"],[10,"10"],[20,"20"],[30,"30"],[50,"50"]].map(function(p){return chip("sz",p[0],p[1],cfg.setSize===p[0])}).join("")+'</div></div>';
   h+='<div class="rl-row"><label>Random sets</label><div class="rl-chips">'+chip("setRandom","1","🎲 ON",cfg.setRandom)+chip("setRandom","0","OFF · file order",!cfg.setRandom)+'</div></div>';
   var curFid=live&&R.fl&&R.fl[R.fi]?R.fl[R.fi]:null,curSets=curFid?getSets(curFid):[];
-  if(live&&curSets.length>1)h+='<div class="rl-row"><label>Play a set of the file now playing (same mode) · tap to jump</label><div class="rl-chips">'+curSets.map(function(st,i){return chip("pset",i,"Set "+(i+1)+" · "+st.length,R.si===i)}).join("")+'</div></div>';
+  if(live&&curSets.length>=1){var jm=R.jm||R.modes[R.mi];
+    h+='<div class="rl-row"><label>Mode for the set you pick</label><div class="rl-chips">'+chip("pmode","s2w","Stroke/Question → Word/Answer",jm==="s2w")+chip("pmode","w2s","Word/Answer → Stroke/Question",jm==="w2s")+'</div></div>';
+    h+='<div class="rl-row"><label>Play a set of the file now playing · tap to jump (uses the mode above)</label><div class="rl-chips">'+curSets.map(function(st,i){return chip("pset",i,"Set "+(i+1)+" · "+st.length,R.si===i&&R.modes[R.mi]===jm)}).join("")+'</div></div>'}
   else if(!live&&lens.length>1)h+='<div class="rl-row"><label>Start from set</label><div class="rl-chips">'+lens.map(function(L,i){return chip("sset",i,"Set "+(i+1)+" · "+L,(cfg.startSet|0)===i)}).join("")+'</div></div>';
   h+='<p>'+(n?n+' cards → '+lens.length+' set'+(lens.length===1?'':'s')+': '+lens.slice(0,8).join(' + ')+(lens.length>8?' + …':''):'No cards.')+' A set moves on only when every card is Knew; missed cards come back in a short round.</p>';
   h+=num("rev","Auto-reveal (s)",1)+num("miss","Auto-miss (s)",1)+num("knewNeed","Knew it clicks to finish a card",1)+num("pace","Pace target (s per card)",1);
@@ -8145,7 +8147,8 @@ function openSheet(mode){
     if(e.target===sh&&live){closeSheet();return}
     var c=e.target.closest(".rl-chip");if(!c)return;var g=c.dataset.g,v=c.dataset.v;
     if(g==="file"){cfg.file=v;cfg.startSet=0}
-    else if(g==="pset"){closeSheet(true);clearTimeout(R.endT);R.rKnew=R.rMiss=0;if(!pass(R.fi,+v,R.mi,null))finish();return}
+    else if(g==="pmode"){R.jm=v;again();return}
+    else if(g==="pset"){var pm=R.modes.indexOf(R.jm||R.modes[R.mi]);if(pm<0)pm=R.mi;R.jm=null;closeSheet(true);clearTimeout(R.endT);R.rKnew=R.rMiss=0;if(!pass(R.fi,+v,pm,null))finish();return}
     else if(g==="sset")cfg.startSet=+v;
     else if(g==="sz")cfg.setSize=+v;
     else if(g==="order")cfg.order=v==="1";
