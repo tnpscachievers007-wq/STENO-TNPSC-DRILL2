@@ -2251,7 +2251,7 @@ var result=mk("div","gmResult","gm-ov");
 var sw=mk("div","gmSwitch","gm-ov");
 mk("div","gmFlash");
 var banner=mk("div","gmBanner");
-mk("div","gmHud","",'<div class="gm-row"><span id="gmCards">0 / 0</span><span id="gmToday" title="Total cards done today">Today 0</span><span class="sc" id="gmScore">⭐ 0</span><span id="gmCombo"></span><button id="gmInfo" type="button" aria-label="More details">ⓘ</button><button id="gmMute" type="button" aria-label="Sound">🔊</button><button id="gmQuit" type="button">✖ Exit</button></div><div class="gm-track"><div class="gm-fill" id="gmFill"></div><span class="gm-mk" id="gmGhost">👻</span><span class="gm-mk" id="gmRocket">🚀</span><span id="gmFlag">🏁</span></div><div id="gmLine"><span id="gmClock"></span><span id="gmBatt" title="Battery"></span><span id="gmPace"></span></div><div id="gmRoundRow"></div><div class="gm-sw"><button type="button" id="gmFileBtn"></button><button type="button" id="gmModeBtn"></button><button type="button" id="gmOrderBtn"></button></div><div id="gmImgRow"><span>\ud83d\uddbc Image size</span><input type="range" id="gmImg" min="10" max="100" step="5" aria-label="Card image size"><span id="gmImgV"></span></div><div id="gmTxtRow"><span>\ud83d\udd24 Text size</span><input type="range" id="gmTxt" min="40" max="250" step="10" aria-label="Card text size"><span id="gmTxtV"></span></div><div id="gmRevRow"><span>\u23f1 Auto-reveal time</span><button type="button" id="gmRevDn" aria-label="Less">\u2212</button><input type="number" id="gmRevIn" min="1" max="9999" step="1" inputmode="numeric" aria-label="Auto-reveal seconds"><button type="button" id="gmRevUp" aria-label="More">+</button><span style="flex:none">s</span></div><div id="gmMissRow"><span>\u23f1 Auto-miss time</span><button type="button" id="gmMissDn" aria-label="Less">\u2212</button><input type="number" id="gmMissIn" min="1" max="9999" step="1" inputmode="numeric" aria-label="Auto-miss seconds"><button type="button" id="gmMissUp" aria-label="More">+</button><span style="flex:none">s</span></div><div id="gmKnewRow"><span>✓ Knew it clicks to finish a card</span><button type="button" id="gmKnewDn" aria-label="Less">−</button><input type="number" id="gmKnewIn" min="1" max="99" step="1" inputmode="numeric" aria-label="Knew it clicks needed per card"><button type="button" id="gmKnewUp" aria-label="More">+</button><span style="flex:none">×</span></div><div id="gmTtsRow"><span>\ud83d\udd0a Read aloud</span><button type="button" id="gmTtsBtn"></button></div><div id="gmSwapRow"><span>\ud83d\udc46 Tap right half =</span><button type="button" id="gmSwapBtn"></button></div><div id="gmMore"><div id="gmStat"></div><div id="gmEtaYou"></div><div id="gmEtaTgt"></div><div class="gm-cp"><span id="gmDone">Completed: 0</span><span id="gmPend">Pending: 0</span></div></div>');
+mk("div","gmHud","",'<div class="gm-row"><span id="gmCards">0 / 0</span><span id="gmToday" title="Total cards done today">Today 0</span><span class="sc" id="gmScore">⭐ 0</span><span id="gmCombo"></span><button id="gmInfo" type="button" aria-label="More details">ⓘ</button><button id="gmMute" type="button" aria-label="Sound">🔊</button><button id="gmQuit" type="button">✖ Exit</button></div><div class="gm-track"><div class="gm-fill" id="gmFill"></div><span class="gm-mk" id="gmGhost">👻</span><span class="gm-mk" id="gmRocket">🚀</span><span id="gmFlag">🏁</span></div><div id="gmLine"><span id="gmClock"></span><span id="gmBatt" title="Battery"></span><span id="gmPace"></span></div><div id="gmRoundRow"></div><div class="gm-sw"><button type="button" id="gmFileBtn"></button><button type="button" id="gmModeBtn"></button><button type="button" id="gmOrderBtn"></button><button type="button" id="gmRestartBtn"><small>↻ RESTART · tap</small><b>This set</b></button></div><div id="gmImgRow"><span>\ud83d\uddbc Image size</span><input type="range" id="gmImg" min="10" max="100" step="5" aria-label="Card image size"><span id="gmImgV"></span></div><div id="gmTxtRow"><span>\ud83d\udd24 Text size</span><input type="range" id="gmTxt" min="40" max="250" step="10" aria-label="Card text size"><span id="gmTxtV"></span></div><div id="gmRevRow"><span>\u23f1 Auto-reveal time</span><button type="button" id="gmRevDn" aria-label="Less">\u2212</button><input type="number" id="gmRevIn" min="1" max="9999" step="1" inputmode="numeric" aria-label="Auto-reveal seconds"><button type="button" id="gmRevUp" aria-label="More">+</button><span style="flex:none">s</span></div><div id="gmMissRow"><span>\u23f1 Auto-miss time</span><button type="button" id="gmMissDn" aria-label="Less">\u2212</button><input type="number" id="gmMissIn" min="1" max="9999" step="1" inputmode="numeric" aria-label="Auto-miss seconds"><button type="button" id="gmMissUp" aria-label="More">+</button><span style="flex:none">s</span></div><div id="gmKnewRow"><span>✓ Knew it clicks to finish a card</span><button type="button" id="gmKnewDn" aria-label="Less">−</button><input type="number" id="gmKnewIn" min="1" max="99" step="1" inputmode="numeric" aria-label="Knew it clicks needed per card"><button type="button" id="gmKnewUp" aria-label="More">+</button><span style="flex:none">×</span></div><div id="gmTtsRow"><span>\ud83d\udd0a Read aloud</span><button type="button" id="gmTtsBtn"></button></div><div id="gmSwapRow"><span>\ud83d\udc46 Tap right half =</span><button type="button" id="gmSwapBtn"></button></div><div id="gmMore"><div id="gmStat"></div><div id="gmEtaYou"></div><div id="gmEtaTgt"></div><div class="gm-cp"><span id="gmDone">Completed: 0</span><span id="gmPend">Pending: 0</span></div></div>');
 var fx=mk("canvas","gmFx");fx.style.display="none";
 // One icon that shows / hides everything (time, cards done, score, bar, Exit, Pause, Prev, Next).
 var uiBtn=mk("button","gmUiBtn","","\u2630");uiBtn.type="button";uiBtn.setAttribute("aria-label","Show or hide game info");
@@ -2448,6 +2448,7 @@ function setBlock(f){
   [[0,'Auto'],[10,'10'],[20,'20'],[30,'30'],[50,'50']].forEach(function(p){h+='<button type="button" data-st="'+p[0]+'"'+(cfg.setSize===p[0]?' style="outline:2px solid #8a3dff"':'')+'>'+p[1]+'</button>'});
   h+='</div>';
   h+='<button type="button" class="gm-ordset'+(cfg.setRandom?' on':'')+'" id="gmSetRand" style="margin-top:8px"><span>🎲 RANDOM SETS</span><b>'+(cfg.setRandom?'ON · cut from random cards · remembered':'OFF · cut in file order · remembered')+'</b></button>';
+  if(lens.length>1){h+='<div class="gm-lbl" style="margin-top:10px">START FROM SET</div><div class="gm-pre">';lens.forEach(function(L,i){h+='<button type="button" data-ss="'+i+'"'+((cfg.startSet|0)===i?' style="outline:2px solid #8a3dff"':'')+'>Set '+(i+1)+' · '+L+'</button>'});h+='</div>'}
   h+='<p class="gm-sub" style="margin-top:8px">'+(n?(cfg.setSize?'Exactly '+cfg.setSize+' cards in each set.':'Auto: sets of 20. Up to 10 extra cards are shared equally; more than 10 extra stay as their own last set.')+'<br><b>'+n+' cards → '+lens.length+' set'+(lens.length===1?'':'s')+': '+lens.slice(0,8).join(' + ')+(lens.length>8?' + …':'')+'</b>':'No cards in this mode.')+'<br>Only the first set shows. Each set is played in both modes, one after the other. When every card is Knew in both, the next set starts by itself. After the last set, the next file starts.</p>';
   return h;
 }
@@ -2495,7 +2496,8 @@ function drawSetup(){
   if(stats.plays)h+='<p class="gm-sub" style="margin-top:8px">🏆 Best score '+stats.best+' · Games finished '+stats.plays+'</p>';
   setup.innerHTML=h+'</div>';
   setup.scrollTop=keep;
-  setup.querySelectorAll("[data-f]").forEach(function(b){b.onclick=function(){cfg.file=b.dataset.f;drawSetup()}});
+  setup.querySelectorAll("[data-f]").forEach(function(b){b.onclick=function(){cfg.file=b.dataset.f;cfg.startSet=0;drawSetup()}});
+  setup.querySelectorAll("[data-ss]").forEach(function(b){b.onclick=function(){cfg.startSet=+b.dataset.ss;drawSetup()}});
   setup.querySelectorAll("[data-m]").forEach(function(b){b.onclick=function(){cfg.mode=+b.dataset.m;drawSetup()}});
   setup.querySelectorAll("[data-t]").forEach(function(b){b.onclick=function(){cfg.target=+b.dataset.t;drawSetup()}});
   function setVal(k,v){v=Math.round(parseFloat(v));if(!(v>=1))v=1;cfg[k]=v;drawSetup()}
@@ -2551,7 +2553,7 @@ function saveRun(){sj("stenoGameRun",{date:today(),target:g.target,done:g.done,k
 function startNew(){
   var f=fixSel(cfg);if(!f)return;
   cleanCfg();sj("stenoGameCfg2",cfg);
-  g.target=cfg.target;g.done=g.knew=g.missed=g.score=g.combo=g.maxCombo=0;g.pace=cfg.pace;g.ms=0;g.startDone=0;g.order=!!cfg.order;g.marks=[];g.knewIds=[];g.missIds=[];g.retryIds=[];g.resumeState=null;g.rKnew=0;g.rMiss=0;g.hist=[];window.stenoKnewCounts={};saveKnew();g.setSize=cfg.setSize;g.modeStart=cfg.mode;g.setRandom=!!cfg.setRandom;g.setSeed=1+Math.floor(Math.random()*2147483646);g.setIdx=0;g.setTotal=1;
+  g.target=cfg.target;g.done=g.knew=g.missed=g.score=g.combo=g.maxCombo=0;g.pace=cfg.pace;g.ms=0;g.startDone=0;g.order=!!cfg.order;g.marks=[];g.knewIds=[];g.missIds=[];g.retryIds=[];g.resumeState=null;g.rKnew=0;g.rMiss=0;g.hist=[];window.stenoKnewCounts={};saveKnew();g.setSize=cfg.setSize;g.modeStart=cfg.mode;g.setRandom=!!cfg.setRandom;g.setSeed=1+Math.floor(Math.random()*2147483646);g.setIdx=0;g.setTotal=1;g.pickSet=Math.max(0,Math.round(+cfg.startSet)||0);if(cfg.startSet){cfg.startSet=0;sj("stenoGameCfg2",cfg)}
   g.file=f.id;g.fileName=f.name;g.mode=cfg.mode;
   saveRun();launch();
 }
@@ -2587,7 +2589,7 @@ function begin(){
   try{localStorage.setItem("stenoGameWasLive","1")}catch(e){}
   var rs=g.resumeState;g.resumeState=null;
   if(rs){resumeRound(rs);if(!g.running)return}
-  else if(!startPass(g.file,g.mode,true)){finish();return}
+  else{var ps=g.pickSet||0;g.pickSet=0;if(!startPass(g.file,g.mode,true,null,ps)){finish();return}}
   hud();
 }
 function say(t){banner.textContent=t;banner.classList.remove("show");void banner.offsetWidth;banner.classList.add("show")}
@@ -2886,29 +2888,33 @@ window.stenoGameUndo=function(res,itemId){
 };
 
 // ---------------- Switch file or mode while playing ----------------
-var sel={file:null,mode:0};
+var sel={file:null,mode:0,set:0};
 function openSwitch(){
   if(!g.running||anyOpen())return;
   A().hold();
-  sel.file=g.file;sel.mode=g.mode;
+  sel.file=g.file;sel.mode=g.mode;sel.set=g.setIdx;
   drawSwitch();sw.classList.add("open");sw.scrollTop=0;
 }
 function drawSwitch(){
-  var keep=sw.scrollTop,fl=files(),f=fixSel(sel),same=sel.file===g.file&&sel.mode===g.mode;
-  var h='<div class="gm-in"><h2>Switch</h2><p class="gm-sub">Your count stays at '+g.done+' / '+g.target+' cards. Pick a file and a mode.</p>';
+  var keep=sw.scrollTop,fl=files(),f=fixSel(sel),sets=f?fileSets(f.id):[];if(!(sel.set>=0&&sel.set<sets.length))sel.set=0;var same=sel.file===g.file&&sel.mode===g.mode&&sel.set===g.setIdx;
+  var h='<div class="gm-in"><h2>Switch</h2><p class="gm-sub">Your count stays at '+g.done+' / '+g.target+' cards. Pick a file, a mode and a set.</p>';
   h+='<div class="gm-lbl">FILE</div><div class="gm-files">'+fileBtns(fl,f)+'</div>';
   h+='<div class="gm-lbl">MODE</div><div class="gm-modes one">'+modeBtns(f,sel.mode)+'</div>';
+  if(sets.length>1){h+='<div class="gm-lbl">SET</div><div class="gm-pre">';sets.forEach(function(st,i){h+='<button type="button" data-s="'+i+'"'+(sel.set===i?' style="outline:2px solid #8a3dff"':'')+'>Set '+(i+1)+' · '+st.length+'</button>'});h+='</div>'}
   h+='<button class="gm-go" id="gmSwGo">'+(same?'▶ BACK TO THE GAME':'▶ SWITCH AND CONTINUE')+'</button>';
+  h+='<button class="gm-ghost" id="gmSwRestart" type="button" style="margin-top:10px">↻ Restart this set (this mode only)</button>';
   h+='<button class="gm-ghost" id="gmSwSet" type="button" style="margin-top:10px">⚙ All settings (cards, sets, pace)</button>';
   h+='<p class="gm-sub" style="margin-top:12px">The game moves on only after a round where every card is Knew (missed cards come back on their own).</p></div>';
   sw.innerHTML=h;sw.scrollTop=keep;
-  sw.querySelectorAll("[data-f]").forEach(function(b){b.onclick=function(){sel.file=b.dataset.f;drawSwitch()}});
+  sw.querySelectorAll("[data-f]").forEach(function(b){b.onclick=function(){sel.file=b.dataset.f;sel.set=0;drawSwitch()}});
+  sw.querySelectorAll("[data-s]").forEach(function(b){b.onclick=function(){sel.set=+b.dataset.s;drawSwitch()}});
+  $("gmSwRestart").onclick=function(){sw.classList.remove("open");restartSet()};
   sw.querySelectorAll("[data-m]").forEach(function(b){b.onclick=function(){sel.mode=+b.dataset.m;drawSwitch()}});
   $("gmSwSet").onclick=function(){sw.classList.remove("open");openSetup()};
   $("gmSwGo").onclick=function(){
     sw.classList.remove("open");
-    if(sel.file===g.file&&sel.mode===g.mode){A().release();return}
-    g.modeStart=sel.mode;if(!startPass(sel.file,sel.mode,false))A().release();
+    if(sel.file===g.file&&sel.mode===g.mode&&sel.set===g.setIdx){A().release();return}
+    g.modeStart=sel.mode;g.rKnew=0;g.rMiss=0;if(!startPass(sel.file,sel.mode,false,null,sel.set))A().release();
   };
 }
 $("gmOrderBtn").addEventListener("click",function(){
@@ -2916,6 +2922,13 @@ $("gmOrderBtn").addEventListener("click",function(){
   if(g.running){saveRun();A().order(g.order);say(g.order?"🔢 In order, from this card":"🔀 Random order")}
   hud();
 });
+// Restart the current set in the current mode only (same file, same set, same mode; the day's count stays).
+function restartSet(){
+  if(!g.running||anyOpen())return;
+  g.rKnew=0;g.rMiss=0;
+  if(startPass(g.file,g.mode,false,null,g.setIdx))say("↻ Set "+(g.setIdx+1)+" restarted");
+}
+$("gmRestartBtn").addEventListener("click",restartSet);
 $("gmFileBtn").addEventListener("click",openSwitch);
 $("gmModeBtn").addEventListener("click",openSwitch);
 
@@ -7958,7 +7971,7 @@ function css2(){return [
 '#rlBar{height:4px;border-radius:3px;background:rgba(255,255,255,.25);overflow:hidden;margin-bottom:6px}#rlFill{height:100%;width:0;background:#fff}',
 '.rl-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px;font-size:13px;font-weight:800}',
 '.rl-row button,.rl-sq{border:1px solid #fff3;background:#ffffff1f;color:#fff;border-radius:18px;height:34px;padding:0 12px;font:inherit;font-size:13px;font-weight:800;cursor:pointer;backdrop-filter:blur(6px)}',
-'.rl-row button.on{background:#8a3dff}.rl-row .rl-sp{flex:1}#rlQuit{color:#ff8398}#rlPause{color:#f5b301}',
+'.rl-row button.on{background:#8a3dff}.rl-row .rl-sp{flex:1}#rlQuit{color:#ff8398}#rlPause{color:#f5b301}#rlRestart{color:#7dd3fc}',
 '.rl-pill{padding:5px 10px;border-radius:16px;background:#ffffff29;font-variant-numeric:tabular-nums;white-space:nowrap}',
 '.rl-track{position:relative;height:18px;border-radius:9px;background:#ffffff26;margin:2px 4px 8px}#rlTf{height:100%;width:0;border-radius:9px;background:linear-gradient(90deg,#8a3dff,#ff3d81)}',
 '.rl-track span{position:absolute;top:-3px;transform:translateX(-50%);font-size:17px}#rlFlag{right:-4px;transform:none!important}',
@@ -8008,7 +8021,7 @@ function boot(){
   var st=document.createElement("style");st.id="rlStyle";st.textContent=css()+css2();document.head.appendChild(st);
   mk("button","reelsModeBtn","",'<span>🎞️ REELS MODE</span><small>SWIPE · LEARN · REPEAT</small>').addEventListener("click",quickStart);
   mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlFl"></div><div id="rlPaused">⏸ PAUSED\nclick or scroll button to resume</div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div><div id="rlStat"></div>'+
-  '<div class="rl-row"><button id="rlPause">⏸ Pause</button><button id="rlOrd"></button><button id="rlMissQ"></button><button id="rlAuto"></button><span class="rl-pill" id="rlDone"></span><span class="rl-sp"></span><button id="rlCfg">⚙</button><button id="rlUi">☰</button><button id="rlClean">🙈</button><button id="rlFs">⛶</button><button id="rlQuit">✖ Exit</button></div>'+
+  '<div class="rl-row"><button id="rlPause">⏸ Pause</button><button id="rlRestart">↻ Restart</button><button id="rlOrd"></button><button id="rlMissQ"></button><button id="rlAuto"></button><span class="rl-pill" id="rlDone"></span><span class="rl-sp"></span><button id="rlCfg">⚙</button><button id="rlUi">☰</button><button id="rlClean">🙈</button><button id="rlFs">⛶</button><button id="rlQuit">✖ Exit</button></div>'+
   '<div id="rlMore"><div class="rl-row"><span id="rlCards"></span><span id="rlToday"></span><span id="rlScore"></span><span id="rlCombo"></span><button id="rlMute">🔊</button></div>'+
   '<div class="rl-track"><div id="rlTf"></div><span id="rlGhost">👻</span><span id="rlRocket">🚀</span><span id="rlFlag">🏁</span></div>'+
   '<div class="rl-row"><span id="rlClock"></span><span id="rlBatt"></span><span id="rlPace"></span></div>'+
@@ -8016,7 +8029,7 @@ function boot(){
   '<div class="rl-row"><button class="wide" id="rlFile"></button><button class="wide" id="rlMode"></button></div><div id="rlRounds"></div><div id="rlSched"></div></div></div><div id="rlToast"></div><div id="rlSheet"></div>');
   var tb=document.getElementById("topReelsBtn");if(tb)tb.addEventListener("click",quickStart);
   $("rlQuit").onclick=quit;
-  $("rlPause").onclick=togglePause;$("rlPaused").onclick=togglePause;
+  $("rlPause").onclick=togglePause;$("rlRestart").onclick=restartSet;$("rlPaused").onclick=togglePause;
   $("rlOrd").onclick=function(){cfg.order=!cfg.order;saveCfg();toast(cfg.order?"In order (from next round)":"Random (from next round)");hud()};
   $("rlMissQ").onclick=function(){cfg.miss=cfg.miss===5?8:5;saveCfg();toast("Auto-miss "+cfg.miss+" s");hud();arm()};
   $("rlCfg").onclick=function(){openSheet("live")};$("rlFile").onclick=$("rlMode").onclick=$("rlCfg").onclick;
@@ -8116,6 +8129,9 @@ function openSheet(mode){
   h+=num("target","Cards for today",1);
   h+='<div class="rl-row"><label>Cards in each set (empty = Auto)</label><div class="rl-stp"><input type="number" inputmode="numeric" min="0" data-n="setSize" placeholder="Auto" value="'+(cfg.setSize||"")+'"></div><div class="rl-chips" style="margin-top:8px">'+[[0,"Auto"],[10,"10"],[20,"20"],[30,"30"],[50,"50"]].map(function(p){return chip("sz",p[0],p[1],cfg.setSize===p[0])}).join("")+'</div></div>';
   h+='<div class="rl-row"><label>Random sets</label><div class="rl-chips">'+chip("setRandom","1","🎲 ON",cfg.setRandom)+chip("setRandom","0","OFF · file order",!cfg.setRandom)+'</div></div>';
+  var curFid=live&&R.fl&&R.fl[R.fi]?R.fl[R.fi]:null,curSets=curFid?getSets(curFid):[];
+  if(live&&curSets.length>1)h+='<div class="rl-row"><label>Play a set of the file now playing (same mode) · tap to jump</label><div class="rl-chips">'+curSets.map(function(st,i){return chip("pset",i,"Set "+(i+1)+" · "+st.length,R.si===i)}).join("")+'</div></div>';
+  else if(!live&&lens.length>1)h+='<div class="rl-row"><label>Start from set</label><div class="rl-chips">'+lens.map(function(L,i){return chip("sset",i,"Set "+(i+1)+" · "+L,(cfg.startSet|0)===i)}).join("")+'</div></div>';
   h+='<p>'+(n?n+' cards → '+lens.length+' set'+(lens.length===1?'':'s')+': '+lens.slice(0,8).join(' + ')+(lens.length>8?' + …':''):'No cards.')+' A set moves on only when every card is Knew; missed cards come back in a short round.</p>';
   h+=num("rev","Auto-reveal (s)",1)+num("miss","Auto-miss (s)",1)+num("knewNeed","Knew it clicks to finish a card",1)+num("pace","Pace target (s per card)",1);
   h+='<div class="rl-row"><label>Image size <span id="rlImgV">'+cfg.img+'</span>%</label><input type="range" id="rlImg" min="10" max="100" step="5" value="'+cfg.img+'"></div>';
@@ -8128,7 +8144,9 @@ function openSheet(mode){
   sh.onclick=function(e){
     if(e.target===sh&&live){closeSheet();return}
     var c=e.target.closest(".rl-chip");if(!c)return;var g=c.dataset.g,v=c.dataset.v;
-    if(g==="file")cfg.file=v;
+    if(g==="file"){cfg.file=v;cfg.startSet=0}
+    else if(g==="pset"){closeSheet(true);clearTimeout(R.endT);R.rKnew=R.rMiss=0;if(!pass(R.fi,+v,R.mi,null))finish();return}
+    else if(g==="sset")cfg.startSet=+v;
     else if(g==="sz")cfg.setSize=+v;
     else if(g==="order")cfg.order=v==="1";
     else if(g==="tts"||g==="sfx")cfg[g]=!cfg[g];
@@ -8154,7 +8172,8 @@ function resetRun(keepKc){R.done=R.knew=R.missed=R.score=R.combo=R.maxCombo=0;R.
   if(!keepKc){window.stenoKnewCounts={};saveKC()}
   R.paused=false;R.judIds=[];R.missIds=[];R.retryIds=[];R.all=[];R.pre=0;R.fileName="";
   R.target=cfg.target;R.setSize=cfg.setSize;R.setRandom=cfg.setRandom;R.modeStart=cfg.dir==="w2s"?1:0;R.modes=modeOrder();R.fl=fileOrder(cfg.file)}
-function startNew(){resetRun();R.seed=1+Math.floor(Math.random()*2147483646);R.run=true;R.quiet=true;saveRun();vars();syncUi();if(!pass(0,0,0,null))finish()}
+function startNew(){var ss=Math.max(0,Math.round(+cfg.startSet)||0);if(cfg.startSet){cfg.startSet=0;saveCfg()}
+  resetRun();R.seed=1+Math.floor(Math.random()*2147483646);R.run=true;R.quiet=true;saveRun();vars();syncUi();if(!pass(0,ss,0,null))finish()}
 // Resume goes back to the exact card: same file, set, mode and round; cards already judged in the round are not shown again.
 function resume(){var r=lj("stenoGameRun",null);if(!r)return;resetRun(true);
   R.target=r.target>0?r.target:cfg.target;R.setSize=Math.max(0,Math.round(+r.setSize)||0);R.setRandom=!!r.setRandom;R.seed=(+r.setSeed)||(+r.seed)||1;
@@ -8260,6 +8279,11 @@ function fastGo(d){var feed=$("rlFeed"),j=R.idx+d;if(!feed||j<0||j>=feed.childre
     if(p<1)(window.requestAnimationFrame||setTimeout)(step,16);else{feed.scrollTop=to;feed.style.scrollSnapType=""}})()}
 function go(d){var feed=$("rlFeed"),j=R.idx+d;if(j<0||j>=feed.children.length)return;feed.scrollTo({top:j*feed.clientHeight,behavior:"smooth"})}
 function togglePause(){if(!R.run)return;R.paused=!R.paused;$("rlPaused").classList.toggle("on",R.paused);$("rlPause").textContent=R.paused?"▶ Resume":"⏸ Pause";if(R.paused){stopT();silence()}else arm()}
+// Restart the current set in the current mode only (same file, same set, same mode; the day's count stays).
+function restartSet(){
+  if(!R.open||!R.run||sheetOn())return;
+  clearTimeout(R.endT);stopT();silence();R.rKnew=R.rMiss=0;
+  if(!pass(R.fi,R.si,R.mi,null))finish()}
 function judge(res,i,force){
   if(!R.run)return;i=i==null?R.idx:i;var it=R.items[i];if(!it||R.jud[i]){if(force&&it&&i===R.idx)go(1);return}
   R.jud[i]=res;R.judIds.push(it.id);stopT();

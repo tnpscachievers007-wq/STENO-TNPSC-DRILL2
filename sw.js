@@ -1,6 +1,6 @@
 // Steno + TNPSC Drill service worker
 // Change VERSION each time you upload a new index.html so phones pick up the update.
-const VERSION = 'steno-drill-v1';
+const VERSION = 'steno-drill-v2';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', function (event) {
