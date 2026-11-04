@@ -8254,11 +8254,18 @@ function onScroll(){
       fillWindow();hud();onActive()}
   },70)}
 function silence(){try{var a=A();if(a&&a.silence)a.silence()}catch(e){}}
-function onActive(){stopT();silence();if(!R.run)return;arm()}   // read aloud: nothing is spoken when a card appears, the answer is read on reveal
+// Read aloud: the text is read once, at the moment it becomes visible.
+// Text on the front (question, or the word in Word -> Stroke): read when the card appears, nothing on reveal.
+// Stroke image on the front: nothing on appear, the word is read when it is revealed.
+function sayText(it,rv){var c=it.c,s2w=it.dir==="s2w";if(c.qa)return s2w?c.text:c.answer;if(!s2w)return c.text;return rv?c.text:null}
+function sayOne(t){var a=A();if(!t||!a||!a.speak)return false;a.speak(t);return true}
+// A card became the current one (scrolling forward or back): read its text if text is showing.
+function onActive(){stopT();silence();if(!R.run)return;
+  if(cfg.tts&&!R.paused&&!sheetOn()){var it=R.items[R.idx];if(it)sayOne(sayText(it,!!R.rev[R.idx]))}
+  arm()}
 function speakCur(auto){
-  var it=R.items[R.idx];if(!it)return;var c=it.c,s2w=it.dir==="s2w",rv=!!R.rev[R.idx],a=A(),t;if(!a||!a.speak)return;
-  if(c.qa)t=rv?(s2w?c.answer:c.text):(s2w?c.text:c.answer);else t=s2w?(rv?c.text:null):c.text;
-  if(t)a.speak(t);else if(!auto)toast("Reveal first to hear the word")}
+  var it=R.items[R.idx];if(!it)return;
+  if(!sayOne(sayText(it,!!R.rev[R.idx]))&&!auto)toast("Reveal first to hear the word")}
 
 // ---------- timers ----------
 function stopT(){clearTimeout(R.tr);clearTimeout(R.tm);R.tr=R.tm=null;var f=$("rlFill");if(f){f.style.transition="none";f.style.width="0"}}
@@ -8270,7 +8277,7 @@ function arm(){
   fire("tm",function(){judge("missed")},cfg.miss*1000)}
 // Read aloud on: when the time ends while a voice is still speaking, let the sentence finish first, then reveal / go to the next card.
 function fire(slot,fn,ms){R[slot]=setTimeout(function(){var a=A();if(cfg.tts&&a&&a.reading&&a.reading()){fire(slot,fn,250);return}fn()},ms)}
-function reveal(){if(!R.run||R.rev[R.idx]||!R.items[R.idx])return;R.rev[R.idx]=1;var s=curSlide();if(s)s.classList.add("rev");sfx("rev");if(cfg.tts)speakCur(true)}
+function reveal(){if(!R.run||R.rev[R.idx]||!R.items[R.idx])return;R.rev[R.idx]=1;var s=curSlide();if(s)s.classList.add("rev");sfx("rev");if(cfg.tts){var ri=R.items[R.idx];if(ri&&!ri.c.qa&&ri.dir==="s2w")sayOne(ri.c.text)}}
 // quick scroll (about 0.1 s) used after Knew it; the browser's own smooth scroll is slow
 function fastGo(d){var feed=$("rlFeed"),j=R.idx+d;if(!feed||j<0||j>=feed.children.length)return;
   var from=feed.scrollTop,to=j*feed.clientHeight,t0=Date.now(),dur=110;
