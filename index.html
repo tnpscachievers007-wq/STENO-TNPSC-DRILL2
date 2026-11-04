@@ -8124,7 +8124,6 @@ function openSheet(mode){
   var h='<div class="rl-card"><h2>'+(live?'⚙ Settings':'🎞️ Reels mode')+'</h2><p>'+(live?'Cards done stay counted. Pick Apply to restart the round with new choices.':'Set your cards for the day. It keeps going until every card is done.')+'</p>';
   if(canRes)h+='<button type="button" class="rl-go sec" id="rlResume">▶ Resume · '+run.done+' of '+run.target+' done</button>';
   h+='<div class="rl-row"><label>Start file · then the next files automatically</label><div class="rl-chips">'+files.map(function(f){return chip("file",f.id,esc(f.name)+" · "+f.words,cfg.file===f.id)}).join("")+'</div></div>';
-  h+='<div class="rl-row"><label>Start with · then the other mode, next set, next file automatically</label><div class="rl-chips">'+chip("dir","s2w","Stroke/Question → Word/Answer",cfg.dir==="s2w")+chip("dir","w2s","Word/Answer → Stroke/Question",cfg.dir==="w2s")+'</div></div>';
   h+='<div class="rl-row"><label>Card order</label><div class="rl-chips">'+chip("order","1","🔢 In order",cfg.order)+chip("order","0","🔀 Random",!cfg.order)+'</div></div>';
   h+=num("target","Cards for today",1);
   h+='<div class="rl-row"><label>Cards in each set (empty = Auto)</label><div class="rl-stp"><input type="number" inputmode="numeric" min="0" data-n="setSize" placeholder="Auto" value="'+(cfg.setSize||"")+'"></div><div class="rl-chips" style="margin-top:8px">'+[[0,"Auto"],[10,"10"],[20,"20"],[30,"30"],[50,"50"]].map(function(p){return chip("sz",p[0],p[1],cfg.setSize===p[0])}).join("")+'</div></div>';
@@ -8160,7 +8159,7 @@ function openSheet(mode){
   [].forEach.call(sh.querySelectorAll("[data-n]"),function(i){i.onchange=function(){var v=Math.round(parseFloat(i.value));cfg[i.dataset.n]=v>0?v:(i.dataset.n==="setSize"?0:1);saveCfg();if(i.dataset.n==="target"&&R.run){R.target=cfg.target;saveRun();hud()}if(i.dataset.n==="setSize")again();if(i.dataset.n==="missA"||i.dataset.n==="missB")hud()}});
   $("rlImg").oninput=function(){cfg.img=+this.value;$("rlImgV").textContent=this.value;saveCfg();vars()};
   $("rlTxt").oninput=function(){cfg.txt=+this.value;$("rlTxtV").textContent=this.value;saveCfg();vars()};
-  if(live){$("rlOk").onclick=closeSheet;$("rlNew").onclick=function(){if(!cfg.file)return;closeSheet(true);startNew()};$("rlApply").onclick=function(){if(!cfg.file)return;closeSheet(true);R.setSize=cfg.setSize;R.setRandom=cfg.setRandom;R.target=cfg.target;R.sc={};R.modeStart=cfg.dir==="w2s"?1:0;R.modes=modeOrder();R.fl=fileOrder(cfg.file);if(!pass(0,0,0,null))finish()}}
+  if(live){$("rlOk").onclick=closeSheet;$("rlNew").onclick=function(){if(!cfg.file)return;closeSheet(true);startNew()};$("rlApply").onclick=function(){if(!cfg.file)return;closeSheet(true);R.setSize=cfg.setSize;R.setRandom=cfg.setRandom;R.target=cfg.target;R.sc={};R.modeStart=0;R.modes=modeOrder();R.fl=fileOrder(cfg.file);if(!pass(0,0,0,null))finish()}}
   else{$("rlStart").onclick=function(){if(!cfg.file){alert("Pick a file");return}closeSheet(true);startNew()};$("rlCancel").onclick=function(){closeSheet(true);closeReels()};if($("rlResume"))$("rlResume").onclick=function(){closeSheet(true);resume()}}
 }
 function closeSheet(skip){var sh=$("rlSheet");sh.classList.remove("on");sh.innerHTML="";sh.style.background="";if(R.open&&!skip)arm()}
@@ -8168,20 +8167,21 @@ function vars(){var r=$("rlRoot");r.style.setProperty("--rl-txt",cfg.txt);r.styl
 
 // ---------- game flow ----------
 function playable(f){return (f.s2w||0)>0||(f.w2s||0)>0}
-function modeOrder(){return R.modeStart===1?["w2s","s2w"]:["s2w","w2s"]}
+// Every set is played Stroke/Question -> Word/Answer first, then Word/Answer -> Stroke/Question.
+function modeOrder(){return["s2w","w2s"]}
 // Like Game mode: the chosen file first, then every next file of the library, round and round.
 function fileOrder(start){var fl=A().files().filter(playable).map(function(f){return f.id}),i=fl.indexOf(start);if(i<0)i=0;return fl.slice(i).concat(fl.slice(0,i))}
 function resetRun(keepKc){R.done=R.knew=R.missed=R.score=R.combo=R.maxCombo=0;R.ms=0;R.startDone=0;R.sc={};R.hist=[];R.rKnew=R.rMiss=0;
   if(!keepKc){window.stenoKnewCounts={};saveKC()}
   R.paused=false;R.judIds=[];R.missIds=[];R.retryIds=[];R.all=[];R.pre=0;R.fileName="";
-  R.target=cfg.target;R.setSize=cfg.setSize;R.setRandom=cfg.setRandom;R.modeStart=cfg.dir==="w2s"?1:0;R.modes=modeOrder();R.fl=fileOrder(cfg.file)}
+  R.target=cfg.target;R.setSize=cfg.setSize;R.setRandom=cfg.setRandom;R.modeStart=0;R.modes=modeOrder();R.fl=fileOrder(cfg.file)}
 function startNew(){var ss=Math.max(0,Math.round(+cfg.startSet)||0);if(cfg.startSet){cfg.startSet=0;saveCfg()}
   resetRun();R.seed=1+Math.floor(Math.random()*2147483646);R.run=true;R.quiet=true;saveRun();vars();syncUi();if(!pass(0,ss,0,null))finish()}
 // Resume goes back to the exact card: same file, set, mode and round; cards already judged in the round are not shown again.
 function resume(){var r=lj("stenoGameRun",null);if(!r)return;resetRun(true);
   R.target=r.target>0?r.target:cfg.target;R.setSize=Math.max(0,Math.round(+r.setSize)||0);R.setRandom=!!r.setRandom;R.seed=(+r.setSeed)||(+r.seed)||1;
   if(r.d3===1){cfg.rev=Math.max(1,Math.round(+r.rev)||cfg.rev);cfg.miss=Math.max(1,Math.round(+r.miss)||cfg.miss);saveCfg()}
-  R.modeStart=r.modeStart===1?1:0;R.modes=modeOrder();
+  R.modeStart=0;R.modes=modeOrder();
   var fid=r.file;if(!A().files().some(function(f){return f.id===fid&&playable(f)}))fid=cfg.file;
   R.fl=fileOrder(fid);
   R.knew=r.knew||0;R.missed=r.missed||0;R.done=R.knew+R.missed;R.startDone=R.done;R.score=r.score||0;R.maxCombo=r.maxCombo||0;
