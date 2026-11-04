@@ -2213,7 +2213,7 @@ function cleanCfg(){
   cfg.target=Math.max(1,Math.round(+cfg.target)||10000);
   cfg.rev=Math.max(1,Math.round(+cfg.rev)||2);
   cfg.miss=Math.max(1,Math.round(+cfg.miss)||7);
-  cfg.knewNeed=Math.min(99,Math.max(1,Math.round(+cfg.knewNeed)||3));cfg.setSize=Math.max(0,Math.round(+cfg.setSize)||0);cfg.setRandom=!!cfg.setRandom;cfg.pace=Math.max(1,Math.round(+cfg.pace)||10);cfg.order=!!cfg.order;cfg.tts=!!cfg.tts;cfg.v=3;
+  cfg.missA=Math.min(9999,Math.max(1,Math.round(+cfg.missA)||5));cfg.missB=Math.min(9999,Math.max(1,Math.round(+cfg.missB)||8));cfg.knewNeed=Math.min(99,Math.max(1,Math.round(+cfg.knewNeed)||3));cfg.setSize=Math.max(0,Math.round(+cfg.setSize)||0);cfg.setRandom=!!cfg.setRandom;cfg.pace=Math.max(1,Math.round(+cfg.pace)||10);cfg.order=!!cfg.order;cfg.tts=!!cfg.tts;cfg.v=3;
   cfg.mode=Math.min(MODES.length-1,Math.max(0,Math.round(+cfg.mode)||0));
 }
 cleanCfg();
@@ -7899,13 +7899,13 @@ function sj(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
 function shuf(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
 function mk(tag,id,cls,html){var e=document.createElement(tag);if(id)e.id=id;if(cls)e.className=cls;if(html!=null)e.innerHTML=html;document.body.appendChild(e);return e}
-var cfg=Object.assign({autoScroll:true,file:null,files:[],dir:"s2w",order:true,target:10000,setSize:0,setRandom:false,rev:2,miss:7,knewNeed:3,pace:10,tts:false,sfx:true,txt:100,img:100,ui:true,clean:false},lj("stenoReelsCfg2",{}));
+var cfg=Object.assign({autoScroll:true,file:null,files:[],dir:"s2w",order:true,target:10000,setSize:0,setRandom:false,rev:2,miss:7,knewNeed:3,pace:10,tts:false,missA:5,missB:8,sfx:true,txt:100,img:100,ui:true,clean:false},lj("stenoReelsCfg2",{}));
 var R={open:false,run:false,items:[],idx:0,done:0,knew:0,missed:0,score:0,combo:0,maxCombo:0,ms:0,startDone:0,paused:false,holdP:false,rev:{},jud:{},tr:null,tm:null,fi:0,si:0,mi:0,sets:[],sc:{},fl:[],modes:["s2w"],rKnew:0,rMiss:0,hist:[],kc:{},seed:1,missIds:[],fileName:"",retry:false,target:10000,setSize:0,setRandom:false,modeStart:0,pre:0,all:[],judIds:[],retryIds:[],quiet:false};
 function cleanCfg(){
   if(!cfg.file&&Array.isArray(cfg.files)&&cfg.files.length)cfg.file=cfg.files[0];delete cfg.files;
   cfg.dir=cfg.dir==="w2s"?"w2s":"s2w";cfg.order=!!cfg.order;
   cfg.target=Math.max(1,Math.round(+cfg.target)||10000);cfg.setSize=Math.max(0,Math.round(+cfg.setSize)||0);cfg.setRandom=!!cfg.setRandom;
-  cfg.rev=Math.max(1,Math.round(+cfg.rev)||2);cfg.miss=Math.max(1,Math.round(+cfg.miss)||7);cfg.knewNeed=Math.min(99,Math.max(1,Math.round(+cfg.knewNeed)||3));cfg.pace=Math.max(1,Math.round(+cfg.pace)||10);
+  cfg.rev=Math.max(1,Math.round(+cfg.rev)||2);cfg.miss=Math.max(1,Math.round(+cfg.miss)||7);cfg.missA=Math.min(9999,Math.max(1,Math.round(+cfg.missA)||5));cfg.missB=Math.min(9999,Math.max(1,Math.round(+cfg.missB)||8));cfg.knewNeed=Math.min(99,Math.max(1,Math.round(+cfg.knewNeed)||3));cfg.pace=Math.max(1,Math.round(+cfg.pace)||10);
   cfg.txt=Math.min(250,Math.max(40,Math.round(+cfg.txt)||100));cfg.img=Math.min(100,Math.max(10,Math.round(+cfg.img)||100));
   cfg.autoScroll=cfg.autoScroll!==false;cfg.tts=!!cfg.tts;cfg.sfx=cfg.sfx!==false;cfg.ui=cfg.ui!==false;cfg.clean=!!cfg.clean}
 function T(){return R.run?R.target:cfg.target}
@@ -7971,7 +7971,7 @@ function css2(){return [
 '#rlBar{height:4px;border-radius:3px;background:rgba(255,255,255,.25);overflow:hidden;margin-bottom:6px}#rlFill{height:100%;width:0;background:#fff}',
 '.rl-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px;font-size:13px;font-weight:800}',
 '.rl-row button,.rl-sq{border:1px solid #fff3;background:#ffffff1f;color:#fff;border-radius:18px;height:34px;padding:0 12px;font:inherit;font-size:13px;font-weight:800;cursor:pointer;backdrop-filter:blur(6px)}',
-'.rl-row button.on{background:#8a3dff}.rl-row .rl-sp{flex:1}#rlQuit{color:#ff8398}#rlPause{color:#f5b301}#rlRestart{color:#7dd3fc}',
+'.rl-row button.on{background:#8a3dff}.rl-row .rl-sp{flex:1}#rlQuit{color:#ff8398}#rlPause{color:#f5b301}#rlRestart{color:#7dd3fc}#rlNext{color:#86efac}',
 '.rl-pill{padding:5px 10px;border-radius:16px;background:#ffffff29;font-variant-numeric:tabular-nums;white-space:nowrap}',
 '.rl-track{position:relative;height:18px;border-radius:9px;background:#ffffff26;margin:2px 4px 8px}#rlTf{height:100%;width:0;border-radius:9px;background:linear-gradient(90deg,#8a3dff,#ff3d81)}',
 '.rl-track span{position:absolute;top:-3px;transform:translateX(-50%);font-size:17px}#rlFlag{right:-4px;transform:none!important}',
@@ -8021,7 +8021,7 @@ function boot(){
   var st=document.createElement("style");st.id="rlStyle";st.textContent=css()+css2();document.head.appendChild(st);
   mk("button","reelsModeBtn","",'<span>🎞️ REELS MODE</span><small>SWIPE · LEARN · REPEAT</small>').addEventListener("click",quickStart);
   mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlFl"></div><div id="rlPaused">⏸ PAUSED\nclick or scroll button to resume</div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div><div id="rlStat"></div>'+
-  '<div class="rl-row"><button id="rlPause">⏸ Pause</button><button id="rlRestart">↻ Restart</button><button id="rlOrd"></button><button id="rlMissQ"></button><button id="rlAuto"></button><span class="rl-pill" id="rlDone"></span><span class="rl-sp"></span><button id="rlCfg">⚙</button><button id="rlUi">☰</button><button id="rlClean">🙈</button><button id="rlFs">⛶</button><button id="rlQuit">✖ Exit</button></div>'+
+  '<div class="rl-row"><button id="rlPause">⏸ Pause</button><button id="rlRestart">↻ Restart</button><button id="rlNext">⏭ Next round</button><button id="rlOrd"></button><button id="rlMissQ"></button><button id="rlAuto"></button><span class="rl-pill" id="rlDone"></span><span class="rl-sp"></span><button id="rlCfg">⚙</button><button id="rlUi">☰</button><button id="rlClean">🙈</button><button id="rlFs">⛶</button><button id="rlQuit">✖ Exit</button></div>'+
   '<div id="rlMore"><div class="rl-row"><span id="rlCards"></span><span id="rlToday"></span><span id="rlScore"></span><span id="rlCombo"></span><button id="rlMute">🔊</button></div>'+
   '<div class="rl-track"><div id="rlTf"></div><span id="rlGhost">👻</span><span id="rlRocket">🚀</span><span id="rlFlag">🏁</span></div>'+
   '<div class="rl-row"><span id="rlClock"></span><span id="rlBatt"></span><span id="rlPace"></span></div>'+
@@ -8029,9 +8029,9 @@ function boot(){
   '<div class="rl-row"><button class="wide" id="rlFile"></button><button class="wide" id="rlMode"></button></div><div id="rlRounds"></div><div id="rlSched"></div></div></div><div id="rlToast"></div><div id="rlSheet"></div>');
   var tb=document.getElementById("topReelsBtn");if(tb)tb.addEventListener("click",quickStart);
   $("rlQuit").onclick=quit;
-  $("rlPause").onclick=togglePause;$("rlRestart").onclick=restartSet;$("rlPaused").onclick=togglePause;
+  $("rlPause").onclick=togglePause;$("rlRestart").onclick=restartSet;$("rlNext").onclick=nextRound;$("rlPaused").onclick=togglePause;
   $("rlOrd").onclick=function(){cfg.order=!cfg.order;saveCfg();toast(cfg.order?"In order (from next round)":"Random (from next round)");hud()};
-  $("rlMissQ").onclick=function(){cfg.miss=cfg.miss===5?8:5;saveCfg();toast("Auto-miss "+cfg.miss+" s");hud();arm()};
+  $("rlMissQ").onclick=function(){cfg.miss=cfg.miss===cfg.missA?cfg.missB:cfg.missA;saveCfg();toast("Auto-miss "+cfg.miss+" s");hud();arm()};
   $("rlCfg").onclick=function(){openSheet("live")};$("rlFile").onclick=$("rlMode").onclick=$("rlCfg").onclick;
   $("rlAuto").onclick=function(){cfg.autoScroll=!cfg.autoScroll;saveCfg();toast(cfg.autoScroll?"Auto-scroll ON":"Auto-scroll OFF · swipe yourself",1600);hud()};
   $("rlUi").onclick=function(){cfg.ui=!cfg.ui;saveCfg();syncUi()};
@@ -8135,7 +8135,7 @@ function openSheet(mode){
     h+='<div class="rl-row"><label>Play a set of the file now playing · tap to jump (uses the mode above)</label><div class="rl-chips">'+curSets.map(function(st,i){return chip("pset",i,"Set "+(i+1)+" · "+st.length,R.si===i&&R.modes[R.mi]===jm)}).join("")+'</div></div>'}
   else if(!live&&lens.length>1)h+='<div class="rl-row"><label>Start from set</label><div class="rl-chips">'+lens.map(function(L,i){return chip("sset",i,"Set "+(i+1)+" · "+L,(cfg.startSet|0)===i)}).join("")+'</div></div>';
   h+='<p>'+(n?n+' cards → '+lens.length+' set'+(lens.length===1?'':'s')+': '+lens.slice(0,8).join(' + ')+(lens.length>8?' + …':''):'No cards.')+' A set moves on only when every card is Knew; missed cards come back in a short round.</p>';
-  h+=num("rev","Auto-reveal (s)",1)+num("miss","Auto-miss (s)",1)+num("knewNeed","Knew it clicks to finish a card",1)+num("pace","Pace target (s per card)",1);
+  h+=num("rev","Auto-reveal (s)",1)+num("miss","Auto-miss (s)",1)+num("missA","⏱ button: auto-miss time 1 (s)",1)+num("missB","⏱ button: auto-miss time 2 (s)",1)+num("knewNeed","Knew it clicks to finish a card",1)+num("pace","Pace target (s per card)",1);
   h+='<div class="rl-row"><label>Image size <span id="rlImgV">'+cfg.img+'</span>%</label><input type="range" id="rlImg" min="10" max="100" step="5" value="'+cfg.img+'"></div>';
   h+='<div class="rl-row"><label>Text size <span id="rlTxtV">'+cfg.txt+'</span>%</label><input type="range" id="rlTxt" min="40" max="250" step="10" value="'+cfg.txt+'"></div>';
   h+='<div class="rl-row"><label>Extras</label><div class="rl-chips">'+chip("tts","1","🔊 Read aloud",cfg.tts)+chip("sfx","1","🎵 Sounds",cfg.sfx)+chip("auto","1","⏬ Auto-scroll",cfg.autoScroll)+'</div></div>';
@@ -8157,7 +8157,7 @@ function openSheet(mode){
     else if(g==="setRandom")cfg.setRandom=v==="1";
     else cfg[g]=v;
     saveCfg();again()};
-  [].forEach.call(sh.querySelectorAll("[data-n]"),function(i){i.onchange=function(){var v=Math.round(parseFloat(i.value));cfg[i.dataset.n]=v>0?v:(i.dataset.n==="setSize"?0:1);saveCfg();if(i.dataset.n==="target"&&R.run){R.target=cfg.target;saveRun();hud()}if(i.dataset.n==="setSize")again()}});
+  [].forEach.call(sh.querySelectorAll("[data-n]"),function(i){i.onchange=function(){var v=Math.round(parseFloat(i.value));cfg[i.dataset.n]=v>0?v:(i.dataset.n==="setSize"?0:1);saveCfg();if(i.dataset.n==="target"&&R.run){R.target=cfg.target;saveRun();hud()}if(i.dataset.n==="setSize")again();if(i.dataset.n==="missA"||i.dataset.n==="missB")hud()}});
   $("rlImg").oninput=function(){cfg.img=+this.value;$("rlImgV").textContent=this.value;saveCfg();vars()};
   $("rlTxt").oninput=function(){cfg.txt=+this.value;$("rlTxtV").textContent=this.value;saveCfg();vars()};
   if(live){$("rlOk").onclick=closeSheet;$("rlNew").onclick=function(){if(!cfg.file)return;closeSheet(true);startNew()};$("rlApply").onclick=function(){if(!cfg.file)return;closeSheet(true);R.setSize=cfg.setSize;R.setRandom=cfg.setRandom;R.target=cfg.target;R.sc={};R.modeStart=cfg.dir==="w2s"?1:0;R.modes=modeOrder();R.fl=fileOrder(cfg.file);if(!pass(0,0,0,null))finish()}}
@@ -8290,6 +8290,12 @@ function fastGo(d){var feed=$("rlFeed"),j=R.idx+d;if(!feed||j<0||j>=feed.childre
 function go(d){var feed=$("rlFeed"),j=R.idx+d;if(j<0||j>=feed.children.length)return;feed.scrollTo({top:j*feed.clientHeight,behavior:"smooth"})}
 function togglePause(){if(!R.run)return;R.paused=!R.paused;$("rlPaused").classList.toggle("on",R.paused);$("rlPause").textContent=R.paused?"▶ Resume":"⏸ Pause";if(R.paused){stopT();silence()}else arm()}
 // Restart the current set in the current mode only (same file, same set, same mode; the day's count stays).
+// Skip to the next round now, whatever the state: unjudged and missed cards are left out (no missed-card retry), and it goes to the next mode, then the next set, then the next file.
+function nextRound(){
+  if(!R.open||!R.run||sheetOn())return;
+  clearTimeout(R.endT);stopT();silence();toast("⏭ Next round",1200);
+  var n=nextStep();
+  if(!pass(n.fi,n.si,n.mi,null))finish()}
 function restartSet(){
   if(!R.open||!R.run||sheetOn())return;
   clearTimeout(R.endT);stopT();silence();R.rKnew=R.rMiss=0;
