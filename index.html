@@ -7863,7 +7863,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 <script type="text/plain" data-app="1">
 // ---------------- Reels mode (own script) ----------------
 // Vertical feed that plays like Game mode: sets, random sets, rounds, Knew-it counts, pace ghost, study plan.
-// Tap = reveal, double-tap = Knew it, swipe on without Knew it = missed, hold = pause.
+// Touch: tap = reveal, double-tap = Knew it, swipe on without Knew it = missed, hold = pause. Mouse: left click = missed, right click = knew, scroll button = pause.
 (function(){
 "use strict";
 var $=function(i){return document.getElementById(i)};
@@ -7994,7 +7994,7 @@ function boot(){
   ["reelsModeBtn","rlRoot","rlStyle"].forEach(function(i){var e=$(i);if(e&&e.parentNode)e.parentNode.removeChild(e)});
   var st=document.createElement("style");st.id="rlStyle";st.textContent=css()+css2();document.head.appendChild(st);
   mk("button","reelsModeBtn","",'<span>🎞️ REELS MODE</span><small>SWIPE · LEARN · REPEAT</small>').addEventListener("click",quickStart);
-  mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlFl"></div><div id="rlPaused">⏸ PAUSED\ntap to resume</div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div><div id="rlStat"></div>'+
+  mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlFl"></div><div id="rlPaused">⏸ PAUSED\nclick or scroll button to resume</div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div><div id="rlStat"></div>'+
   '<div class="rl-row"><button id="rlPause">⏸ Pause</button><button id="rlOrd"></button><button id="rlMissQ"></button><button id="rlAuto"></button><span class="rl-pill" id="rlDone"></span><span class="rl-sp"></span><button id="rlCfg">⚙</button><button id="rlUi">☰</button><button id="rlClean">🙈</button><button id="rlFs">⛶</button><button id="rlQuit">✖ Exit</button></div>'+
   '<div id="rlMore"><div class="rl-row"><span id="rlCards"></span><span id="rlToday"></span><span id="rlScore"></span><span id="rlCombo"></span><button id="rlMute">🔊</button></div>'+
   '<div class="rl-track"><div id="rlTf"></div><span id="rlGhost">👻</span><span id="rlRocket">🚀</span><span id="rlFlag">🏁</span></div>'+
@@ -8013,9 +8013,17 @@ function boot(){
   $("rlMute").onclick=function(){cfg.sfx=!cfg.sfx;saveCfg();this.textContent=cfg.sfx?"🔊":"🔇"};
   $("rlFs").onclick=function(){try{var d=document.documentElement;if(document.fullscreenElement)document.exitFullscreen();else d.requestFullscreen()}catch(e){}};
   var feed=$("rlFeed");feed.addEventListener("scroll",onScroll,{passive:true});
-  var lastTap=0,tapT=null,downT=null,holding=false,sx=0,sy=0;
-  feed.addEventListener("pointerdown",function(e){sx=e.clientX;sy=e.clientY;holding=false;clearTimeout(downT);downT=setTimeout(function(){holding=true;R.holdP=true;stopT()},450)});
+  var lastTap=0,tapT=null,downT=null,holding=false,sx=0,sy=0,ptype="touch";
+  feed.addEventListener("pointerdown",function(e){
+    ptype=e.pointerType||"touch";
+    if(ptype==="mouse"){
+      // Mouse: left click = missed it, right click = knew it, scroll button = pause (handled on window below).
+      if(e.button===0){e.preventDefault();judge("missed",null,true)}
+      else if(e.button===2){e.preventDefault();judge("knew",null,true)}
+      return}
+    sx=e.clientX;sy=e.clientY;holding=false;clearTimeout(downT);downT=setTimeout(function(){holding=true;R.holdP=true;stopT()},450)});
   feed.addEventListener("pointerup",function(e){clearTimeout(downT);
+    if(e.pointerType==="mouse")return;
     var moved=Math.abs(e.clientX-sx)+Math.abs(e.clientY-sy)>14;
     if(holding){holding=false;R.holdP=false;arm();return}
     if(moved)return;
@@ -8024,6 +8032,14 @@ function boot(){
     lastTap=now;clearTimeout(tapT);tapT=setTimeout(function(){if(R.paused)togglePause();else reveal()},300)});
   feed.addEventListener("pointercancel",function(){clearTimeout(downT);if(holding){holding=false;R.holdP=false;arm()}});
   window.addEventListener("keydown",onKey,true);
+  // Mouse in Reels mode: scroll button (middle click) = pause / resume, anywhere on the reels screen.
+  window.addEventListener("pointerdown",function(e){
+    if(!R.open||sheetOn()||e.pointerType!=="mouse"||e.button!==1)return;
+    e.preventDefault();e.stopPropagation();togglePause()},true);
+  window.addEventListener("mousedown",function(e){if(R.open&&!sheetOn()&&e.button===1)e.preventDefault()},true);
+  window.addEventListener("auxclick",function(e){if(R.open&&!sheetOn()&&e.button===1)e.preventDefault()},true);
+  // Right click = knew it, so keep the browser menu away while Reels is open (the sheet and its inputs keep the menu).
+  window.addEventListener("contextmenu",function(e){if(R.open&&!sheetOn())e.preventDefault()},true);
   document.addEventListener("visibilitychange",function(){if(document.hidden&&R.run)saveRun();if(document.hidden&&R.open)stopT();else if(R.open)arm()});window.addEventListener("pagehide",function(){if(R.run)saveRun()});
   setInterval(tick,250);
 }
