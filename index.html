@@ -7646,6 +7646,19 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     },
     record: function(id, res){ recordResult(id, res); save(); },
     speak: function(t){ speak(t); },
+    // Reels mode: is a voice or audio clip still playing, and stop it.
+    reading: function(){
+      try{
+        if(speakingNow && (Date.now() - speakStart < 60000)) return true;
+        if(activeAudio && !activeAudio.paused && !activeAudio.ended) return true;
+      }catch(e){}
+      return false;
+    },
+    silence: function(){
+      try{ if(window.speechSynthesis) speechSynthesis.cancel(); }catch(e){}
+      speakingNow = false;
+      try{ stopAudio(); }catch(e){}
+    },
     refresh: function(){ renderLibrary(); renderTrainer(); }
   };
   window.stenoResumeSession = function(){
@@ -8221,7 +8234,8 @@ function onScroll(){
       if(i>old&&R.run)for(var k=old;k<i;k++)judge("missed",k);   // swiped on without Knew it = missed
       fillWindow();hud();onActive()}
   },70)}
-function onActive(){stopT();if(!R.run)return;if(cfg.tts)speakCur(true);arm()}
+function silence(){try{var a=A();if(a&&a.silence)a.silence()}catch(e){}}
+function onActive(){stopT();silence();if(!R.run)return;arm()}   // read aloud: nothing is spoken when a card appears, the answer is read on reveal
 function speakCur(auto){
   var it=R.items[R.idx];if(!it)return;var c=it.c,s2w=it.dir==="s2w",rv=!!R.rev[R.idx],a=A(),t;if(!a||!a.speak)return;
   if(c.qa)t=rv?(s2w?c.answer:c.text):(s2w?c.text:c.answer);else t=s2w?(rv?c.text:null):c.text;
@@ -8233,8 +8247,10 @@ function arm(){
   stopT();
   if(!R.open||!R.run||R.paused||R.holdP||sheetOn()||R.jud[R.idx]||!R.items[R.idx])return;
   var f=$("rlFill");f.style.transition="none";f.style.width="0";void f.offsetWidth;f.style.transition="width "+cfg.miss+"s linear";f.style.width="100%";
-  if(!R.rev[R.idx])R.tr=setTimeout(reveal,cfg.rev*1000);
-  R.tm=setTimeout(function(){judge("missed")},cfg.miss*1000)}
+  if(!R.rev[R.idx])fire("tr",reveal,cfg.rev*1000);
+  fire("tm",function(){judge("missed")},cfg.miss*1000)}
+// Read aloud on: when the time ends while a voice is still speaking, let the sentence finish first, then reveal / go to the next card.
+function fire(slot,fn,ms){R[slot]=setTimeout(function(){var a=A();if(cfg.tts&&a&&a.reading&&a.reading()){fire(slot,fn,250);return}fn()},ms)}
 function reveal(){if(!R.run||R.rev[R.idx]||!R.items[R.idx])return;R.rev[R.idx]=1;var s=curSlide();if(s)s.classList.add("rev");sfx("rev");if(cfg.tts)speakCur(true)}
 // quick scroll (about 0.1 s) used after Knew it; the browser's own smooth scroll is slow
 function fastGo(d){var feed=$("rlFeed"),j=R.idx+d;if(!feed||j<0||j>=feed.children.length)return;
@@ -8243,7 +8259,7 @@ function fastGo(d){var feed=$("rlFeed"),j=R.idx+d;if(!feed||j<0||j>=feed.childre
   (function step(){var p=Math.min(1,(Date.now()-t0)/dur),e=1-Math.pow(1-p,3);feed.scrollTop=from+(to-from)*e;
     if(p<1)(window.requestAnimationFrame||setTimeout)(step,16);else{feed.scrollTop=to;feed.style.scrollSnapType=""}})()}
 function go(d){var feed=$("rlFeed"),j=R.idx+d;if(j<0||j>=feed.children.length)return;feed.scrollTo({top:j*feed.clientHeight,behavior:"smooth"})}
-function togglePause(){if(!R.run)return;R.paused=!R.paused;$("rlPaused").classList.toggle("on",R.paused);$("rlPause").textContent=R.paused?"▶ Resume":"⏸ Pause";if(R.paused)stopT();else arm()}
+function togglePause(){if(!R.run)return;R.paused=!R.paused;$("rlPaused").classList.toggle("on",R.paused);$("rlPause").textContent=R.paused?"▶ Resume":"⏸ Pause";if(R.paused){stopT();silence()}else arm()}
 function judge(res,i,force){
   if(!R.run)return;i=i==null?R.idx:i;var it=R.items[i];if(!it||R.jud[i]){if(force&&it&&i===R.idx)go(1);return}
   R.jud[i]=res;R.judIds.push(it.id);stopT();
