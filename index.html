@@ -1400,6 +1400,7 @@ body.game-mode.gm-paused #trainerBody::after{content:"\23F8  PAUSED\A click the 
 .lib-top-btn small{font-size:11px;font-weight:700;opacity:.8;letter-spacing:.02em}
 .lib-top-btn.gm{color:#fff;border:none;background:linear-gradient(110deg,#ff3d81,#8a3dff,#3d7bff,#ff3d81);background-size:250% 100%;animation:gmShine 5s linear infinite}
 .lib-top-btn:active{transform:scale(.97)}
+.lib-top-btn.rl{grid-column:1/-1;color:#fff;border:none;background:linear-gradient(110deg,#fa7e1e,#d62976,#962fbf,#fa7e1e);background-size:250% 100%;animation:gmShine 5s linear infinite}
 #gmUiBtn,#gmFsBtn,#gmCleanBtn{display:none;position:fixed;left:calc(10px + env(safe-area-inset-left,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:106;width:46px;height:46px;padding:0;border-radius:50%;align-items:center;justify-content:center;font:inherit;font-size:21px;font-weight:800;line-height:1;color:var(--text);background:var(--surface);border:1px solid var(--border-strong);box-shadow:var(--shadow-md);opacity:.5;cursor:pointer;-webkit-tap-highlight-color:transparent}
 #gmUiBtn:active,#gmFsBtn:active,#gmCleanBtn:active{transform:scale(.93)}
 #gmUiBtn{left:calc(66px + env(safe-area-inset-left,0px))}
@@ -1714,6 +1715,7 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
       <div class="lib-top-actions">
         <button type="button" class="lib-top-btn" id="topImportBtn"><span>📄 IMPORT HTML FILE</span><small>Game starts on that file</small></button>
         <button type="button" class="lib-top-btn gm" id="topGameBtn"><span>🎮 GAME MODE</span><small>Set your cards for the day</small></button>
+        <button type="button" class="lib-top-btn rl" id="topReelsBtn"><span>🎞️ REELS MODE</span><small>Swipe · learn · repeat · same save as Game mode</small></button>
       </div>
 
       <div class="lib-box import-top-box">
@@ -1947,7 +1949,7 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
 
     </div>
 
-    <div class="panel" id="panel-progress"><div id="progressBody"></div></div>
+    <div class="panel" id="panel-progress"><div id="studyPlanTop"></div><div id="progressBody"></div></div>
 
   </main>
 
@@ -2215,6 +2217,8 @@ function cleanCfg(){
   cfg.mode=Math.min(MODES.length-1,Math.max(0,Math.round(+cfg.mode)||0));
 }
 cleanCfg();
+// Reels mode shares these settings and the saved game, so Game mode re-reads them every time it opens.
+function reloadCfg(){var o=lj("stenoGameCfg2");Object.keys(o).forEach(function(k){cfg[k]=o[k]});cleanCfg()}
 var stats=Object.assign({best:0,plays:0},lj("stenoGameStats"));
 window.stenoGameResetStats=function(){stats.best=0;stats.plays=0;rm("stenoGameStats");rm("stenoGameRun")};
 var g={modeStart:0,setRandom:false,setSeed:1,setIdx:0,setTotal:1,setSize:0,rMiss:0,hist:[],rKnew:0,missIds:[],knewIds:[],retryIds:[],resumeState:null,marks:[],retry:false,order:false,pace:10,ms:0,startDone:0,active:false,running:false,target:0,done:0,knew:0,missed:0,score:0,combo:0,maxCombo:0,file:null,fileName:"",mode:0,passTotal:0};
@@ -2475,9 +2479,9 @@ function drawSetup(){
   cleanCfg();
   var fl=files(),f=fixSel(cfg),any=fl.some(playable);
   var run=lj("stenoGameRun");
-  var canRes=any&&run&&run.target>0&&(run.done||0)<run.target;
+  var canRes=any&&!g.running&&run&&run.target>0&&(run.done||0)<run.target;
   var h='<div class="gm-in"><h2>🎮 GAME MODE</h2><p class="gm-sub">Set your cards for the day. Once it starts, it keeps going until every card is done.</p>';
-  h+='<button class="gm-go" id="gmGo" style="margin:0 0 14px"'+(any?'':' disabled')+'>▶ START GAME</button>';
+  h+='<button class="gm-go" id="gmGo" style="margin:0 0 14px"'+(any?'':' disabled')+'>'+(g.running?'▶ START NEW GAME':'▶ START GAME')+'</button>';
   if(canRes)h+='<button type="button" class="gm-resume" id="gmResume">▶ Resume your game<small>'+(run.done||0)+' of '+run.target+' cards done</small></button>';
   h+='<button type="button" class="gm-ordset'+(cfg.order?' on':'')+'" id="gmOrderSet"><span>🔢 CARD ORDER</span><b>'+(cfg.order?'ON · in order':'OFF · random')+'</b></button>';
   h+='<div class="gm-lbl">CHOOSE FILE</div><div class="gm-files">'+fileBtns(fl,f)+'</div>';
@@ -2503,16 +2507,25 @@ function drawSetup(){
   var siEl=$("gmSetIn");if(siEl)siEl.onchange=function(){var v=Math.round(parseFloat(siEl.value));cfg.setSize=v>0?v:0;drawSetup()};
   $("gmOrderSet").onclick=function(){cfg.order=!cfg.order;sj("stenoGameCfg2",cfg);drawSetup()};
   $("gmGo").onclick=startNew;
-  $("gmCancel").onclick=function(){if(!g.running)leave()};
+  $("gmCancel").onclick=function(){if(!g.running)leave();else{setup.classList.remove("open");A().release()}};
   if($("gmResume"))$("gmResume").onclick=resumeRun;
 }
-function openSetup(){cfg.order=true;sj("stenoGameCfg2",cfg);result.classList.remove("open");drawSetup();setup.classList.add("open");setup.scrollTop=0}
+function openSetup(){reloadCfg();cfg.order=true;sj("stenoGameCfg2",cfg);result.classList.remove("open");drawSetup();setup.classList.add("open");setup.scrollTop=0}
 function enterFocus(){
   var t=document.querySelector('.tab-btn[data-tab="trainer"]');if(t&&!t.classList.contains("active"))t.click();
   document.documentElement.classList.add("focus-mode");document.body.classList.add("focus-mode","game-mode");setUi(false);setClean(cleanSaved(),true);window.scrollTo(0,0);
   var el=document.documentElement,fn=el.requestFullscreen||el.webkitRequestFullscreen;try{var p=fn&&fn.call(el);if(p&&p.catch)p.catch(function(){})}catch(e){}
 }
-btn.addEventListener("click",function(){enterFocus();g.active=true;A().hold();openSetup()});
+function quickStart(){
+  try{
+    reloadCfg();cfg.order=true;
+    enterFocus();g.active=true;A().hold();
+    var run=lj("stenoGameRun"),ok=files().some(playable);
+    if(!ok){openSetup();return}
+    if(run&&run.target>0&&(run.done||0)<run.target)resumeRun();else startNew();
+  }catch(e){try{openSetup()}catch(x){}}
+}
+btn.addEventListener("click",quickStart);
 // Start the game right away on a file (used after "Import HTML file"): that file, first mode, saved settings.
 window.stenoGameStartFile=function(ids){
   try{
@@ -2780,6 +2793,8 @@ function schedAdd(dt){
   if(Date.now()-schedSaved>5000){schedSaved=Date.now();sj("stenoGameBlocks",sched)}
 }
 window.addEventListener("pagehide",function(){sj("stenoGameBlocks",sched)});
+window.stenoSchedGet=function(){if(sched.date!==today())sched=schedFresh();return sched};
+window.stenoSchedAdd=function(dt){schedAdd(dt)};
 function fmtLeft(m){m=Math.max(0,Math.round(m));return m>=60?Math.floor(m/60)+"h "+(m%60)+"m":m+"m"}
 function schedRender(){
   if(sched.date!==today())sched=schedFresh();
@@ -2884,10 +2899,12 @@ function drawSwitch(){
   h+='<div class="gm-lbl">FILE</div><div class="gm-files">'+fileBtns(fl,f)+'</div>';
   h+='<div class="gm-lbl">MODE</div><div class="gm-modes one">'+modeBtns(f,sel.mode)+'</div>';
   h+='<button class="gm-go" id="gmSwGo">'+(same?'▶ BACK TO THE GAME':'▶ SWITCH AND CONTINUE')+'</button>';
+  h+='<button class="gm-ghost" id="gmSwSet" type="button" style="margin-top:10px">⚙ All settings (cards, sets, pace)</button>';
   h+='<p class="gm-sub" style="margin-top:12px">The game moves on only after a round where every card is Knew (missed cards come back on their own).</p></div>';
   sw.innerHTML=h;sw.scrollTop=keep;
   sw.querySelectorAll("[data-f]").forEach(function(b){b.onclick=function(){sel.file=b.dataset.f;drawSwitch()}});
   sw.querySelectorAll("[data-m]").forEach(function(b){b.onclick=function(){sel.mode=+b.dataset.m;drawSwitch()}});
+  $("gmSwSet").onclick=function(){sw.classList.remove("open");openSetup()};
   $("gmSwGo").onclick=function(){
     sw.classList.remove("open");
     if(sel.file===g.file&&sel.mode===g.mode){A().release();return}
@@ -4446,6 +4463,37 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       });
     }
 
+    function askAfterImport(ids, status){
+      var old = document.getElementById("impAsk"); if(old && old.parentNode) old.parentNode.removeChild(old);
+      var ov = document.createElement("div"); ov.id = "impAsk";
+      ov.style.cssText = "position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box";
+      var bs = "display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;min-height:66px;margin-top:10px;padding:10px;border-radius:16px;font:inherit;font-size:18px;font-weight:900;cursor:pointer;box-sizing:border-box;";
+      var sm = '<small style="font-size:12px;font-weight:700;opacity:.85">';
+      ov.innerHTML = '<div style="width:100%;max-width:420px;background:var(--surface,#fff);color:var(--text,#111);border-radius:22px;padding:20px;box-sizing:border-box;text-align:center">' +
+        '<div style="font-size:21px;font-weight:900">\u2705 File imported</div><div style="font-size:13px;opacity:.7;margin-top:4px">What do you want to do now?</div>' +
+        '<button type="button" data-a="game" style="' + bs + 'color:#fff;border:none;background:linear-gradient(110deg,#ff3d81,#8a3dff,#3d7bff)">\uD83C\uDFAE Game mode' + sm + 'Starts now with your saved settings</small></button>' +
+        '<button type="button" data-a="reels" style="' + bs + 'color:#fff;border:none;background:linear-gradient(110deg,#fa7e1e,#d62976,#962fbf)">\uD83C\uDF9E\uFE0F Reels mode' + sm + 'Starts now with your saved settings</small></button>' +
+        '<button type="button" data-a="editor" style="' + bs + 'color:var(--text,#111);background:var(--surface,#fff);border:1px solid var(--border-strong,#bbb)">\u270F\uFE0F Full-screen editor' + sm + 'Fix words and strokes</small></button>' +
+        '<button type="button" data-a="no" style="margin-top:12px;background:none;border:none;color:var(--text-soft,#666);font:inherit;font-size:13px;cursor:pointer">Not now</button></div>';
+      document.body.appendChild(ov);
+      function close(){ if(ov.parentNode) ov.parentNode.removeChild(ov); }
+      ov.addEventListener("click", function(e){
+        var b = e.target.closest ? e.target.closest("[data-a]") : null;
+        if(!b){ return; }
+        var a = b.getAttribute("data-a");
+        close();
+        if(a === "game"){
+          if(!(typeof window.stenoGameStartFile === "function" && window.stenoGameStartFile(ids))) status.textContent += " The game could not start: no playable cards in the file.";
+        } else if(a === "reels"){
+          if(!(typeof window.stenoReelsStartFile === "function" && window.stenoReelsStartFile(ids))) status.textContent += " Reels could not start: no playable cards in the file.";
+        } else if(a === "editor"){
+          try{ useFile(ids[ids.length - 1]); }catch(err){}
+          var lt = document.querySelector('.tab-btn[data-tab="library"]'); if(lt && !lt.classList.contains("active")) lt.click();
+          var eb = document.getElementById("openEditorBtn"); if(eb) eb.click();
+        }
+      });
+    }
+
     function handleFiles(list){
       var files = Array.prototype.slice.call(list || []).filter(function(f){
         return /\.html?$/i.test(f.name) || f.type === "text/html";
@@ -4473,10 +4521,8 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
         });
       }, Promise.resolve()).then(function(){
         status.textContent = msgs.join(" ");
-        // Start playing the imported file right away (first mode).
-        if(importedIds.length && typeof window.stenoGameStartFile === "function"){
-          if(!window.stenoGameStartFile(importedIds.slice())) status.textContent += " The game could not start: no playable cards in the file.";
-        }
+        // Ask what to do with the imported file: Game mode, Reels mode, or the full-screen editor.
+        if(importedIds.length) askAfterImport(importedIds.slice(), status);
       });
     }
 
@@ -7586,6 +7632,20 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       try{ localStorage.removeItem("stenoGamePrev"); }catch(e){}
       save(); renderTrainer();
     },
+    // ---- Reels mode bridge ----
+    reelCards: function(fileId){
+      var f = fileById(fileId);
+      if(!f) return [];
+      syncActiveWords();
+      var ws = f.id === state.activeFileId ? state.words : f.words;
+      return (ws || []).map(function(w){
+        var st1 = state.stats[w.id + "::s2w"] || {}, st2 = state.stats[w.id + "::w2s"] || {};
+        return { id: w.id, text: w.text ? String(w.text) : "", image: w.image || "", answer: isQA(w) ? String(w.answer || "") : "", qa: isQA(w),
+          last: { s2w: st1.last || null, w2s: st2.last || null }, seen: { s2w: (st1.seen || 0) > 0, w2s: (st2.seen || 0) > 0 } };
+      });
+    },
+    record: function(id, res){ recordResult(id, res); save(); },
+    speak: function(t){ speak(t); },
     refresh: function(){ renderLibrary(); renderTrainer(); }
   };
   window.stenoResumeSession = function(){
@@ -7800,6 +7860,523 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 })();
 </script>
 
+<script type="text/plain" data-app="1">
+// ---------------- Reels mode (own script) ----------------
+// Vertical feed that plays like Game mode: sets, random sets, rounds, Knew-it counts, pace ghost, study plan.
+// Tap = reveal, double-tap = Knew it, swipe on without Knew it = missed, hold = pause.
+(function(){
+"use strict";
+var $=function(i){return document.getElementById(i)};
+var A=function(){return window.stenoGameApi};
+function lj(k,d){try{var v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}}
+function sj(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+function shuf(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
+function mk(tag,id,cls,html){var e=document.createElement(tag);if(id)e.id=id;if(cls)e.className=cls;if(html!=null)e.innerHTML=html;document.body.appendChild(e);return e}
+var cfg=Object.assign({autoScroll:true,file:null,files:[],dir:"s2w",order:true,target:10000,setSize:0,setRandom:false,rev:2,miss:7,knewNeed:3,pace:10,tts:false,sfx:true,txt:100,img:100,ui:true,clean:false},lj("stenoReelsCfg2",{}));
+var R={open:false,run:false,items:[],idx:0,done:0,knew:0,missed:0,score:0,combo:0,maxCombo:0,ms:0,startDone:0,paused:false,holdP:false,rev:{},jud:{},tr:null,tm:null,fi:0,si:0,mi:0,sets:[],sc:{},fl:[],modes:["s2w"],rKnew:0,rMiss:0,hist:[],kc:{},seed:1,missIds:[],fileName:"",retry:false,target:10000,setSize:0,setRandom:false,modeStart:0,pre:0,all:[],judIds:[],retryIds:[],quiet:false};
+function cleanCfg(){
+  if(!cfg.file&&Array.isArray(cfg.files)&&cfg.files.length)cfg.file=cfg.files[0];delete cfg.files;
+  cfg.dir=cfg.dir==="w2s"?"w2s":"s2w";cfg.order=!!cfg.order;
+  cfg.target=Math.max(1,Math.round(+cfg.target)||10000);cfg.setSize=Math.max(0,Math.round(+cfg.setSize)||0);cfg.setRandom=!!cfg.setRandom;
+  cfg.rev=Math.max(1,Math.round(+cfg.rev)||2);cfg.miss=Math.max(1,Math.round(+cfg.miss)||7);cfg.knewNeed=Math.min(99,Math.max(1,Math.round(+cfg.knewNeed)||3));cfg.pace=Math.max(1,Math.round(+cfg.pace)||10);
+  cfg.txt=Math.min(250,Math.max(40,Math.round(+cfg.txt)||100));cfg.img=Math.min(100,Math.max(10,Math.round(+cfg.img)||100));
+  cfg.autoScroll=cfg.autoScroll!==false;cfg.tts=!!cfg.tts;cfg.sfx=cfg.sfx!==false;cfg.ui=cfg.ui!==false;cfg.clean=!!cfg.clean}
+function T(){return R.run?R.target:cfg.target}
+// Knew-it counts are the same object Game mode uses
+function KC(){if(!window.stenoKnewCounts||typeof window.stenoKnewCounts!=="object")window.stenoKnewCounts={};return window.stenoKnewCounts}
+function saveKC(){sj("stenoGameKnew",KC())}
+// Settings shared with Game mode
+var SHARED=["target","rev","miss","pace","knewNeed","setSize","setRandom","tts"];
+function pullGame(){var o=lj("stenoGameCfg2",null);if(!o||typeof o!=="object")return;
+  SHARED.forEach(function(k){if(o[k]!==undefined)cfg[k]=o[k]});if(o.file)cfg.file=o.file;if(o.mode!==undefined)cfg.dir=+o.mode===1?"w2s":"s2w";cleanCfg()}
+function pushGame(){var o=lj("stenoGameCfg2",null);if(!o||typeof o!=="object")o={};
+  SHARED.forEach(function(k){o[k]=cfg[k]});o.file=cfg.file;o.mode=cfg.dir==="w2s"?1:0;o.v=3;o.d2=1;o.d3=1;sj("stenoGameCfg2",o)}
+// every setting is saved the moment it changes
+function saveCfg(){cleanCfg();sj("stenoReelsCfg2",cfg);pushGame()}
+cleanCfg();
+function css(){return '\
+#reelsModeBtn{display:none;position:fixed;left:0;right:0;margin:0 auto;bottom:calc(var(--tabbar-h,60px) + var(--safe-bottom,0px) + 136px);z-index:25;width:calc(100% - 28px);max-width:612px;height:56px;align-items:center;justify-content:center;gap:10px;font-family:inherit;font-size:19px;font-weight:900;letter-spacing:.04em;color:#fff;background:linear-gradient(110deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5,#feda75);background-size:280% 100%;animation:rlShine 6s linear infinite;border:none;border-radius:18px;cursor:pointer;-webkit-tap-highlight-color:transparent}\
+#reelsModeBtn small{font-size:10px;font-weight:700;opacity:.9;letter-spacing:.08em;display:block}\
+#reelsModeBtn:active{transform:scale(.97)}\
+body.on-trainer #reelsModeBtn{display:flex}body.focus-mode #reelsModeBtn,body.game-mode #reelsModeBtn,body.reels-open #reelsModeBtn{display:none!important}\
+@keyframes rlShine{to{background-position:280% 0}}\
+body.reels-open{overflow:hidden!important}\
+#rlRoot{display:none;position:fixed;inset:0;z-index:10000;background:#000;color:#fff;font-family:inherit;-webkit-user-select:none;user-select:none}\
+#rlRoot.on{display:block}\
+#rlFeed{position:absolute;inset:0;overflow-y:scroll;scroll-snap-type:y mandatory;overscroll-behavior:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}\
+#rlFeed::-webkit-scrollbar{display:none}\
+.rl-s{position:relative;height:100vh;height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:var(--rl-pad,90px) 14px 20px;box-sizing:border-box;overflow:hidden}\
+.rl-s:nth-child(5n+1){background:radial-gradient(120% 90% at 20% 10%,#3a1c71,#0b0b14 70%)}\
+.rl-s:nth-child(5n+2){background:radial-gradient(120% 90% at 80% 10%,#8e2de2,#0b0b14 70%)}\
+.rl-s:nth-child(5n+3){background:radial-gradient(120% 90% at 20% 90%,#d62976,#0b0b14 72%)}\
+.rl-s:nth-child(5n+4){background:radial-gradient(120% 90% at 80% 90%,#fa7e1e,#0b0b14 75%)}\
+.rl-s:nth-child(5n){background:radial-gradient(120% 90% at 50% 0%,#0f9b8e,#0b0b14 72%)}\
+.rl-media{width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;max-height:100%}\
+.rl-img{background:#fff;border-radius:18px;padding:10px;box-sizing:border-box;width:calc(var(--rl-img,100)*1%);max-width:100%;display:flex;justify-content:center;box-shadow:0 10px 40px rgba(0,0,0,.5)}\
+.rl-img img{max-width:100%;max-height:46vh;max-height:46dvh;object-fit:contain;display:block}\
+.rl-q{font-weight:900;text-align:center;line-height:1.25;font-size:calc(38px*var(--rl-txt,100)/100);word-break:break-word;text-shadow:0 2px 12px rgba(0,0,0,.5);max-width:100%}\
+.rl-a{font-weight:900;text-align:center;line-height:1.25;font-size:calc(34px*var(--rl-txt,100)/100);word-break:break-word;padding:12px 18px;border-radius:18px;background:rgba(255,255,255,.14);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.25);max-width:100%;opacity:0;transform:translateY(18px) scale(.94);transition:opacity .25s,transform .25s;pointer-events:none}\
+.rl-s.rev .rl-a{opacity:1;transform:none}\
+.rl-a.ph{padding:10px}.rl-a.ph img{max-width:100%;max-height:40vh;max-height:40dvh;background:#fff;border-radius:12px;display:block}\
+.rl-pill{padding:6px 11px;border-radius:16px;background:rgba(255,255,255,.16);font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}\
+#rlToast{position:absolute;left:50%;bottom:calc(30px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);padding:8px 16px;border-radius:20px;background:rgba(0,0,0,.75);font-weight:900;font-size:15px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9;white-space:nowrap}#rlToast.on{opacity:1}\
+#rlSheet{display:none;position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.6);align-items:flex-end;justify-content:center}\
+#rlSheet.on{display:flex}\
+.rl-card{width:100%;max-width:560px;max-height:92dvh;overflow:auto;background:#17171f;border-radius:22px 22px 0 0;padding:18px 18px calc(22px + env(safe-area-inset-bottom,0px));box-sizing:border-box}\
+.rl-card h2{margin:0 0 4px;font-size:22px}.rl-card p{margin:0 0 12px;opacity:.7;font-size:13px}\
+.rl-row{margin:12px 0}.rl-row>label{display:block;font-size:12px;font-weight:800;opacity:.7;margin-bottom:6px;letter-spacing:.05em;text-transform:uppercase}\
+.rl-chips{display:flex;flex-wrap:wrap;gap:7px}\
+.rl-chip{padding:8px 13px;border-radius:18px;background:#262633;border:1px solid #34344a;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}\
+.rl-chip.on{background:linear-gradient(110deg,#d62976,#962fbf);border-color:transparent}\
+.rl-num{display:flex;align-items:center;gap:8px}.rl-num input[type=range]{flex:1}\
+.rl-go{width:100%;margin-top:10px;height:54px;border:none;border-radius:16px;font-size:19px;font-weight:900;color:#fff;background:linear-gradient(110deg,#fa7e1e,#d62976,#962fbf);cursor:pointer;font-family:inherit}\
+.rl-go.sec{background:#2a2a3a;height:46px;font-size:15px}\
+.rl-end{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}\
+.rl-end h2{font-size:30px;margin:0}.rl-stats{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}.rl-stats div{background:rgba(255,255,255,.12);border-radius:14px;padding:10px 16px;font-weight:800}.rl-stats b{display:block;font-size:26px}\
+.rl-end .rl-go{max-width:340px}\
+@media(min-width:700px){.rl-s{padding-left:calc(50% - 300px);padding-right:calc(50% - 300px)}}\
+'}
+
+function css2(){return [
+'#rlRoot.on{display:block}',
+'#rlTop{position:absolute;left:0;right:0;top:0;z-index:6;padding:calc(6px + env(safe-area-inset-top,0px)) 8px 0;pointer-events:none;background:linear-gradient(#000c,#0000)}',
+'#rlTop>*{pointer-events:auto}',
+'#rlBar{height:4px;border-radius:3px;background:rgba(255,255,255,.25);overflow:hidden;margin-bottom:6px}#rlFill{height:100%;width:0;background:#fff}',
+'.rl-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px;font-size:13px;font-weight:800}',
+'.rl-row button,.rl-sq{border:1px solid #fff3;background:#ffffff1f;color:#fff;border-radius:18px;height:34px;padding:0 12px;font:inherit;font-size:13px;font-weight:800;cursor:pointer;backdrop-filter:blur(6px)}',
+'.rl-row button.on{background:#8a3dff}.rl-row .rl-sp{flex:1}#rlQuit{color:#ff8398}#rlPause{color:#f5b301}',
+'.rl-pill{padding:5px 10px;border-radius:16px;background:#ffffff29;font-variant-numeric:tabular-nums;white-space:nowrap}',
+'.rl-track{position:relative;height:18px;border-radius:9px;background:#ffffff26;margin:2px 4px 8px}#rlTf{height:100%;width:0;border-radius:9px;background:linear-gradient(90deg,#8a3dff,#ff3d81)}',
+'.rl-track span{position:absolute;top:-3px;transform:translateX(-50%);font-size:17px}#rlFlag{right:-4px;transform:none!important}',
+'#rlMore .wide{flex:1 1 100%;text-align:left;height:auto;min-height:34px;padding:4px 12px;line-height:1.25}.wide small{display:block;opacity:.7;font-size:10px}',
+'#rlRounds{font-size:12px;margin-bottom:5px}#rlRounds i{display:inline-block;margin:0 5px 3px 0;padding:2px 8px;border-radius:10px;background:#ffffff1f;font-style:normal}',
+'#rlSched{font-size:12px;padding:5px 10px;border-radius:12px;background:#0007;margin-bottom:4px}#rlSched u{display:block;height:4px;border-radius:2px;background:#1fbf75;margin-top:3px}',
+'body.rl-ui-off #rlMore{display:none}',
+'body.rl-clean #rlMore,body.rl-clean #rlOrd,body.rl-clean #rlMissQ,body.rl-clean #rlDone,body.rl-clean #rlUi,body.rl-clean #rlFs,body.rl-clean #rlCfg{display:none!important}',
+'#rlPaused{display:none;position:absolute;inset:0;z-index:7;background:#000b;align-items:center;justify-content:center;text-align:center;font-size:30px;font-weight:900;white-space:pre}#rlPaused.on{display:flex}',
+'.rl-pop{position:absolute;left:50%;top:42%;transform:translateX(-50%);font-size:42px;font-weight:900;color:#3dffa0;z-index:8;pointer-events:none;animation:rlUp .9s ease-out forwards}.rl-pop.bad{color:#ff5470}',
+'@keyframes rlUp{to{opacity:0;transform:translate(-50%,-70px)}}',
+'#rlFl{position:absolute;inset:0;z-index:7;pointer-events:none;opacity:0}#rlFl.g{animation:rlF .35s;background:#1fbf7544}#rlFl.r{animation:rlF .35s;background:#ef444455}@keyframes rlF{from{opacity:1}to{opacity:0}}',
+
+'.rl-stp{display:flex;align-items:center;gap:8px}.rl-stp input[type=number]{width:90px;padding:8px;border-radius:10px;border:1px solid #34344a;background:#262633;color:#fff;font:inherit}',
+'.rl-quote{font-style:italic;opacity:.85;max-width:340px;font-size:14px}'].join('\n')}
+function curSlide(){var f=$("rlFeed");return f?f.children[R.idx]:null}
+function toast(t,ms){var e=$("rlToast");e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove("on")},ms||1300)}
+function pop(t,bad){var p=document.createElement("div");p.className="rl-pop"+(bad?" bad":"");p.textContent=t;$("rlRoot").appendChild(p);setTimeout(function(){p.remove()},900)}
+function flash(c){var f=$("rlFl");f.className="";void f.offsetWidth;f.className=c}
+function today(){var d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
+function sheetOn(){return $("rlSheet").classList.contains("on")}
+function splitSets(ids,size){var n=ids.length,out=[],i;if(!n)return out;
+  if(!(size>0)){var k=Math.max(1,Math.floor(n/20)),left=n-k*20;
+    if(left>10){for(i=0;i<n;i+=20)out.push(ids.slice(i,i+20))}
+    else{var b=Math.floor(n/k),ex=n%k,p=0;for(i=0;i<k;i++){var l=b+(i<ex?1:0);out.push(ids.slice(p,p+l));p+=l}}
+  }else{for(i=0;i<n;i+=size)out.push(ids.slice(i,i+size))}return out}
+function getSets(fid){
+  if(R.sc[fid])return R.sc[fid];
+  var seen={},ids=[];["w2s","s2w"].forEach(function(d){A().ids(fid,d).forEach(function(x){var w=x.slice(0,-5);if(!seen[w]){seen[w]=1;ids.push(w)}})});
+  if(R.setRandom){var h=(R.seed|0)||1,i,j,t;for(i=0;i<fid.length;i++)h=(Math.imul(h^fid.charCodeAt(i),16777619)>>>0)||1;
+    var rnd=function(){h=(h+0x6D2B79F5)|0;var x=Math.imul(h^(h>>>15),1|h);x=(x+Math.imul(x^(x>>>7),61|x))^x;return((x^(x>>>14))>>>0)/4294967296};
+    for(i=ids.length-1;i>0;i--){j=Math.floor(rnd()*(i+1));t=ids[i];ids[i]=ids[j];ids[j]=t}}
+  return R.sc[fid]=splitSets(ids,R.setSize)}
+function mkItems(fid,d,ids){var map={},ok={};A().reelCards(fid).forEach(function(c){map[c.id]=c});A().ids(fid,d).forEach(function(x){ok[x]=1});var out=[];
+  ids.forEach(function(w){var c=map[w];if(!c||!ok[w+"::"+d])return;out.push({id:c.id+"::"+d,dir:d,c:c,file:fid})});return out}
+
+var pc,ac=null;
+function tone(f,d,t,v,dl){if(!cfg.sfx)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();var o=ac.createOscillator(),g=ac.createGain(),s=ac.currentTime+(dl||0);o.type=t||"sine";o.frequency.value=f;g.gain.setValueAtTime(v||.07,s);g.gain.exponentialRampToValueAtTime(.0001,s+d);o.connect(g);g.connect(ac.destination);o.start(s);o.stop(s+d)}catch(e){}}
+function sfx(k){if(k==="knew"){tone(660,.12,"triangle",.08);tone(990,.18,"triangle",.08,.1)}else if(k==="miss")tone(220,.22,"sawtooth",.05);else if(k==="rev")tone(520,.08,"sine",.05)}
+function vib(n){try{if(navigator.vibrate)navigator.vibrate(n)}catch(e){}}
+
+function saveRun(){var mz=R.missIds||[];sj("stenoGameRun",{date:today(),target:R.target,done:R.done,knew:R.knew,missed:R.missed,score:R.score,maxCombo:R.maxCombo,file:R.fl[R.fi]||cfg.file,mode:R.modes[R.mi]==="w2s"?1:0,rev:cfg.rev,miss:cfg.miss,pace:cfg.pace,order:cfg.order,knewIds:(R.judIds||[]).filter(function(x){return mz.indexOf(x)<0}),missIds:mz,retryIds:R.retryIds||[],setIdx:R.si,setSize:R.setSize,setRandom:R.setRandom,setSeed:R.seed,modeStart:R.modeStart,v:3,d3:1,rk:R.rKnew||0,rm:R.rMiss||0,rh:R.hist||[]})}
+
+function boot(){
+  ["reelsModeBtn","rlRoot","rlStyle"].forEach(function(i){var e=$(i);if(e&&e.parentNode)e.parentNode.removeChild(e)});
+  var st=document.createElement("style");st.id="rlStyle";st.textContent=css()+css2();document.head.appendChild(st);
+  mk("button","reelsModeBtn","",'<span>🎞️ REELS MODE</span><small>SWIPE · LEARN · REPEAT</small>').addEventListener("click",quickStart);
+  mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlFl"></div><div id="rlPaused">⏸ PAUSED\ntap to resume</div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div>'+
+  '<div class="rl-row"><button id="rlPause">⏸ Pause</button><button id="rlOrd"></button><button id="rlMissQ"></button><button id="rlAuto"></button><span class="rl-pill" id="rlDone"></span><span class="rl-sp"></span><button id="rlCfg">⚙</button><button id="rlUi">☰</button><button id="rlClean">🙈</button><button id="rlFs">⛶</button><button id="rlQuit">✖ Exit</button></div>'+
+  '<div id="rlMore"><div class="rl-row"><span id="rlCards"></span><span id="rlToday"></span><span id="rlScore"></span><span id="rlCombo"></span><button id="rlMute">🔊</button></div>'+
+  '<div class="rl-track"><div id="rlTf"></div><span id="rlGhost">👻</span><span id="rlRocket">🚀</span><span id="rlFlag">🏁</span></div>'+
+  '<div class="rl-row"><span id="rlClock"></span><span id="rlBatt"></span><span id="rlPace"></span></div>'+
+  '<div class="rl-row"><span class="rl-pill" id="rlKnewPill"></span><span class="rl-pill" id="rlCardPill"></span><span class="rl-pill" id="rlSetPill"></span></div>'+
+  '<div class="rl-row"><button class="wide" id="rlFile"></button><button class="wide" id="rlMode"></button></div><div id="rlRounds"></div><div id="rlSched"></div></div></div><div id="rlToast"></div><div id="rlSheet"></div>');
+  var tb=document.getElementById("topReelsBtn");if(tb)tb.addEventListener("click",quickStart);
+  $("rlQuit").onclick=quit;
+  $("rlPause").onclick=togglePause;$("rlPaused").onclick=togglePause;
+  $("rlOrd").onclick=function(){cfg.order=!cfg.order;saveCfg();toast(cfg.order?"In order (from next round)":"Random (from next round)");hud()};
+  $("rlMissQ").onclick=function(){cfg.miss=cfg.miss===5?8:5;saveCfg();toast("Auto-miss "+cfg.miss+" s");hud();arm()};
+  $("rlCfg").onclick=function(){openSheet("live")};$("rlFile").onclick=$("rlMode").onclick=$("rlCfg").onclick;
+  $("rlAuto").onclick=function(){cfg.autoScroll=!cfg.autoScroll;saveCfg();toast(cfg.autoScroll?"Auto-scroll ON":"Auto-scroll OFF · swipe yourself",1600);hud()};
+  $("rlUi").onclick=function(){cfg.ui=!cfg.ui;saveCfg();syncUi()};
+  $("rlClean").onclick=function(){cfg.clean=!cfg.clean;saveCfg();syncUi()};
+  $("rlMute").onclick=function(){cfg.sfx=!cfg.sfx;saveCfg();this.textContent=cfg.sfx?"🔊":"🔇"};
+  $("rlFs").onclick=function(){try{var d=document.documentElement;if(document.fullscreenElement)document.exitFullscreen();else d.requestFullscreen()}catch(e){}};
+  var feed=$("rlFeed");feed.addEventListener("scroll",onScroll,{passive:true});
+  var lastTap=0,tapT=null,downT=null,holding=false,sx=0,sy=0;
+  feed.addEventListener("pointerdown",function(e){sx=e.clientX;sy=e.clientY;holding=false;clearTimeout(downT);downT=setTimeout(function(){holding=true;R.holdP=true;stopT()},450)});
+  feed.addEventListener("pointerup",function(e){clearTimeout(downT);
+    var moved=Math.abs(e.clientX-sx)+Math.abs(e.clientY-sy)>14;
+    if(holding){holding=false;R.holdP=false;arm();return}
+    if(moved)return;
+    var now=Date.now();
+    if(now-lastTap<300){clearTimeout(tapT);lastTap=0;judge("knew");return}
+    lastTap=now;clearTimeout(tapT);tapT=setTimeout(function(){if(R.paused)togglePause();else reveal()},300)});
+  feed.addEventListener("pointercancel",function(){clearTimeout(downT);if(holding){holding=false;R.holdP=false;arm()}});
+  window.addEventListener("keydown",onKey,true);
+  document.addEventListener("visibilitychange",function(){if(document.hidden&&R.run)saveRun();if(document.hidden&&R.open)stopT();else if(R.open)arm()});window.addEventListener("pagehide",function(){if(R.run)saveRun()});
+  setInterval(tick,250);
+}
+function syncUi(){document.body.classList.toggle("rl-ui-off",!cfg.ui);document.body.classList.toggle("rl-clean",!!cfg.clean);$("rlClean").textContent=cfg.clean?"👁":"🙈";$("rlMute").textContent=cfg.sfx?"🔊":"🔇";fitPad()}
+function fitPad(){var t=$("rlTop");if(t)$("rlRoot").style.setProperty("--rl-pad",Math.round(t.offsetHeight+8)+"px")}
+function onKey(e){
+  if(!R.open)return;
+  if(sheetOn()){var t=e.target&&e.target.tagName;if(e.key==="Escape"&&R.run){closeSheet();e.preventDefault()}if(!/INPUT/.test(t||""))e.stopImmediatePropagation();return}
+  var k=e.key,u=true;
+  if(k==="Escape")quit();
+  else if(k==="ArrowDown"||k==="PageDown")go(1);else if(k==="ArrowUp"||k==="PageUp")go(-1);
+  else if(k===" "||k==="Enter")reveal();
+  else if(k==="y"||k==="Y"||k==="ArrowRight")judge("knew");
+  else if(k==="n"||k==="N"||k==="ArrowLeft")judge("missed");
+  else if(k==="p"||k==="P")togglePause();else if(k==="r"||k==="R")speakCur();else u=false;
+  e.stopImmediatePropagation();if(u)e.preventDefault();
+}
+
+// ---------- setup / settings ----------
+function openRoot(){$("rlRoot").classList.add("on");R.open=true;document.body.classList.add("reels-open");$("rlFeed").innerHTML="";R.run=false;syncUi();hud()}
+function openSetup(){
+  if(!A()){alert("Trainer is still loading.");return}
+  pullGame();openRoot();openSheet("setup");$("rlSheet").style.background="rgba(0,0,0,.88)"}
+// Reels starts at once with the remembered settings (a saved game, from Reels or Game mode, is resumed). Settings stay on the ⚙ button.
+function quickStart(){
+  if(!A()){alert("Trainer is still loading.");return}
+  if(R.open)return;
+  try{
+    pullGame();
+    var pf=A().files().filter(playable);
+    if(!pf.length){openSetup();return}
+    if(!cfg.file||!pf.some(function(f){return f.id===cfg.file})){cfg.file=pf[0].id;saveCfg()}
+    var run=lj("stenoGameRun",null);openRoot();
+    if(run&&run.target>0&&(run.done||0)<run.target)resume();else startNew();
+  }catch(e){try{openSetup()}catch(x){}}
+}
+// After "Import HTML file": start Reels on the imported file.
+window.stenoReelsStartFile=function(ids){
+  try{
+    if(!A()||R.run||R.open)return false;
+    if(!Array.isArray(ids))ids=[ids];
+    var fl=A().files(),pick=null;
+    for(var i=0;i<ids.length&&!pick;i++){var x=fl.filter(function(q){return q.id===ids[i]})[0];if(x&&playable(x))pick=x}
+    if(!pick)return false;
+    pullGame();cfg.file=pick.id;cfg.dir="s2w";saveCfg();openRoot();startNew();return true;
+  }catch(e){return false}
+};
+function openSheet(mode){
+  var files=A().files(),sh=$("rlSheet"),live=mode==="live";
+  var pf=files.filter(playable);if(!cfg.file||!pf.some(function(f){return f.id===cfg.file}))cfg.file=(pf[0]||files[0]||{}).id||null;
+  function chip(g,v,l,on){return '<button type="button" class="rl-chip'+(on?' on':'')+'" data-g="'+g+'" data-v="'+esc(v)+'">'+l+'</button>'}
+  function num(k,l,min){return '<div class="rl-row"><label>'+l+'</label><div class="rl-stp"><input type="number" inputmode="numeric" min="'+min+'" data-n="'+k+'" value="'+(cfg[k]||"")+'"></div></div>'}
+  var run=lj("stenoGameRun",null),canRes=!live&&run&&run.target>0&&run.done<run.target;
+  var cf=files.filter(function(x){return x.id===cfg.file})[0],n=cf?(cf.words||0):0;
+  var lens=splitSets(new Array(n),cfg.setSize).map(function(x){return x.length});
+  var h='<div class="rl-card"><h2>'+(live?'⚙ Settings':'🎞️ Reels mode')+'</h2><p>'+(live?'Cards done stay counted. Pick Apply to restart the round with new choices.':'Set your cards for the day. It keeps going until every card is done.')+'</p>';
+  if(canRes)h+='<button type="button" class="rl-go sec" id="rlResume">▶ Resume · '+run.done+' of '+run.target+' done</button>';
+  h+='<div class="rl-row"><label>Start file · then the next files automatically</label><div class="rl-chips">'+files.map(function(f){return chip("file",f.id,esc(f.name)+" · "+f.words,cfg.file===f.id)}).join("")+'</div></div>';
+  h+='<div class="rl-row"><label>Start with · then the other mode, next set, next file automatically</label><div class="rl-chips">'+chip("dir","s2w","Stroke/Question → Word/Answer",cfg.dir==="s2w")+chip("dir","w2s","Word/Answer → Stroke/Question",cfg.dir==="w2s")+'</div></div>';
+  h+='<div class="rl-row"><label>Card order</label><div class="rl-chips">'+chip("order","1","🔢 In order",cfg.order)+chip("order","0","🔀 Random",!cfg.order)+'</div></div>';
+  h+=num("target","Cards for today",1);
+  h+='<div class="rl-row"><label>Cards in each set (empty = Auto)</label><div class="rl-stp"><input type="number" inputmode="numeric" min="0" data-n="setSize" placeholder="Auto" value="'+(cfg.setSize||"")+'"></div><div class="rl-chips" style="margin-top:8px">'+[[0,"Auto"],[10,"10"],[20,"20"],[30,"30"],[50,"50"]].map(function(p){return chip("sz",p[0],p[1],cfg.setSize===p[0])}).join("")+'</div></div>';
+  h+='<div class="rl-row"><label>Random sets</label><div class="rl-chips">'+chip("setRandom","1","🎲 ON",cfg.setRandom)+chip("setRandom","0","OFF · file order",!cfg.setRandom)+'</div></div>';
+  h+='<p>'+(n?n+' cards → '+lens.length+' set'+(lens.length===1?'':'s')+': '+lens.slice(0,8).join(' + ')+(lens.length>8?' + …':''):'No cards.')+' A set moves on only when every card is Knew; missed cards come back in a short round.</p>';
+  h+=num("rev","Auto-reveal (s)",1)+num("miss","Auto-miss (s)",1)+num("knewNeed","Knew it clicks to finish a card",1)+num("pace","Pace target (s per card)",1);
+  h+='<div class="rl-row"><label>Image size <span id="rlImgV">'+cfg.img+'</span>%</label><input type="range" id="rlImg" min="10" max="100" step="5" value="'+cfg.img+'"></div>';
+  h+='<div class="rl-row"><label>Text size <span id="rlTxtV">'+cfg.txt+'</span>%</label><input type="range" id="rlTxt" min="40" max="250" step="10" value="'+cfg.txt+'"></div>';
+  h+='<div class="rl-row"><label>Extras</label><div class="rl-chips">'+chip("tts","1","🔊 Read aloud",cfg.tts)+chip("sfx","1","🎵 Sounds",cfg.sfx)+chip("auto","1","⏬ Auto-scroll",cfg.autoScroll)+'</div></div>';
+  h+=live?'<button type="button" class="rl-go" id="rlApply">Apply</button><button type="button" class="rl-go sec" id="rlOk">Back to cards</button><button type="button" class="rl-go sec" id="rlNew">🔄 Start a new game</button>':'<button type="button" class="rl-go" id="rlStart">▶ Start</button><button type="button" class="rl-go sec" id="rlCancel">Cancel</button>';
+  sh.innerHTML=h+'</div>';sh.classList.add("on");
+  if(live){stopT();sh.style.background=""}
+  var again=function(){var k=sh.firstChild.scrollTop;openSheet(mode);sh.firstChild.scrollTop=k};
+  sh.onclick=function(e){
+    if(e.target===sh&&live){closeSheet();return}
+    var c=e.target.closest(".rl-chip");if(!c)return;var g=c.dataset.g,v=c.dataset.v;
+    if(g==="file")cfg.file=v;
+    else if(g==="sz")cfg.setSize=+v;
+    else if(g==="order")cfg.order=v==="1";
+    else if(g==="tts"||g==="sfx")cfg[g]=!cfg[g];
+    else if(g==="auto")cfg.autoScroll=!cfg.autoScroll;
+    else if(g==="setRandom")cfg.setRandom=v==="1";
+    else cfg[g]=v;
+    saveCfg();again()};
+  [].forEach.call(sh.querySelectorAll("[data-n]"),function(i){i.onchange=function(){var v=Math.round(parseFloat(i.value));cfg[i.dataset.n]=v>0?v:(i.dataset.n==="setSize"?0:1);saveCfg();if(i.dataset.n==="target"&&R.run){R.target=cfg.target;saveRun();hud()}if(i.dataset.n==="setSize")again()}});
+  $("rlImg").oninput=function(){cfg.img=+this.value;$("rlImgV").textContent=this.value;saveCfg();vars()};
+  $("rlTxt").oninput=function(){cfg.txt=+this.value;$("rlTxtV").textContent=this.value;saveCfg();vars()};
+  if(live){$("rlOk").onclick=closeSheet;$("rlNew").onclick=function(){if(!cfg.file)return;closeSheet(true);startNew()};$("rlApply").onclick=function(){if(!cfg.file)return;closeSheet(true);R.setSize=cfg.setSize;R.setRandom=cfg.setRandom;R.target=cfg.target;R.sc={};R.modeStart=cfg.dir==="w2s"?1:0;R.modes=modeOrder();R.fl=fileOrder(cfg.file);if(!pass(0,0,0,null))finish()}}
+  else{$("rlStart").onclick=function(){if(!cfg.file){alert("Pick a file");return}closeSheet(true);startNew()};$("rlCancel").onclick=function(){closeSheet(true);closeReels()};if($("rlResume"))$("rlResume").onclick=function(){closeSheet(true);resume()}}
+}
+function closeSheet(skip){var sh=$("rlSheet");sh.classList.remove("on");sh.innerHTML="";sh.style.background="";if(R.open&&!skip)arm()}
+function vars(){var r=$("rlRoot");r.style.setProperty("--rl-txt",cfg.txt);r.style.setProperty("--rl-img",cfg.img)}
+
+// ---------- game flow ----------
+function playable(f){return (f.s2w||0)>0||(f.w2s||0)>0}
+function modeOrder(){return R.modeStart===1?["w2s","s2w"]:["s2w","w2s"]}
+// Like Game mode: the chosen file first, then every next file of the library, round and round.
+function fileOrder(start){var fl=A().files().filter(playable).map(function(f){return f.id}),i=fl.indexOf(start);if(i<0)i=0;return fl.slice(i).concat(fl.slice(0,i))}
+function resetRun(keepKc){R.done=R.knew=R.missed=R.score=R.combo=R.maxCombo=0;R.ms=0;R.startDone=0;R.sc={};R.hist=[];R.rKnew=R.rMiss=0;
+  if(!keepKc){window.stenoKnewCounts={};saveKC()}
+  R.paused=false;R.judIds=[];R.missIds=[];R.retryIds=[];R.all=[];R.pre=0;R.fileName="";
+  R.target=cfg.target;R.setSize=cfg.setSize;R.setRandom=cfg.setRandom;R.modeStart=cfg.dir==="w2s"?1:0;R.modes=modeOrder();R.fl=fileOrder(cfg.file)}
+function startNew(){resetRun();R.seed=1+Math.floor(Math.random()*2147483646);R.run=true;R.quiet=true;saveRun();vars();syncUi();if(!pass(0,0,0,null))finish()}
+// Resume goes back to the exact card: same file, set, mode and round; cards already judged in the round are not shown again.
+function resume(){var r=lj("stenoGameRun",null);if(!r)return;resetRun(true);
+  R.target=r.target>0?r.target:cfg.target;R.setSize=Math.max(0,Math.round(+r.setSize)||0);R.setRandom=!!r.setRandom;R.seed=(+r.setSeed)||(+r.seed)||1;
+  if(r.d3===1){cfg.rev=Math.max(1,Math.round(+r.rev)||cfg.rev);cfg.miss=Math.max(1,Math.round(+r.miss)||cfg.miss);saveCfg()}
+  R.modeStart=r.modeStart===1?1:0;R.modes=modeOrder();
+  var fid=r.file;if(!A().files().some(function(f){return f.id===fid&&playable(f)}))fid=cfg.file;
+  R.fl=fileOrder(fid);
+  R.knew=r.knew||0;R.missed=r.missed||0;R.done=R.knew+R.missed;R.startDone=R.done;R.score=r.score||0;R.maxCombo=r.maxCombo||0;
+  R.hist=Array.isArray(r.rh)?r.rh.slice():[];
+  var si=Math.max(0,Math.round(+r.setIdx)||0),mi=((r.mode===1?1:0)-R.modeStart+2)%2,ry=Array.isArray(r.retryIds)?r.retryIds:[],kn=Array.isArray(r.knewIds)?r.knewIds:[],mz=Array.isArray(r.missIds)?r.missIds:[],sets=getSets(R.fl[0]);
+  if(si>=sets.length)si=0;
+  var only=null;if(ry.length){only=mkItems(R.fl[0],R.modes[mi],sets[si]||[]).filter(function(x){return ry.indexOf(x.id)>=0});if(!only.length)only=null}
+  R.run=true;R.quiet=true;vars();syncUi();
+  if(!pass(0,si,mi,only,{skip:kn.concat(mz),miss:mz,rk:Math.max(0,Math.round(+r.rk)||0),rm:Math.max(0,Math.round(+r.rm)||0)}))finish()}
+function pass(fi,si,mi,only,st){
+  var n=R.fl.length,lim=800;if(!n)return false;
+  while(lim-->0){
+    fi=fi%n;var fid=R.fl[fi],sets=getSets(fid);if(si>=sets.length)si=0;
+    var its=only||mkItems(fid,R.modes[mi],sets[si]||[]);
+    if(its.length){
+      var all=its.slice(),skip=st?st.skip:[],rest=its.filter(function(x){return skip.indexOf(x.id)<0});
+      if(st){R.rKnew=st.rk;R.rMiss=st.rm}
+      else{if(R.rKnew+R.rMiss>0)R.hist.push({k:R.rKnew,m:R.rMiss});R.rKnew=R.rMiss=0}
+      var prevFile=R.fileName,quiet=R.quiet;R.quiet=false;
+      R.retry=!!only;R.fi=fi;R.si=si;R.mi=mi;R.sets=sets;R.all=all;R.retryIds=only?only.map(function(x){return x.id}):[];
+      R.missIds=st?st.miss.filter(function(id){return all.some(function(x){return x.id===id})}):[];
+      R.judIds=all.filter(function(x){return skip.indexOf(x.id)>=0}).map(function(x){return x.id});
+      R.pre=all.length-rest.length;
+      R.fileName=(A().files().filter(function(f){return f.id===fid})[0]||{}).name||"";
+      var feed=$("rlFeed");feed.innerHTML="";R.items=[];R.idx=0;R.rev={};R.jud={};
+      if(!rest.length){saveRun();hud();advance();return true}   // everything in this round was already judged
+      its=rest.slice();if(!cfg.order)shuf(its);
+      R.items=its;
+      for(var i=0;i<=its.length;i++){var s=document.createElement("section");s.className="rl-s";feed.appendChild(s)}
+      feed.scrollTop=0;fillWindow();saveRun();hud();
+      var nm=R.modes[mi]==="s2w"?"Stroke → Word":"Word → Stroke",chg=!prevFile||prevFile!==R.fileName;
+      toast(only?"🔁 "+its.length+" missed again":(chg?"📄 "+R.fileName+" · ":"")+(sets.length>1?"Set "+(si+1)+" of "+sets.length+" · ":"")+nm,2200);
+      if(!quiet){if(only){tone(330,.12,"triangle",.07);tone(262,.18,"triangle",.07,.12)}else{tone(660,.1,"triangle");tone(990,.15,"triangle",.08,.1)}}
+      setTimeout(function(){fitPad();arm();onActive()},80);return true}
+    // nothing to play here: next mode of this set, then the next set, then the next file
+    if(mi+1<R.modes.length)mi++;else if(si+1<sets.length){si++;mi=0}else{fi=(fi+1)%n;si=0;mi=0}
+  }
+  return false}
+// Round finished: missed cards come back first; otherwise next mode -> next set -> next file (same order as Game mode).
+function advance(){
+  var again=R.all.filter(function(x){return R.missIds.indexOf(x.id)>=0});
+  if(again.length&&pass(R.fi,R.si,R.mi,again))return;
+  var fi=R.fi,si=R.si,mi=R.mi;
+  if(mi+1<R.modes.length)mi++;else if(si+1<R.sets.length){si++;mi=0}else{fi=(fi+1)%R.fl.length;si=0;mi=0}
+  if(!pass(fi,si,mi,null))finish()}
+
+function nextStep(){var fi=R.fi,si=R.si,mi=R.mi;if(mi+1<R.modes.length)mi++;else if(si+1<R.sets.length){si++;mi=0}else{fi=(fi+1)%R.fl.length;si=0;mi=0}return{fi:fi,si:si,mi:mi}}
+function endHTML(){
+  var again=(R.missIds||[]).length,line;
+  if(again)line="🔁 "+again+" missed card"+(again===1?"":"s")+" come next";
+  else{var n=nextStep(),f=(A().files().filter(function(x){return x.id===R.fl[n.fi]})[0]||{}).name||"";
+    line="Next: "+(n.fi!==R.fi?"📄 "+esc(f)+" · ":"")+(n.si!==R.si||n.fi!==R.fi?"Set "+(n.si+1)+" · ":"")+(R.modes[n.mi]==="s2w"?"Stroke → Word":"Word → Stroke")}
+  return '<div class="rl-media"><div class="rl-q">'+(again?"Round done":"✅ Set done")+'</div><div class="rl-q" style="font-size:20px;opacity:.9">'+line+'</div></div>'}
+function slideHTML(i){
+  if(i>=R.items.length)return endHTML();
+  var it=R.items[i],c=it.c,qa=c.qa,s2w=it.dir==="s2w",front,back;
+  if(qa){front='<div class="rl-q">'+esc(s2w?c.text:c.answer)+'</div>';back='<div class="rl-a">'+esc(s2w?c.answer:c.text)+'</div>'}
+  else if(s2w){front='<div class="rl-img"><img alt="stroke" src="'+esc(c.image)+'"></div>';back='<div class="rl-a">'+esc(c.text)+'</div>'}
+  else{front='<div class="rl-q">'+esc(c.text)+'</div>';back=c.image?'<div class="rl-a ph"><img alt="stroke" src="'+esc(c.image)+'"></div>':'<div class="rl-a">—</div>'}
+  return '<div class="rl-media">'+front+back+'</div>'}
+function fillWindow(){
+  var feed=$("rlFeed");if(!feed)return;var lo=Math.max(0,R.idx-2),hi=Math.min(feed.children.length-1,R.idx+2);
+  for(var i=0;i<feed.children.length;i++){var s=feed.children[i];
+    if(i>=lo&&i<=hi){if(!s.dataset.b){s.innerHTML=slideHTML(i);s.dataset.b="1";if(R.rev[i])s.classList.add("rev")}}
+    else if(s.dataset.b){s.innerHTML="";delete s.dataset.b}}}
+function onScroll(){
+  clearTimeout(onScroll.t);
+  onScroll.t=setTimeout(function(){
+    var feed=$("rlFeed"),h=feed.clientHeight||1,i=Math.max(0,Math.min(feed.children.length-1,Math.round(feed.scrollTop/h))),old=R.idx;
+    if(i!==old){R.idx=i;
+      if(i===R.items.length&&R.run){clearTimeout(R.endT);R.endT=setTimeout(function(){if(R.run&&R.idx===R.items.length)advance()},650)}
+      if(i>old&&R.run)for(var k=old;k<i;k++)judge("missed",k);   // swiped on without Knew it = missed
+      fillWindow();hud();onActive()}
+  },70)}
+function onActive(){stopT();if(!R.run)return;if(cfg.tts)speakCur(true);arm()}
+function speakCur(auto){
+  var it=R.items[R.idx];if(!it)return;var c=it.c,s2w=it.dir==="s2w",rv=!!R.rev[R.idx],a=A(),t;if(!a||!a.speak)return;
+  if(c.qa)t=rv?(s2w?c.answer:c.text):(s2w?c.text:c.answer);else t=s2w?(rv?c.text:null):c.text;
+  if(t)a.speak(t);else if(!auto)toast("Reveal first to hear the word")}
+
+// ---------- timers ----------
+function stopT(){clearTimeout(R.tr);clearTimeout(R.tm);R.tr=R.tm=null;var f=$("rlFill");if(f){f.style.transition="none";f.style.width="0"}}
+function arm(){
+  stopT();
+  if(!R.open||!R.run||R.paused||R.holdP||sheetOn()||R.jud[R.idx]||!R.items[R.idx])return;
+  var f=$("rlFill");f.style.transition="none";f.style.width="0";void f.offsetWidth;f.style.transition="width "+cfg.miss+"s linear";f.style.width="100%";
+  if(!R.rev[R.idx])R.tr=setTimeout(reveal,cfg.rev*1000);
+  R.tm=setTimeout(function(){judge("missed")},cfg.miss*1000)}
+function reveal(){if(!R.run||R.rev[R.idx]||!R.items[R.idx])return;R.rev[R.idx]=1;var s=curSlide();if(s)s.classList.add("rev");sfx("rev");if(cfg.tts)speakCur(true)}
+function go(d){var feed=$("rlFeed"),j=R.idx+d;if(j<0||j>=feed.children.length)return;feed.scrollTo({top:j*feed.clientHeight,behavior:"smooth"})}
+function togglePause(){if(!R.run)return;R.paused=!R.paused;$("rlPaused").classList.toggle("on",R.paused);$("rlPause").textContent=R.paused?"▶ Resume":"⏸ Pause";if(R.paused)stopT();else arm()}
+function judge(res,i){
+  if(!R.run)return;i=i==null?R.idx:i;var it=R.items[i];if(!it||R.jud[i])return;
+  R.jud[i]=res;R.judIds.push(it.id);stopT();
+  try{A().record(it.id,res)}catch(e){}it.c.last[it.dir]=res;
+  var partial=false;
+  if(res==="knew"){var kc=KC();kc[it.id]=(kc[it.id]||0)+1;if(kc[it.id]<cfg.knewNeed)partial=true;else delete kc[it.id];saveKC()}
+  if((res!=="knew"||partial)&&R.missIds.indexOf(it.id)<0)R.missIds.push(it.id);
+  if(res==="knew"){R.knew++;R.rKnew++;R.combo++;R.maxCombo=Math.max(R.maxCombo,R.combo);var m=Math.min(5,1+Math.floor((R.combo-1)/3)),p=100*m;R.score+=p;pop("+"+p+(m>1?"  x"+m:""));flash("g");sfx("knew");vib(20)}
+  else{R.missed++;R.rMiss++;R.combo=0;flash("r");sfx("miss")}
+  R.done=R.knew+R.missed;saveRun();
+  if(!R.rev[i]){R.rev[i]=1;var s=$("rlFeed").children[i];if(s)s.classList.add("rev")}
+  hud();
+  if(R.done>=R.target){setTimeout(finish,500);return}
+  if(i===R.idx&&cfg.autoScroll)setTimeout(function(){go(1)},380)}   // the last card scrolls on to the end slide, which opens the missed cards / next mode, set and file
+
+// ---------- HUD ----------
+function fmtDur(s){s=Math.max(0,Math.round(s));var h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h>0?h+"h "+m+"m":m>0?m+"m "+(s%60)+"s":s+"s"}
+function hud(){
+  if(!R.open)return;var rt=R.pre+R.items.length,cur=R.run?Math.min(rt,R.pre+R.idx+1):0;
+  $("rlDone").textContent="✅ "+R.done+" / "+T();
+  $("rlCards").textContent=R.done+" / "+T();
+  var n=0;try{n=A().todayCards()}catch(e){}$("rlToday").textContent="Today "+n;
+  $("rlScore").textContent="⭐ "+R.score;$("rlCombo").textContent=R.combo>=2?"🔥 x"+R.combo:"";
+  $("rlKnewPill").textContent="✓ Knew "+R.rKnew+" / "+rt;$("rlCardPill").textContent="Card "+cur+" / "+rt;
+  $("rlSetPill").textContent="🎯 SET "+(R.si+1)+" / "+Math.max(1,(R.sets||[]).length);
+  $("rlFile").innerHTML="<small>📄 FILE · tap to change</small><b>"+esc(R.fileName||"-")+"</b>";
+  $("rlMode").innerHTML="<small>🎯 MODE · "+(R.retry?"missed again":"round")+" "+(Object.keys(R.jud).length+R.pre)+" / "+rt+"</small><b>"+(R.modes&&R.modes[R.mi]==="w2s"?"Word/Answer → Stroke/Question":"Stroke/Question → Word/Answer")+"</b>";
+  $("rlOrd").textContent="🔢 Order "+(cfg.order?"ON":"OFF");$("rlOrd").classList.toggle("on",cfg.order);$("rlMissQ").textContent="⏱ "+cfg.miss+"s";$("rlAuto").textContent="⏬ Auto "+(cfg.autoScroll?"ON":"OFF");$("rlAuto").classList.toggle("on",cfg.autoScroll);
+  var hs=R.hist||[],off=Math.max(0,hs.length-6),h="🏆 Rounds · Knew %: ";
+  function pc(k,m){return (k+m)?Math.round(100*k/(k+m))+"%":"-"}
+  for(var q=off;q<hs.length;q++)h+="<i>R"+(q+1)+" "+pc(hs[q].k,hs[q].m)+"</i>";
+  $("rlRounds").innerHTML=h+"<i>R"+(hs.length+1)+" live "+pc(R.rKnew,R.rMiss)+"</i>";
+  track();fitPad()}
+function track(){
+  var t=T()||1,gc=Math.min(t,R.startDone+R.ms/1000/Math.max(1,cfg.pace));
+  $("rlTf").style.width=Math.min(100,R.done/t*100)+"%";$("rlRocket").style.left=Math.min(100,R.done/t*100)+"%";$("rlGhost").style.left=Math.min(100,gc/t*100)+"%";
+  var c=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit",second:"2-digit",hour12:true});$("rlClock").textContent="🕒 "+c;
+  var d=R.done-R.startDone,pe=$("rlPace");
+  if(R.run&&d>=3){var mp=R.ms/1000/d,rem=Math.max(0,t-R.done);pe.textContent="⏱ "+mp.toFixed(1)+" s/card · goal "+cfg.pace+" s · "+fmtDur(rem*mp)+" left · "+(Math.round(R.done-gc)>=0?"🚀 ahead":"👻 ahead")}
+  else pe.textContent=R.run?"⏱ measuring…":""}
+var bt=null;
+function batt(){try{if(!bt&&navigator.getBattery){bt=0;navigator.getBattery().then(function(b){bt=b})}if(bt&&bt.level!=null)$("rlBatt").textContent="🔋 "+Math.round(bt.level*100)+"%"+(bt.charging?" ⚡":"");else $("rlBatt").textContent="🔋 n/a"}catch(e){}}
+var LBL=["7–9 AM","9–11 AM","11 AM–1 PM","1–3 PM","3–5 PM","5–7 PM","7–9 PM","9–11 PM"],sch=null,schSaved=0;
+function schedAdd(dt){
+  var h=new Date().getHours(),i=(h>=7&&h<23)?Math.floor((h-7)/2):-1;if(window.stenoSchedGet){sch=window.stenoSchedGet()}else if(!sch||sch.date!==today()){var o=lj("stenoGameBlocks",{});sch=(o.date===today()&&Array.isArray(o.ms)&&o.ms.length===8)?o:{date:today(),ms:[0,0,0,0,0,0,0,0]}}
+  if(i>=0&&dt>0){if(window.stenoSchedAdd)window.stenoSchedAdd(dt);else{sch.ms[i]+=dt;if(Date.now()-schSaved>5000){schSaved=Date.now();sj("stenoGameBlocks",sch)}}}
+  var e=$("rlSched");if(!e)return;
+  if(i<0){e.textContent=h<7?"STUDY PLAN · starts 7 AM":"STUDY PLAN · day over";return}
+  var m=Math.floor(sch.ms[i]/60000);e.innerHTML="📅 "+LBL[i]+" · "+m+"/90 min"+(m>=90?" ✓ PASS":"")+"<u style='width:"+Math.min(100,m/90*100)+"%'></u>"}
+var lastTick=Date.now();
+function tick(){
+  var now=Date.now(),dt=now-lastTick;lastTick=now;if(dt>2000)dt=0;
+  if(!R.open)return;
+  if(R.run&&!R.paused&&!document.hidden&&!sheetOn()){R.ms+=dt;schedAdd(dt)}else schedAdd(0);
+  batt();track()}
+
+// ---------- end ----------
+function finish(){
+  if(!R.run)return;R.run=false;stopT();try{localStorage.removeItem("stenoGameRun");localStorage.removeItem("stenoGameWasLive")}catch(e){}
+  var acc=R.done?Math.round(R.knew/R.done*100):0,Q=window.STENO_QUOTES||[],q=Q.length?Q[Math.floor(Math.random()*Q.length)]:null;
+  var sh=$("rlSheet");
+  sh.innerHTML='<div class="rl-card"><div class="rl-end"><div style="font-size:64px">🏆</div><h2>ALL DONE!</h2><div class="rl-stats"><div><b>'+R.done+' / '+R.target+'</b>Cards</div><div><b>'+R.score+'</b>Score</div><div><b>'+R.knew+'</b>Knew</div><div><b>'+R.missed+'</b>Missed</div><div><b>'+acc+'%</b>Accuracy</div><div><b>🔥 '+R.maxCombo+'</b>Best combo</div></div>'+(q?'<div class="rl-quote">“'+esc(q[0])+'”<br>— '+esc(q[1])+'</div>':'')+'<button class="rl-go" id="rlAgain">↻ PLAY AGAIN</button><button class="rl-go sec" id="rlEx">✕ Exit</button></div></div>';
+  sh.classList.add("on");sh.style.background="rgba(0,0,0,.85)";
+  $("rlAgain").onclick=function(){closeSheet(true);openSetup()};$("rlEx").onclick=function(){closeSheet(true);closeReels()};
+  tone(523,.15,"triangle",.09);tone(659,.15,"triangle",.09,.15);tone(784,.15,"triangle",.09,.3);tone(1047,.4,"triangle",.09,.45)}
+function quit(){if(R.run)saveRun();R.run=false;closeReels()}
+function closeReels(){
+  stopT();R.open=false;R.run=false;R.paused=false;$("rlPaused").classList.remove("on");$("rlPause").textContent="⏸ Pause";
+  $("rlRoot").classList.remove("on");document.body.classList.remove("reels-open","rl-clean","rl-ui-off");
+  var sh=$("rlSheet");sh.classList.remove("on");sh.innerHTML="";sh.style.background="";
+  try{window.speechSynthesis&&speechSynthesis.cancel()}catch(e){}
+  try{if(document.fullscreenElement)document.exitFullscreen()}catch(e){}
+  try{A().refresh()}catch(e){}}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();
+})();
+
+// ---------------- Progress tab: study hours 7 AM - 11 PM (shared with Game mode and Reels mode) ----------------
+(function(){
+"use strict";
+var LB=["7\u20139 AM","9\u201311 AM","11 AM\u20131 PM","1\u20133 PM","3\u20135 PM","5\u20137 PM","7\u20139 PM","9\u201311 PM"],NEED=90;
+function lj(k,d){try{var v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}}
+function today(){var d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
+function fmt(m){m=Math.max(0,Math.round(m));return m>=60?Math.floor(m/60)+"h "+(m%60)+"m":m+"m"}
+var open=lj("stenoProgSchedOpen",true),sel=null,lastKey="";
+function get(){var o=null;try{o=window.stenoSchedGet&&window.stenoSchedGet()}catch(e){}
+  if(!o)o=lj("stenoGameBlocks",{});
+  if(!o||o.date!==today()||!Array.isArray(o.ms)||o.ms.length!==8)o={date:today(),ms:[0,0,0,0,0,0,0,0]};return o}
+function calc(){
+  var o=get(),now=new Date(),hr=now.getHours(),ci=(hr>=7&&hr<23)?Math.floor((hr-7)/2):-1,mins=[],cred=[0,0,0,0,0,0,0,0],pool=0,order=[],i,tot=0;
+  for(i=0;i<8;i++){mins[i]=Math.floor(o.ms[i]/60000);tot+=mins[i];if(mins[i]>NEED)pool+=mins[i]-NEED}
+  for(i=0;i<8;i++)if(hr>=7+2*(i+1))order.push(i);
+  if(ci>=0)order.push(ci);
+  order.forEach(function(k){if(mins[k]<NEED&&pool>0){var u=Math.min(NEED-mins[k],pool);cred[k]=u;pool-=u}});
+  return{mins:mins,cred:cred,pool:pool,hr:hr,ci:ci,now:now,tot:tot}}
+function detail(i,d){
+  var m=d.mins[i],c=d.cred[i],t=m+c,ended=d.hr>=7+2*(i+1),cur=i===d.ci;
+  var s='<b>'+LB[i]+'</b> \u00b7 studied <b>'+m+'</b> min'+(c?' + <b>'+c+'</b> from extra':'');
+  if(t>=NEED)s+=' \u00b7 \u2705 target done'+(m>NEED?' \u00b7 <b>+'+(m-NEED)+'</b> extra saved':'');
+  else if(ended)s+=' \u00b7 \u274C short by <b>'+(NEED-t)+'</b> min';
+  else if(cur){var endIn=(7+2*(i+1))*60-(d.hr*60+d.now.getMinutes()),more=NEED-t;s+=' \u00b7 study <b>'+more+'</b> more \u00b7 ends in '+fmt(endIn)+(more>endIn?' \u00b7 \u26A0 will fail':'')}
+  else s+=' \u00b7 not started (needs '+NEED+' min)';
+  return s}
+function render(){
+  var root=document.getElementById("studyPlanTop");if(!root)return;
+  var d=calc(),i,rows="",pass=0,fail=0;
+  if(sel===null||sel>7)sel=d.ci>=0?d.ci:0;
+  for(i=0;i<8;i++){
+    var m=d.mins[i],c=d.cred[i],t=m+c,ended=d.hr>=7+2*(i+1),rc,txt,w=Math.min(100,t/NEED*100);
+    if(ended){if(t>=NEED){pass++;rc="pass";txt=(c?m+"+"+c:m)+" \u2713"}else{fail++;rc="fail";txt=m+" \u2717 \u2212"+(NEED-t)}}
+    else if(i===d.ci){if(t>=NEED){rc="pass";txt=(c?m+"+"+c:m)+" \u2713"}else{rc="now";txt=t+"/"+NEED}}
+    else{rc="fut";txt=m>NEED?"+"+(m-NEED):"\u2014";w=m>0?Math.min(100,m/NEED*100):0}
+    rows+='<button type="button" class="spc-row '+rc+(i===sel?' sel':'')+(i===d.ci?' cur':'')+'" data-i="'+i+'"><span>'+LB[i]+'</span><span class="spc-mb"><u style="width:'+w+'%"></u></span><b>'+txt+'</b></button>';
+  }
+  var head,cls="";
+  if(d.ci>=0){
+    var t2=d.mins[d.ci]+d.cred[d.ci],more=Math.max(0,NEED-t2),endIn=(7+2*(d.ci+1))*60-(d.hr*60+d.now.getMinutes());
+    var tag=t2>=NEED?"PASS \u2713":more+" min more";if(t2>=NEED)cls="pass";else if(more>endIn)cls="risk";
+    head='<div class="spc-now"><span class="spc-lab">NOW \u00b7 '+LB[d.ci]+'</span><span class="spc-tag">'+tag+'</span></div><div class="spc-bar"><u style="width:'+Math.min(100,t2/NEED*100)+'%"></u></div>';
+  }else if(d.hr<7)head='<div class="spc-now"><span class="spc-lab">STUDY PLAN</span><span class="spc-tag">starts 7 AM</span></div>';
+  else head='<div class="spc-now"><span class="spc-lab">DAY OVER</span><span class="spc-tag">'+pass+' pass \u00b7 '+fail+' fail</span></div>';
+  var h='<div class="spc-card '+cls+(open?' open':'')+'"><button type="button" class="spc-head" data-t="1"><span>\u23F0 Study hours today \u00b7 7 AM \u2013 11 PM</span><i>'+(open?"\u25B4":"\u25BE")+'</i></button>'+
+    '<div class="spc-sum"><b>'+fmt(d.tot)+'</b> studied today \u00b7 every 2 hours needs <b>'+NEED+' min</b></div>'+head+
+    '<div class="spc-list">'+rows+'<div class="spc-det">'+detail(sel,d)+'</div><div class="spc-foot">Passed '+pass+' \u00b7 Failed '+fail+' \u00b7 extra saved '+d.pool+' min \u00b7 minutes above '+NEED+' fill other blocks<br>Game mode and Reels mode both count. Tap a block for details.</div></div></div>';
+  var key=h;if(key===lastKey)return;lastKey=key;root.innerHTML=h;
+}
+var st=document.getElementById("spcStyle");if(st&&st.parentNode)st.parentNode.removeChild(st);
+st=document.createElement("style");st.id="spcStyle";
+st.textContent='#studyPlanTop{margin:0 0 14px}.spc-card{padding:12px 14px 12px;border-radius:18px;border:1px solid var(--border-strong,#ccc);background:var(--surface,#fff);color:var(--text,#111);box-shadow:var(--shadow-md,0 2px 10px rgba(0,0,0,.08))}'+
+'.spc-card.pass{border-color:var(--good-strong,#16a34a)}.spc-card.risk{border-color:var(--bad-strong,#dc2626)}'+
+'.spc-head{display:flex;align-items:center;justify-content:space-between;width:100%;padding:0;border:none;background:none;color:inherit;font:inherit;font-size:15px;font-weight:900;cursor:pointer;text-align:left}.spc-head i{font-style:normal;color:var(--text-soft,#666)}'+
+'.spc-sum{margin:4px 0 8px;font-size:12.5px;color:var(--text-soft,#666);font-weight:700}.spc-sum b{color:var(--text,#111)}'+
+'.spc-now{display:flex;align-items:center;justify-content:space-between;gap:8px}.spc-lab{font-size:11px;letter-spacing:.06em;color:var(--text-soft,#666);font-weight:800}.spc-tag{font-size:17px;font-weight:900;color:var(--accent,#2563eb)}'+
+'.spc-card.pass .spc-tag{color:var(--good-strong,#16a34a)}.spc-card.risk .spc-tag{color:var(--bad-strong,#dc2626)}'+
+'.spc-bar,.spc-mb{display:block;height:8px;border-radius:5px;background:var(--surface-sunken,#e5e7eb);overflow:hidden}.spc-bar{margin:4px 0 2px;height:10px}'+
+'.spc-bar u,.spc-mb u{display:block;height:100%;border-radius:5px;background:var(--accent,#2563eb);text-decoration:none;transition:width .4s}'+
+'.spc-card.pass .spc-bar u{background:var(--good-strong,#16a34a)}.spc-card.risk .spc-bar u{background:var(--bad-strong,#dc2626)}'+
+'.spc-list{display:none;margin-top:8px;padding-top:6px;border-top:1px solid var(--border-strong,#ccc)}.spc-card.open .spc-list{display:block}'+
+'.spc-row{display:grid;grid-template-columns:86px 1fr 70px;gap:8px;align-items:center;width:100%;padding:6px 6px;margin:2px 0;border:1px solid transparent;border-radius:10px;background:none;color:inherit;font:inherit;font-size:13px;cursor:pointer;text-align:left}'+
+'.spc-row b{text-align:right;font-weight:900;white-space:nowrap}.spc-row.sel{background:var(--surface-sunken,#eef2f7);border-color:var(--border-strong,#ccc)}.spc-row.cur span:first-child{font-weight:900}'+
+'.spc-row.pass b{color:var(--good-strong,#16a34a)}.spc-row.pass .spc-mb u{background:var(--good-strong,#16a34a)}.spc-row.fail b{color:var(--bad-strong,#dc2626)}.spc-row.fail .spc-mb u{background:var(--bad-strong,#dc2626)}'+
+'.spc-row.now{color:var(--accent,#2563eb)}.spc-row.fut{color:var(--text-soft,#666)}'+
+'.spc-det{margin:6px 2px 0;padding:8px 10px;border-radius:10px;background:var(--surface-sunken,#eef2f7);font-size:13px;line-height:1.4}'+
+'.spc-foot{margin-top:6px;font-size:11px;font-weight:700;color:var(--text-soft,#666);text-align:center}';
+document.head.appendChild(st);
+var root=document.getElementById("studyPlanTop");
+if(root)root.addEventListener("click",function(e){
+  var r=e.target.closest?e.target.closest(".spc-row"):null;
+  if(r){sel=+r.getAttribute("data-i");lastKey="";render();return}
+  if(e.target.closest&&e.target.closest("[data-t]")){open=!open;try{localStorage.setItem("stenoProgSchedOpen",JSON.stringify(open))}catch(x){}lastKey="";render()}
+});
+[].forEach.call(document.querySelectorAll('.tab-btn[data-tab="progress"]'),function(b){b.addEventListener("click",function(){lastKey="";render()})});
+setInterval(function(){var r=document.getElementById("studyPlanTop");if(r&&r.offsetParent!==null)render()},2000);
+render();
+})();
+
+</script>
 <script>
 if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){
   window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});
