@@ -7920,7 +7920,7 @@ body.reels-open{overflow:hidden!important}\
 .rl-s.rev .rl-a{opacity:1;transform:none}\
 .rl-a.ph{padding:10px}.rl-a.ph img{max-width:100%;max-height:40vh;max-height:40dvh;background:#fff;border-radius:12px;display:block}\
 .rl-pill{padding:6px 11px;border-radius:16px;background:rgba(255,255,255,.16);font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}\
-#rlToast{position:absolute;left:50%;bottom:calc(62px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);padding:8px 16px;border-radius:20px;background:rgba(0,0,0,.75);font-weight:900;font-size:15px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9;white-space:nowrap}#rlToast.on{opacity:1}\
+#rlToast{position:absolute;left:50%;bottom:calc(30px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);padding:8px 16px;border-radius:20px;background:rgba(0,0,0,.75);font-weight:900;font-size:15px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9;white-space:nowrap}#rlToast.on{opacity:1}\
 #rlSheet{display:none;position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.6);align-items:flex-end;justify-content:center}\
 #rlSheet.on{display:flex}\
 .rl-card{width:100%;max-width:560px;max-height:92dvh;overflow:auto;background:#17171f;border-radius:22px 22px 0 0;padding:18px 18px calc(22px + env(safe-area-inset-bottom,0px));box-sizing:border-box}\
@@ -7960,7 +7960,7 @@ function css2(){return [
 '#rlFl{position:absolute;inset:0;z-index:7;pointer-events:none;opacity:0}#rlFl.g{animation:rlF .35s;background:#1fbf7544}#rlFl.r{animation:rlF .35s;background:#ef444455}@keyframes rlF{from{opacity:1}to{opacity:0}}',
 
 '.rl-stp{display:flex;align-items:center;gap:8px}.rl-stp input[type=number]{width:90px;padding:8px;border-radius:10px;border:1px solid #34344a;background:#262633;color:#fff;font:inherit}',
-'#rlStat{position:absolute;left:50%;bottom:calc(12px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:6;padding:7px 14px;border-radius:20px;background:#000b;font-size:14px;font-weight:900;white-space:nowrap;pointer-events:none;display:none;font-variant-numeric:tabular-nums}#rlStat.on{display:block}#rlStat b{color:#3dffa0}',
+'#rlStat{display:none;margin:0 0 5px;text-align:center;font-size:13px;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap}#rlStat.on{display:block}#rlStat b{color:#3dffa0}body.rl-clean #rlStat{display:none!important}',
 '.rl-quote{font-style:italic;opacity:.85;max-width:340px;font-size:14px}'].join('\n')}
 function curSlide(){var f=$("rlFeed");return f?f.children[R.idx]:null}
 function toast(t,ms){var e=$("rlToast");e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove("on")},ms||1300)}
@@ -7994,13 +7994,13 @@ function boot(){
   ["reelsModeBtn","rlRoot","rlStyle"].forEach(function(i){var e=$(i);if(e&&e.parentNode)e.parentNode.removeChild(e)});
   var st=document.createElement("style");st.id="rlStyle";st.textContent=css()+css2();document.head.appendChild(st);
   mk("button","reelsModeBtn","",'<span>🎞️ REELS MODE</span><small>SWIPE · LEARN · REPEAT</small>').addEventListener("click",quickStart);
-  mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlFl"></div><div id="rlPaused">⏸ PAUSED\ntap to resume</div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div>'+
+  mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlFl"></div><div id="rlPaused">⏸ PAUSED\ntap to resume</div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div><div id="rlStat"></div>'+
   '<div class="rl-row"><button id="rlPause">⏸ Pause</button><button id="rlOrd"></button><button id="rlMissQ"></button><button id="rlAuto"></button><span class="rl-pill" id="rlDone"></span><span class="rl-sp"></span><button id="rlCfg">⚙</button><button id="rlUi">☰</button><button id="rlClean">🙈</button><button id="rlFs">⛶</button><button id="rlQuit">✖ Exit</button></div>'+
   '<div id="rlMore"><div class="rl-row"><span id="rlCards"></span><span id="rlToday"></span><span id="rlScore"></span><span id="rlCombo"></span><button id="rlMute">🔊</button></div>'+
   '<div class="rl-track"><div id="rlTf"></div><span id="rlGhost">👻</span><span id="rlRocket">🚀</span><span id="rlFlag">🏁</span></div>'+
   '<div class="rl-row"><span id="rlClock"></span><span id="rlBatt"></span><span id="rlPace"></span></div>'+
   '<div class="rl-row"><span class="rl-pill" id="rlKnewPill"></span><span class="rl-pill" id="rlCardPill"></span><span class="rl-pill" id="rlSetPill"></span></div>'+
-  '<div class="rl-row"><button class="wide" id="rlFile"></button><button class="wide" id="rlMode"></button></div><div id="rlRounds"></div><div id="rlSched"></div></div></div><div id="rlStat"></div><div id="rlToast"></div><div id="rlSheet"></div>');
+  '<div class="rl-row"><button class="wide" id="rlFile"></button><button class="wide" id="rlMode"></button></div><div id="rlRounds"></div><div id="rlSched"></div></div></div><div id="rlToast"></div><div id="rlSheet"></div>');
   var tb=document.getElementById("topReelsBtn");if(tb)tb.addEventListener("click",quickStart);
   $("rlQuit").onclick=quit;
   $("rlPause").onclick=togglePause;$("rlPaused").onclick=togglePause;
@@ -8220,6 +8220,12 @@ function arm(){
   if(!R.rev[R.idx])R.tr=setTimeout(reveal,cfg.rev*1000);
   R.tm=setTimeout(function(){judge("missed")},cfg.miss*1000)}
 function reveal(){if(!R.run||R.rev[R.idx]||!R.items[R.idx])return;R.rev[R.idx]=1;var s=curSlide();if(s)s.classList.add("rev");sfx("rev");if(cfg.tts)speakCur(true)}
+// quick scroll (about 0.1 s) used after Knew it; the browser's own smooth scroll is slow
+function fastGo(d){var feed=$("rlFeed"),j=R.idx+d;if(!feed||j<0||j>=feed.children.length)return;
+  var from=feed.scrollTop,to=j*feed.clientHeight,t0=Date.now(),dur=110;
+  feed.style.scrollSnapType="none";
+  (function step(){var p=Math.min(1,(Date.now()-t0)/dur),e=1-Math.pow(1-p,3);feed.scrollTop=from+(to-from)*e;
+    if(p<1)(window.requestAnimationFrame||setTimeout)(step,16);else{feed.scrollTop=to;feed.style.scrollSnapType=""}})()}
 function go(d){var feed=$("rlFeed"),j=R.idx+d;if(j<0||j>=feed.children.length)return;feed.scrollTo({top:j*feed.clientHeight,behavior:"smooth"})}
 function togglePause(){if(!R.run)return;R.paused=!R.paused;$("rlPaused").classList.toggle("on",R.paused);$("rlPause").textContent=R.paused?"▶ Resume":"⏸ Pause";if(R.paused)stopT();else arm()}
 function judge(res,i,force){
@@ -8235,7 +8241,7 @@ function judge(res,i,force){
   if(!R.rev[i]){R.rev[i]=1;var s=$("rlFeed").children[i];if(s)s.classList.add("rev")}
   hud();
   if(R.done>=R.target){setTimeout(finish,500);return}
-  if(i===R.idx&&(cfg.autoScroll||force))setTimeout(function(){go(1)},380)}   // the last card scrolls on to the end slide, which opens the missed cards / next mode, set and file
+  if(i===R.idx&&(cfg.autoScroll||force))setTimeout(function(){fastGo(1)},force?30:300)}   // the last card scrolls on to the end slide, which opens the missed cards / next mode, set and file
 
 // ---------- HUD ----------
 function fmtDur(s){s=Math.max(0,Math.round(s));var h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h>0?h+"h "+m+"m":m>0?m+"m "+(s%60)+"s":s+"s"}
@@ -8247,7 +8253,7 @@ function hud(){
   $("rlScore").textContent="⭐ "+R.score;$("rlCombo").textContent=R.combo>=2?"🔥 x"+R.combo:"";
   $("rlKnewPill").textContent="✓ Knew "+R.rKnew+" / "+rt;$("rlCardPill").textContent="Card "+cur+" / "+rt;
   $("rlSetPill").textContent="🎯 SET "+(R.si+1)+" / "+Math.max(1,(R.sets||[]).length);
-  var sp=$("rlStat");if(sp){sp.classList.toggle("on",!!R.run);sp.innerHTML=(R.retry?"🔁 ":"")+"✓ Knew <b>"+R.rKnew+"</b> / "+rt+" · 🃏 Card <b>"+cur+"</b> / "+rt+" · 🎯 Set <b>"+(R.si+1)+"</b> / "+Math.max(1,(R.sets||[]).length)}
+  var sp=$("rlStat");if(sp){sp.classList.toggle("on",!!R.run);sp.innerHTML=(R.retry?"Retry \u00b7 ":"")+"Knew <b>"+R.rKnew+"</b> / "+rt+" \u00b7 Card <b>"+cur+"</b> / "+rt+" \u00b7 Set <b>"+(R.si+1)+"</b> / "+Math.max(1,(R.sets||[]).length)}
   $("rlFile").innerHTML="<small>📄 FILE · tap to change</small><b>"+esc(R.fileName||"-")+"</b>";
   $("rlMode").innerHTML="<small>🎯 MODE · "+(R.retry?"missed again":"round")+" "+(Object.keys(R.jud).length+R.pre)+" / "+rt+"</small><b>"+(R.modes&&R.modes[R.mi]==="w2s"?"Word/Answer → Stroke/Question":"Stroke/Question → Word/Answer")+"</b>";
   $("rlOrd").textContent="🔢 Order "+(cfg.order?"ON":"OFF");$("rlOrd").classList.toggle("on",cfg.order);$("rlMissQ").textContent="⏱ "+cfg.miss+"s";$("rlAuto").textContent="⏬ Auto "+(cfg.autoScroll?"ON":"OFF");$("rlAuto").classList.toggle("on",cfg.autoScroll);

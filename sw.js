@@ -1,6 +1,6 @@
 // Steno TNPSC Drill - service worker (works on GitHub Pages, in a sub-folder too).
 // Change CACHE_VERSION every time you upload a new index.html so phones pick up the update.
-var CACHE_VERSION = "steno-drill-v2";
+var CACHE_VERSION = "steno-drill-v3";
 var CORE = ["./", "./index.html"];
 
 self.addEventListener("install", function (e) {
