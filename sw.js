@@ -1,54 +1,34 @@
-// Steno + TNPSC Drill service worker.
-// Bump CACHE_VERSION on every upload so phones and browsers pick up the new index.html.
-const CACHE_VERSION = 'steno-drill-v9-reels-voice';
-const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './apple-touch-icon.png'];
+const CACHE = "steno-drill-v1";
+const SHELL = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "apple-touch-icon.png"];
 
-self.addEventListener('install', function (e) {
+self.addEventListener("install", (e) => {
   e.waitUntil(
-    caches.open(CACHE_VERSION).then(function (c) {
-      // add files one by one so a missing icon never blocks the install
-      return Promise.all(CORE.map(function (u) { return c.add(u).catch(function () {}); }));
-    }).then(function () { return self.skipWaiting(); })
+    caches.open(CACHE).then((c) =>
+      Promise.all(SHELL.map((u) => c.add(u).catch(() => null)))
+    ).then(() => self.skipWaiting())
   );
 });
 
-self.addEventListener('activate', function (e) {
+self.addEventListener("activate", (e) => {
   e.waitUntil(
-    caches.keys().then(function (keys) {
-      return Promise.all(keys.filter(function (k) {
-        return k.indexOf('steno-drill-') === 0 && k !== CACHE_VERSION;
-      }).map(function (k) { return caches.delete(k); }));
-    }).then(function () { return self.clients.claim(); })
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
-self.addEventListener('fetch', function (e) {
+self.addEventListener("fetch", (e) => {
   const req = e.request;
-  if (req.method !== 'GET') return;
-  const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return;
-
-  // Page itself: network first so a new upload shows up, cache when offline.
-  if (req.mode === 'navigate' || url.pathname.endsWith('/index.html') || url.pathname.endsWith('/')) {
-    e.respondWith(
-      fetch(req).then(function (res) {
-        const copy = res.clone();
-        caches.open(CACHE_VERSION).then(function (c) { c.put('./index.html', copy); });
-        return res;
-      }).catch(function () {
-        return caches.match('./index.html').then(function (m) { return m || caches.match(req); });
-      })
-    );
-    return;
-  }
-
-  // Everything else: cache first, refresh in the background.
+  if (req.method !== "GET" || new URL(req.url).origin !== location.origin) return;
   e.respondWith(
-    caches.match(req).then(function (hit) {
-      const net = fetch(req).then(function (res) {
-        if (res && res.ok) { const copy = res.clone(); caches.open(CACHE_VERSION).then(function (c) { c.put(req, copy); }); }
+    caches.match(req).then((hit) => {
+      const net = fetch(req).then((res) => {
+        if (res && res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+        }
         return res;
-      }).catch(function () { return hit; });
+      }).catch(() => hit || caches.match("index.html"));
       return hit || net;
     })
   );
