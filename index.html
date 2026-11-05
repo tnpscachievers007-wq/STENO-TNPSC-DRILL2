@@ -1725,10 +1725,24 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
         <button type="button" class="lib-top-btn" id="topImportBtn"><span>📄 IMPORT HTML FILE</span><small>Game starts on that file</small></button>
         <button type="button" class="lib-top-btn gm" id="topGameBtn"><span>🎮 GAME MODE</span><small>Set your cards for the day</small></button>
         <button type="button" class="lib-top-btn rl" id="topReelsBtn"><span>🎞️ REELS MODE</span><small>Swipe · learn · repeat · same save as Game mode</small></button>
-        <button type="button" class="lib-top-btn tool t-files" id="topFilesBtn"><span>🗂️ YOUR FILES</span><small>Jump to your file list</small></button>
+      <div class="lib-box" id="fileBox" style="grid-column:1/-1;margin:0">
+        <h3>🗂️ Your files <span id="fileCount" style="color:var(--text-faint); font-weight:500; font-size:12.5px;"></span></h3>
+        <p class="hint">Every HTML file you import is kept as its own separate file. Tap <strong>Edit</strong> on a file to work on it. Everything in the library tools below (words, images, audio, export, shareable copy) only changes the file you picked. Game mode lets you play any of your files.</p>
+        <div class="file-list" id="fileList"></div>
+        <div class="lib-row">
+          <button class="btn secondary small" id="newFileBtn">➕ New empty file</button>
+          <label class="status-text" style="display:inline-flex;align-items:center;gap:6px;">This file holds:
+            <select id="fileKindSel" aria-label="What kind of cards this file holds">
+              <option value="steno">✍️ Stroke images ↔ words</option>
+              <option value="qa">📚 Questions ↔ answers</option>
+            </select>
+          </label>
+          <span id="fileStatus" class="status-text"></span>
+        </div>
+      </div>
         <button type="button" class="lib-top-btn tool t-dup" id="topDupBtn"><span>🗑️ REMOVE DUPLICATES</span><small>Remove duplicate words</small></button>
         <button type="button" class="lib-top-btn tool t-edit" id="topEditorBtn"><span>✏️ FULL-SCREEN EDITOR</span><small>Open the big editor</small></button>
-        <button type="button" class="lib-top-btn tool t-share" id="topShareBtn"><span>⬇️ SHAREABLE COPY</span><small>Download .html with everything</small></button>
+        <button type="button" class="lib-top-btn tool t-share" style="grid-column:1/-1" id="topShareBtn"><span>⬇️ SHAREABLE COPY</span><small>Download .html with everything</small></button>
         <div id="topToolStatus" role="status" aria-live="polite"></div>
       </div>
 
@@ -1757,22 +1771,6 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
         </div>
         <div class="lib-row" style="margin-top:8px;">
           <span id="appendHtmlStatus" class="status-text"></span>
-        </div>
-      </div>
-
-      <div class="lib-box" id="fileBox">
-        <h3>🗂️ Your files <span id="fileCount" style="color:var(--text-faint); font-weight:500; font-size:12.5px;"></span></h3>
-        <p class="hint">Every HTML file you import is kept as its own separate file. Tap <strong>Edit</strong> on a file to work on it. Everything in the library tools below (words, images, audio, export, shareable copy) only changes the file you picked. Game mode lets you play any of your files.</p>
-        <div class="file-list" id="fileList"></div>
-        <div class="lib-row">
-          <button class="btn secondary small" id="newFileBtn">➕ New empty file</button>
-          <label class="status-text" style="display:inline-flex;align-items:center;gap:6px;">This file holds:
-            <select id="fileKindSel" aria-label="What kind of cards this file holds">
-              <option value="steno">✍️ Stroke images ↔ words</option>
-              <option value="qa">📚 Questions ↔ answers</option>
-            </select>
-          </label>
-          <span id="fileStatus" class="status-text"></span>
         </div>
       </div>
 
