@@ -1400,6 +1400,15 @@ body.game-mode.gm-paused #trainerBody::after{content:"\23F8  PAUSED\A click the 
 .lib-top-btn small{font-size:11px;font-weight:700;opacity:.8;letter-spacing:.02em}
 .lib-top-btn.gm{color:#fff;border:none;background:linear-gradient(110deg,#ff3d81,#8a3dff,#3d7bff,#ff3d81);background-size:250% 100%;animation:gmShine 5s linear infinite}
 .lib-top-btn:active{transform:scale(.97)}
+.lib-top-btn.tool{min-height:56px;font-size:13.5px;border-width:1.5px}
+.lib-top-btn.tool.t-files{border-color:#3d7bff;color:#2456c9}
+.lib-top-btn.tool.t-dup{border-color:#e0562b;color:#c23d14}
+.lib-top-btn.tool.t-edit{border-color:#8a3dff;color:#6a22d6}
+.lib-top-btn.tool.t-share{border-color:#16a34a;color:#12803a}
+#topToolStatus{grid-column:1/-1;min-height:0;font-size:12.5px;font-weight:700;color:var(--text-soft,#666);text-align:center;margin:-2px 0 0}
+#topToolStatus:empty{display:none}
+.flash-box{animation:flashBox 1.4s ease-out 1}
+@keyframes flashBox{0%,40%{box-shadow:0 0 0 3px #3d7bff}100%{box-shadow:0 0 0 0 rgba(61,123,255,0)}}
 .lib-top-btn.rl{grid-column:1/-1;color:#fff;border:none;background:linear-gradient(110deg,#fa7e1e,#d62976,#962fbf,#fa7e1e);background-size:250% 100%;animation:gmShine 5s linear infinite}
 #gmUiBtn,#gmFsBtn,#gmCleanBtn{display:none;position:fixed;left:calc(10px + env(safe-area-inset-left,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:106;width:46px;height:46px;padding:0;border-radius:50%;align-items:center;justify-content:center;font:inherit;font-size:21px;font-weight:800;line-height:1;color:var(--text);background:var(--surface);border:1px solid var(--border-strong);box-shadow:var(--shadow-md);opacity:.5;cursor:pointer;-webkit-tap-highlight-color:transparent}
 #gmUiBtn:active,#gmFsBtn:active,#gmCleanBtn:active{transform:scale(.93)}
@@ -1716,24 +1725,12 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
         <button type="button" class="lib-top-btn" id="topImportBtn"><span>📄 IMPORT HTML FILE</span><small>Game starts on that file</small></button>
         <button type="button" class="lib-top-btn gm" id="topGameBtn"><span>🎮 GAME MODE</span><small>Set your cards for the day</small></button>
         <button type="button" class="lib-top-btn rl" id="topReelsBtn"><span>🎞️ REELS MODE</span><small>Swipe · learn · repeat · same save as Game mode</small></button>
+        <button type="button" class="lib-top-btn tool t-files" id="topFilesBtn"><span>🗂️ YOUR FILES</span><small>Jump to your file list</small></button>
+        <button type="button" class="lib-top-btn tool t-dup" id="topDupBtn"><span>🗑️ REMOVE DUPLICATES</span><small>Remove duplicate words</small></button>
+        <button type="button" class="lib-top-btn tool t-edit" id="topEditorBtn"><span>✏️ FULL-SCREEN EDITOR</span><small>Open the big editor</small></button>
+        <button type="button" class="lib-top-btn tool t-share" id="topShareBtn"><span>⬇️ SHAREABLE COPY</span><small>Download .html with everything</small></button>
+        <div id="topToolStatus" role="status" aria-live="polite"></div>
       </div>
-
-      <div class="lib-box" id="fileBox">
-        <h3>🗂️ Your files <span id="fileCount" style="color:var(--text-faint); font-weight:500; font-size:12.5px;"></span></h3>
-        <p class="hint">Every HTML file you import is kept as its own separate file. Tap <strong>Edit</strong> on a file to work on it. Everything in the library tools below (words, images, audio, export, shareable copy) only changes the file you picked. Game mode lets you play any of your files.</p>
-        <div class="file-list" id="fileList"></div>
-        <div class="lib-row">
-          <button class="btn secondary small" id="newFileBtn">➕ New empty file</button>
-          <label class="status-text" style="display:inline-flex;align-items:center;gap:6px;">This file holds:
-            <select id="fileKindSel" aria-label="What kind of cards this file holds">
-              <option value="steno">✍️ Stroke images ↔ words</option>
-              <option value="qa">📚 Questions ↔ answers</option>
-            </select>
-          </label>
-          <span id="fileStatus" class="status-text"></span>
-        </div>
-      </div>
-
 
       <div class="lib-box import-top-box">
         <h3>📄 Import HTML files (each one becomes its own file)</h3>
@@ -1760,6 +1757,22 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
         </div>
         <div class="lib-row" style="margin-top:8px;">
           <span id="appendHtmlStatus" class="status-text"></span>
+        </div>
+      </div>
+
+      <div class="lib-box" id="fileBox">
+        <h3>🗂️ Your files <span id="fileCount" style="color:var(--text-faint); font-weight:500; font-size:12.5px;"></span></h3>
+        <p class="hint">Every HTML file you import is kept as its own separate file. Tap <strong>Edit</strong> on a file to work on it. Everything in the library tools below (words, images, audio, export, shareable copy) only changes the file you picked. Game mode lets you play any of your files.</p>
+        <div class="file-list" id="fileList"></div>
+        <div class="lib-row">
+          <button class="btn secondary small" id="newFileBtn">➕ New empty file</button>
+          <label class="status-text" style="display:inline-flex;align-items:center;gap:6px;">This file holds:
+            <select id="fileKindSel" aria-label="What kind of cards this file holds">
+              <option value="steno">✍️ Stroke images ↔ words</option>
+              <option value="qa">📚 Questions ↔ answers</option>
+            </select>
+          </label>
+          <span id="fileStatus" class="status-text"></span>
         </div>
       </div>
 
@@ -1817,10 +1830,19 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
           <button class="btn secondary small" id="importBtn">Import library</button>
           <button class="btn secondary small" id="clearLibBtn">Clear library</button>
         </div>
+        <div class="lib-row">
+          <button class="btn secondary small" id="removeDupBtn">🗑️ Remove duplicate words</button>
+          <span id="removeDupStatus" class="status-text"></span>
+        </div>
         <div class="lib-row only-steno">
           <button class="btn secondary small" id="exportImagesBtn">Export images (.zip, in order)</button>
           <span id="exportImagesStatus" class="status-text"></span>
         </div>
+        <div class="lib-row">
+          <button class="btn small" id="downloadSharedBtn">⬇️ Download shareable copy (.html)</button>
+          <span id="downloadSharedStatus" class="status-text"></span>
+        </div>
+        <p class="hint">Your words, images and audio are only saved in this browser. If you just share this file as-is, whoever opens it will see an empty library. Use this button to make a copy with everything already loaded inside — that copy is safe to send.</p>
         <div class="lib-row">
           <button class="btn secondary small" id="showWordsBtn">Show all words as text</button>
           <button class="btn secondary small" id="copyWordsBtn" style="display:none;">Copy</button>
@@ -1830,6 +1852,10 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
         <p class="hint only-steno">Fixing a misalignment: click into the word box, then press <strong>Enter</strong> where you want to split. The text to the right of the cursor drops down into the next row, and every word below moves down one (the images stay put). Press <strong>Backspace</strong> with the cursor at the very start of a word box to attach that word to the end of the word above it; every word below moves up one, so the images line up again.</p>
         <p class="hint only-steno">Editing a stroke image: under each image there are buttons to <strong>Crop</strong> it (drag the box, or draw a new one; you can rotate and auto-trim the white margins), <strong>Delete</strong> only the image, <strong>Copy</strong> and <strong>Paste</strong> an image, shift it <strong>up or down</strong> a row (up replaces the image above and pulls every image below up one; down leaves this row empty and pushes every image below down one), <strong>View</strong> it large, or <strong>Upload</strong> a different file. You can also click an image box and press <strong>Ctrl+V</strong> (Cmd+V on Mac) to paste a copied image straight into it, hover over it and press Ctrl+V, or drop an image file on it. After you delete or change an image, an Undo button appears for a few seconds. With an image box selected, <strong>Delete</strong> removes the image and <strong>Enter</strong> opens the cropper.</p>
         <p class="hint only-qa">Each row has the question on top and the answer below it. Press Enter in the question box to go to the answer box. Press Enter in the answer box to go to the next row.</p>
+        <div class="lib-row">
+          <button class="btn small" id="openEditorBtn" type="button">✏️ Open full-screen editor</button>
+          <span class="status-text">Bigger rows, more room, keyboard shortcuts.</span>
+        </div>
         <div id="editorWrap">
           <div class="ed-bar">
             <div class="ed-top">
@@ -4799,7 +4825,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     }
   });
 
-  (document.getElementById("downloadSharedBtn")||document.createElement("b")).addEventListener("click", function(){
+  document.getElementById("downloadSharedBtn").addEventListener("click", function(){
     var statusEl = document.getElementById("downloadSharedStatus");
     if(state.words.length === 0){
       statusEl.textContent = "Add some words first.";
@@ -4841,7 +4867,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     renderTrainer();
   });
 
-  (document.getElementById("removeDupBtn")||document.createElement("b")).addEventListener("click", function(){
+  document.getElementById("removeDupBtn").addEventListener("click", function(){
     var seen = {}, keep = [], removedIds = [];
     state.words.forEach(function(w){
       var key = (w.text || "").trim().toLowerCase();
@@ -6939,7 +6965,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       }
       placeholder = null;
     }
-    if(openBtn) openBtn.addEventListener("click", openEd);
+    openBtn.addEventListener("click", openEd);
     document.getElementById("edDone").addEventListener("click", closeEd);
     document.getElementById("edBigger").addEventListener("click", function(){ setScale(scale + 0.15); });
     document.getElementById("edSmaller").addEventListener("click", function(){ setScale(scale - 0.15); });
@@ -8455,6 +8481,30 @@ setInterval(function(){var r=document.getElementById("studyPlanTop");if(r&&r.off
 render();
 })();
 
+</script>
+<script>
+// Library top shortcuts: they press the same buttons that live further down the page.
+(function(){
+  function $(id){return document.getElementById(id)}
+  var msg=$("topToolStatus"), timer=null;
+  function say(t){ if(!msg) return; msg.textContent=t||""; clearTimeout(timer); if(t) timer=setTimeout(function(){msg.textContent=""},8000); }
+  function press(targetId, statusId){
+    var b=$(targetId); if(!b){ say("That tool is not available."); return; }
+    var st=statusId?$(statusId):null;
+    if(st) st.textContent="";
+    b.click();
+    if(st) setTimeout(function(){ if(st.textContent) say(st.textContent); }, 400);
+    if(st) setTimeout(function(){ if(st.textContent) say(st.textContent); }, 2500);
+  }
+  var f=$("topFilesBtn"); if(f) f.addEventListener("click",function(){
+    var box=$("fileBox"); if(!box) return;
+    box.scrollIntoView({behavior:"smooth",block:"start"});
+    box.classList.remove("flash-box"); void box.offsetWidth; box.classList.add("flash-box");
+  });
+  var d=$("topDupBtn"); if(d) d.addEventListener("click",function(){ press("removeDupBtn","removeDupStatus"); });
+  var e=$("topEditorBtn"); if(e) e.addEventListener("click",function(){ press("openEditorBtn"); });
+  var h=$("topShareBtn"); if(h) h.addEventListener("click",function(){ say("Preparing your shareable copy…"); press("downloadSharedBtn","downloadSharedStatus"); });
+})();
 </script>
 <script>
 if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){
