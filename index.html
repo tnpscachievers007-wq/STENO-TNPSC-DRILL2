@@ -6703,6 +6703,26 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       });
     }catch(e){ speakingNow = false; }
   }
+  function speakWordQ(t, rate, cb){
+    var done = false, to = null;
+    function fin(){ if(done) return; done = true; clearTimeout(to); try{ if(cb) cb(); }catch(e){} }
+    to = setTimeout(fin, 6000);
+    try{
+      if(!window.speechSynthesis){ fin(); return; }
+      var segs = splitByScript(String(t || ""));
+      if(!segs.length){ fin(); return; }
+      var setLang = langOfSetting();
+      segs.forEach(function(g, i){
+        var u = new SpeechSynthesisUtterance(g.text);
+        var v = findVoice(g.lang);
+        u.lang = v ? v.lang : (g.lang === "ta" ? "ta-IN" : (setLang.slice(0, 2).toLowerCase() === "en" ? setLang : "en-IN"));
+        if(v) u.voice = v;
+        u.rate = rate || parseFloat(state.settings.ttsRate) || 0.9;
+        if(i === segs.length - 1){ u.onend = u.onerror = fin; }
+        speechSynthesis.speak(u);
+      });
+    }catch(e){ fin(); }
+  }
   function sayCurrent(){
     var id = currentItemId(); if(!id) return;
     var w = wordById(parseItemId(id).wordId); if(!w) return;
@@ -7671,6 +7691,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     },
     record: function(id, res){ recordResult(id, res); save(); },
     speak: function(t, r){ speak(t, r); },
+    speakQ: function(t, r, cb){ speakWordQ(t, r, cb); },
     // Reels mode: is a voice or audio clip still playing, and stop it.
     reading: function(){
       try{
@@ -8275,6 +8296,7 @@ function fillWindow(){
 function onScroll(){
   clearTimeout(onScroll.t);
   onScroll.t=setTimeout(function(){
+    if(R.moving)return;
     var feed=$("rlFeed"),h=feed.clientHeight||1,i=Math.max(0,Math.min(feed.children.length-1,Math.round(feed.scrollTop/h))),old=R.idx;
     if(i!==old){R.idx=i;
       if(i===R.items.length&&R.run){clearTimeout(R.endT);R.endT=setTimeout(function(){if(R.run&&R.idx===R.items.length)advance()},650)}
@@ -8300,17 +8322,27 @@ function speakCur(auto){
 // N words per minute = one word every 60/N seconds. Only the word is spoken; the stroke / answer appears near the end of the slot to check yourself.
 function dictRate(){return cfg.wpm<=60?1:Math.min(1.6,1+(cfg.wpm-60)/150)}
 function dictSay(it){var a=A();if(a&&a.speak)a.speak(it.c.text||it.c.answer||"",dictRate())}
+// One queue: each word is spoken to the end (never cut off by the next one), then the card moves on so that every word starts 60/WPM seconds after the previous one.
+// If a word takes longer than its slot, the voice speed rises a little until it keeps up.
 function armDict(){
-  var it=R.items[R.idx];if(!it||R.jud[R.idx])return;
-  var slot=60000/cfg.wpm,f=$("rlFill");
+  if(!R.items[R.idx])return;
+  var tok=++R.dtok;clearTimeout(R.ds);
+  R.ds=setTimeout(function(){dictStep(R.idx,tok,dictRate())},250)}
+function dictStep(i,tok,rate){
+  if(tok!==R.dtok||!R.run||!cfg.wpm)return;
+  if(i>=R.items.length){if(R.idx!==R.items.length)fastGo(R.items.length-R.idx,true);return}
+  if(R.idx!==i)fastGo(i-R.idx,true);
+  var it=R.items[i],slot=60000/cfg.wpm,t0=Date.now(),f=$("rlFill"),a=A();
   f.style.transition="none";f.style.width="0";void f.offsetWidth;f.style.transition="width "+(slot/1000)+"s linear";f.style.width="100%";
-  dictSay(it);
-  if(!R.rev[R.idx])R.tr=setTimeout(function(){R.tr=null;if(cfg.wpm)reveal()},slot*0.6);
-  var idx=R.idx;
-  R.tm=setTimeout(function(){R.tm=null;if(!cfg.wpm||!R.run||R.idx!==idx||R.jud[idx])return;
-    R.jud[idx]=1;R.done++;hud();
-    if(R.done>=R.target){finish();return}
-    fastGo(1)},slot)}
+  var after=function(){
+    if(tok!==R.dtok)return;
+    var sp=Date.now()-t0;
+    if(R.idx===i&&!R.rev[i])reveal();
+    R.jud[i]=1;R.done++;hud();
+    if(R.done>=R.target){setTimeout(finish,300);return}
+    var nr=sp>slot*0.9?Math.min(2,rate+0.15):rate;
+    R.ds=setTimeout(function(){dictStep(i+1,tok,nr)},Math.max(150,slot-sp))};
+  if(a&&a.speakQ)a.speakQ(it.c.text||it.c.answer||"",rate,after);else after()}
 function setWpm(w){
   if(!R.open||sheetOn())return;
   cfg.wpm=cfg.wpm===w?0:w;
@@ -8321,7 +8353,7 @@ function setWpm(w){
   toast(cfg.wpm?"🎙 Dictation "+cfg.wpm+" WPM · 1 word / "+(60/cfg.wpm).toFixed(1)+" s · "+(cfg.order?"in order":"shuffled"):"Dictation off · normal Reels",2400)}
 
 // ---------- timers ----------
-function stopT(){clearTimeout(R.tr);clearTimeout(R.tm);R.tr=R.tm=null;var f=$("rlFill");if(f){f.style.transition="none";f.style.width="0"}}
+function stopT(){clearTimeout(R.tr);clearTimeout(R.tm);R.tr=R.tm=null;R.dtok=(R.dtok|0)+1;clearTimeout(R.ds);var f=$("rlFill");if(f){f.style.transition="none";f.style.width="0"}}
 function arm(){
   stopT();
   if(!R.open||!R.run||R.paused||R.holdP||sheetOn()||R.jud[R.idx]||!R.items[R.idx])return;
@@ -8334,13 +8366,21 @@ function arm(){
   fire("tm",function(){if(!R.rev[R.idx]){reveal();fire("tm",function(){judge("missed")},350);return}judge("missed")},cfg.miss*1000)}
 // Read aloud on: when the time ends while a voice is still speaking, let the sentence finish first, then reveal / go to the next card.
 function fire(slot,fn,ms){R[slot]=setTimeout(function(){var a=A();if(cfg.tts&&a&&a.reading&&a.reading()){fire(slot,fn,250);return}fn()},ms)}
-function reveal(){if(!R.run||R.rev[R.idx]||!R.items[R.idx])return;R.rev[R.idx]=1;var s=curSlide();if(s)s.classList.add("rev");sfx("rev");if(cfg.tts&&!cfg.wpm){var ri=R.items[R.idx];if(ri&&!ri.c.qa&&ri.dir==="s2w")sayOne(ri.c.text)}}
+function reveal(){if(!R.run||R.rev[R.idx]||!R.items[R.idx])return;R.rev[R.idx]=1;var s=curSlide();if(s)s.classList.add("rev");if(!cfg.wpm)sfx("rev");if(cfg.tts&&!cfg.wpm){var ri=R.items[R.idx];if(ri&&!ri.c.qa&&ri.dir==="s2w")sayOne(ri.c.text)}}
 // quick scroll (about 0.1 s) used after Knew it; the browser's own smooth scroll is slow
-function fastGo(d){var feed=$("rlFeed"),j=R.idx+d;if(!feed||j<0||j>=feed.children.length)return;
+// Move to another card at once (index, end-slide timer, card window are updated immediately, not from delayed scroll events), then glide there in about 0.1 s.
+function arrive(j,quiet){
+  R.idx=j;
+  if(j===R.items.length&&R.run){clearTimeout(R.endT);R.endT=setTimeout(function(){if(R.run&&R.idx===R.items.length)advance()},650)}
+  fillWindow();hud();if(!quiet)onActive()}
+function fastGo(d,quiet){var feed=$("rlFeed"),j=R.idx+d;if(!feed||j<0||j>=feed.children.length)return;
+  var tok=R.mv=(R.mv|0)+1;R.moving=true;arrive(j,quiet);
   var from=feed.scrollTop,to=j*feed.clientHeight,t0=Date.now(),dur=110;
   feed.style.scrollSnapType="none";
-  (function step(){var p=Math.min(1,(Date.now()-t0)/dur),e=1-Math.pow(1-p,3);feed.scrollTop=from+(to-from)*e;
-    if(p<1)(window.requestAnimationFrame||setTimeout)(step,16);else{feed.scrollTop=to;feed.style.scrollSnapType=""}})()}
+  function end(){feed.scrollTop=to;feed.style.scrollSnapType="";setTimeout(function(){if(tok===R.mv)R.moving=false},150)}
+  (function step(){if(tok!==R.mv){return}
+    var p=Math.min(1,(Date.now()-t0)/dur),e=1-Math.pow(1-p,3);feed.scrollTop=from+(to-from)*e;
+    if(p<1)(window.requestAnimationFrame||setTimeout)(step,16);else end()})()}
 function go(d){var feed=$("rlFeed"),j=R.idx+d;if(j<0||j>=feed.children.length)return;feed.scrollTo({top:j*feed.clientHeight,behavior:"smooth"})}
 function togglePause(){if(!R.run)return;R.paused=!R.paused;$("rlPaused").classList.toggle("on",R.paused);$("rlPause").textContent=R.paused?"▶ Resume":"⏸ Pause";if(R.paused){stopT();silence()}else arm()}
 // Restart the current set in the current mode only (same file, same set, same mode; the day's count stays).
