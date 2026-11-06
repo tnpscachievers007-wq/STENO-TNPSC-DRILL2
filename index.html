@@ -1777,7 +1777,7 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
       <details class="lib-box" open>
         <summary><h3>➕ Add words / cards in bulk</h3><span class="chev">›</span></summary>
         <div class="lib-box-body">
-          <p class="hint only-steno">Paste one word or phrase per line, in the order you want them to appear. Then choose the matching stroke images — select them in the same order (most file pickers keep the order you click them in, or sort by filename to be safe). The nth image is paired with the nth line. If you choose more images than lines, the extra images are still added, with the text left blank for you to type in later. Audio clips (optional) are matched the same way, sorted by filename.</p>
+          <p class="hint only-steno">Paste one word or phrase per line, then press <strong>Add to library</strong>. You can add words and stroke images in <strong>any order and in any number of batches</strong> (for example 70 words, then 50 images, then 50 images, then 30 words). Each batch first fills the empty spots already in the list, from the top, and only then adds new rows, so nothing is left blank in between. Images are paired in filename order.</p>
           <p class="hint only-qa">Paste your cards here. Line 1 is the question. Line 2 is its answer. Line 3 is the next question. Line 4 is its answer. And so on. Empty lines are skipped.</p>
           <textarea id="bulkWords" placeholder="there their&#10;which&#10;because"></textarea>
           <span class="field-label only-steno">Stroke images (optional)</span>
@@ -4316,7 +4316,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   document.getElementById("bulkAddBtn").addEventListener("click", function(){
     if(activeKind() === "qa"){ bulkAddQA(); return; }
     var lines = document.getElementById("bulkWords").value
-      .split("\n")
+      .split(/\r?\n/)
       .map(function(s){ return s.trim(); })
       .filter(function(s){ return s.length > 0; });
     var files = Array.prototype.slice.call(document.getElementById("bulkImages").files || []);
@@ -4335,28 +4335,48 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     ]).then(function(results){
       var urls = results[0];
       var audioUrls = results[1];
-      // If there are more images (or audio clips) than lines of text, the extra
-      // ones are still added, with the text left blank to fill in later.
-      var total = Math.max(lines.length, urls.length, audioUrls.length);
-      for(var bi = 0; bi < total; bi++){
-        state.words.push({ id: uid(), text: lines[bi] || "", image: urls[bi] || null, audio: audioUrls[bi] || null });
+
+      // SMART FILL: every batch first fills the EMPTY spots that already exist
+      // in the list (top to bottom), and only the leftovers become new rows.
+      // So words -> images -> images -> words in any order never leaves a gap.
+      function hasText(w){ return !!(w.text && String(w.text).trim()); }
+      function place(items, isEmpty, setFn){
+        var i = 0, filled = 0, added = 0, ws = state.words;
+        for(var r = 0; r < ws.length && i < items.length; r++){
+          if(isEmpty(ws[r])){ setFn(ws[r], items[i]); i++; filled++; }
+        }
+        for(; i < items.length; i++){
+          var nw = { id: uid(), text: "", image: null, audio: null };
+          setFn(nw, items[i]); ws.push(nw); added++;
+        }
+        return { filled: filled, added: added };
       }
+      var rWords = place(lines,     function(w){ return !hasText(w); }, function(w, v){ w.text  = v; });
+      var rImgs  = place(urls,      function(w){ return !w.image;    }, function(w, v){ w.image = v; });
+      var rAud   = place(audioUrls, function(w){ return !w.audio;    }, function(w, v){ w.audio = v; });
+
       save();
       renderLibrary();
       document.getElementById("bulkWords").value = "";
       document.getElementById("bulkImages").value = "";
       document.getElementById("bulkAudio").value = "";
       document.getElementById("bulkImagesNames").textContent = "";
-      var note = urls.length < total
-        ? " (" + (total - urls.length) + " words had no matching image — add them later from the list)"
-        : "";
-      var audioNote = audioUrls.length < total
-        ? " (" + (total - audioUrls.length) + " words had no matching audio — add them later from the list)"
-        : "";
-      var extraNote = total > lines.length
-        ? " " + (total - lines.length) + " extra file(s) were added with the text left blank — type the words in from the list."
-        : "";
-      document.getElementById("bulkStatus").textContent = "Added " + total + " rows." + extraNote + note + audioNote;
+
+      function part(label, r){
+        if(!r.filled && !r.added) return "";
+        var t = label + ": ";
+        if(r.filled) t += "filled " + r.filled + " empty spot" + (r.filled === 1 ? "" : "s");
+        if(r.filled && r.added) t += " + ";
+        if(r.added) t += "added " + r.added + " new row" + (r.added === 1 ? "" : "s");
+        return t + ". ";
+      }
+      var noText = state.words.filter(function(w){ return !hasText(w); }).length;
+      var noImg  = state.words.filter(function(w){ return !w.image; }).length;
+      var left = (noText || noImg)
+        ? "Still empty: " + (noText ? noText + " without a word" : "") + (noText && noImg ? ", " : "") + (noImg ? noImg + " without an image" : "") + "."
+        : "No empty spots left.";
+      document.getElementById("bulkStatus").textContent =
+        part("Words", rWords) + part("Images", rImgs) + part("Audio", rAud) + left;
     });
   });
 
