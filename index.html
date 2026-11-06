@@ -8004,6 +8004,7 @@ function css2(){return [
 '.rl-stp{display:flex;align-items:center;gap:8px}.rl-stp input[type=number]{width:90px;padding:8px;border-radius:10px;border:1px solid #34344a;background:#262633;color:#fff;font:inherit}',
 '#rlStat{display:none;margin:0 0 5px;text-align:center;font-size:13px;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap}#rlStat.on{display:block}#rlStat b{color:#3dffa0}body.rl-clean #rlStat{display:none!important}',
 '.rl-quote{font-style:italic;opacity:.85;max-width:340px;font-size:14px}',
+'#rlSpdQ{display:none!important}',
 '#rlSetQ,#srSp{display:inline-flex;align-items:center;flex-wrap:wrap;gap:4px}#rlSetQ i{font-style:normal;font-size:12px;opacity:.85}',
 '#rlSetQ button,#srSp button{padding:0 8px;min-width:44px;color:#c4b5fd}#rlSetQ button.on,#srSp button.on{background:#7c3aed;color:#fff}',
 '#rlSetRead{display:none;position:absolute;left:0;right:0;bottom:0;top:var(--rl-pad,90px);z-index:5;background:#0b0b14;padding:6px 10px calc(10px + env(safe-area-inset-bottom,0px));box-sizing:border-box;flex-direction:column}#rlSetRead.on{display:flex}',
@@ -8312,8 +8313,11 @@ function speakCur(auto){
 // ---------- Read the whole set at a chosen speed ----------
 // Every card of the current set is read aloud one after another at the chosen speed. Each text appears in ONE card
 // list at the moment its voice starts. Tap a text to show or hide its stroke image.
-var SR_SP=[0.25,0.5,1,2,3,4,5],SR={on:false,items:[],i:0,mul:1,paused:false,tok:0,timer:null};
-function srUpd(){[].forEach.call(document.querySelectorAll("#rlSetQ button,#srSp button"),function(b){b.classList.toggle("on",SR.on&&+b.getAttribute("data-r")===SR.mul)});var pb=$("srPause");if(pb)pb.textContent=SR.paused?"\u25B6 Play":"\u23F8 Pause"}
+var SR_SP=[0.25,0.5,1,2,3,4,5],SR={on:false,items:[],base:[],i:0,mul:1,paused:false,tok:0,timer:null,loop:true,shuf:false};
+function srShuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
+function srRows(){var h='';SR.items.forEach(function(it,k){var c=it.c,t=c.qa?esc(c.text||"")+'<span class="sr-a">'+esc(c.answer||"")+'</span>':esc(c.text||"\u2014");h+='<div class="sr-r" data-i="'+k+'"><span class="sr-n">'+(k+1)+'</span><div class="sr-t">'+t+'</div><div class="sr-img"></div></div>'});return h}
+function srRebuild(){SR.items=SR.shuf?srShuffle(SR.base):SR.base.slice();var l=$("srList");if(l){l.innerHTML=srRows();l.scrollTop=0}srStart(0)}
+function srUpd(){[].forEach.call(document.querySelectorAll("#rlSetQ button,#srSp button"),function(b){b.classList.toggle("on",SR.on&&+b.getAttribute("data-r")===SR.mul)});var pb=$("srPause");if(pb)pb.textContent=SR.paused?"\u25B6 Play":"\u23F8 Pause";var lb=$("srLoop"),sb=$("srShuf");if(lb){lb.textContent="\uD83D\uDD01 Loop "+(SR.loop?"ON":"OFF");lb.classList.toggle("on",SR.loop)}if(sb){sb.textContent=SR.shuf?"\uD83D\uDD00 Shuffled":"\u27A1 In order";sb.classList.toggle("on",SR.shuf)}}
 function srOpen(mul){
   if(!R.open||sheetOn())return;
   if(SR.on){srSetMul(mul);return}
@@ -8321,13 +8325,13 @@ function srOpen(mul){
   var its=mkItems(R.fl[R.fi],R.modes[R.mi],R.sets[R.si]||[]);
   if(!its.length){toast("No cards in this set");return}
   stopT();silence();
-  SR.on=true;R.setRead=true;SR.items=its;SR.mul=mul;SR.paused=false;SR.i=0;
-  var p=$("rlSetRead"),h='<div class="rl-row"><b>\U0001F4D6 Set '+(R.si+1)+' \u00b7 '+its.length+' cards</b><span id="srSp"></span><span class="rl-sp"></span><button type="button" id="srPause"></button><button type="button" id="srClose">\u2715 Close</button></div><div id="srList">';
-  its.forEach(function(it,k){var c=it.c,t=c.qa?esc(c.text||"")+'<span class="sr-a">'+esc(c.answer||"")+'</span>':esc(c.text||"\u2014");h+='<div class="sr-r" data-i="'+k+'"><span class="sr-n">'+(k+1)+'</span><div class="sr-t">'+t+'</div><div class="sr-img"></div></div>'});
+  SR.on=true;R.setRead=true;SR.base=its;SR.items=SR.shuf?srShuffle(its):its.slice();SR.mul=mul;SR.paused=false;SR.i=0;
+  var p=$("rlSetRead"),h='<div class="rl-row"><b>📖 Set '+(R.si+1)+' \u00b7 '+its.length+' cards</b><span id="srSp"></span><button type="button" id="srLoop"></button><button type="button" id="srShuf"></button><span class="rl-sp"></span><button type="button" id="srPause"></button><button type="button" id="srClose">\u2715 Close</button></div><div id="srList">';
+  h+=srRows();
   p.innerHTML=h+'</div>';p.classList.add("on");
   var sp="";SR_SP.forEach(function(m){sp+='<button type="button" data-r="'+m+'">'+m+'x</button>'});$("srSp").innerHTML=sp;
   $("srSp").onclick=function(e){var b=e.target.closest?e.target.closest("button[data-r]"):null;if(b)srSetMul(+b.getAttribute("data-r"))};
-  $("srPause").onclick=srTogglePause;$("srClose").onclick=function(){srClose()};
+  $("srPause").onclick=srTogglePause;$("srLoop").onclick=function(){SR.loop=!SR.loop;srUpd()};$("srShuf").onclick=function(){SR.shuf=!SR.shuf;SR.paused=false;srRebuild()};$("srClose").onclick=function(){srClose()};
   $("srList").onclick=function(e){
     var r=e.target.closest?e.target.closest(".sr-r"):null;if(!r||!r.classList.contains("vis"))return;
     var it=SR.items[+r.getAttribute("data-i")],box=r.querySelector(".sr-img");if(!it||!box)return;
@@ -8346,6 +8350,7 @@ function srStart(i){
   clearTimeout(SR.timer);SR.i=i;var tok=++SR.tok;
   if(i>=SR.items.length){
     var l=$("srList");if(l)[].forEach.call(l.querySelectorAll(".sr-r.cur"),function(r){r.classList.remove("cur")});
+    if(SR.loop){SR.timer=setTimeout(function(){if(tok===SR.tok&&SR.on)srRebuild()},900);return}
     SR.paused=true;srUpd();toast("\u2705 Set read \u00b7 tap any text to see its stroke",2200);return}
   var c=SR.items[i].c,parts=(c.qa?[c.text,c.answer]:[c.text]).filter(function(x){return x&&String(x).trim()}),a=A(),t0=Date.now(),seen=false;
   srReveal(i);srUpd();
