@@ -8000,18 +8000,7 @@ function css2(){return [
 
 '.rl-stp{display:flex;align-items:center;gap:8px}.rl-stp input[type=number]{width:90px;padding:8px;border-radius:10px;border:1px solid #34344a;background:#262633;color:#fff;font:inherit}',
 '#rlStat{display:none;margin:0 0 5px;text-align:center;font-size:13px;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap}#rlStat.on{display:block}#rlStat b{color:#3dffa0}body.rl-clean #rlStat{display:none!important}',
-'.rl-quote{font-style:italic;opacity:.85;max-width:340px;font-size:14px}',
-'#rlDictRow{flex-wrap:nowrap;gap:6px}#rlDictRow .rl-pill{flex:none}',
-'#rlWpm{display:flex;gap:5px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none;padding:1px 0}#rlWpm::-webkit-scrollbar{display:none}',
-'.rl-row #rlWpm button{flex:none;min-width:42px;padding:0 9px}',
-'body.rl-clean #rlDictRow{display:none!important}',
-'#rlDict{display:none;position:absolute;inset:0;z-index:5;background:radial-gradient(120% 90% at 50% 0%,#0f9b8e,#0b0b14 72%);padding:var(--rl-pad,120px) 16px 24px;box-sizing:border-box;overflow-y:auto;flex-direction:column;align-items:center;gap:10px;text-align:center;-webkit-user-select:none;user-select:none}#rlDict.on{display:flex}',
-'.rl-dbig{font-size:64px;font-weight:900;line-height:1.05;margin-top:6px}.rl-dinfo{font-size:14px;font-weight:700;opacity:.85}',
-'.rl-dbar{width:100%;max-width:420px;height:10px;border-radius:6px;background:#ffffff26;overflow:hidden}.rl-dbar i{display:block;height:100%;background:linear-gradient(90deg,#8a3dff,#3dffa0);transition:width .3s}',
-'.rl-dstate{font-size:20px;font-weight:900;margin:4px 0}',
-'.rl-dbtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.rl-dbtns button{border:1px solid #fff3;background:#ffffff26;color:#fff;border-radius:20px;height:42px;padding:0 18px;font:inherit;font-size:15px;font-weight:800;cursor:pointer}',
-'.rl-dwords{max-width:560px;font-size:20px;font-weight:700;line-height:1.7;margin-top:8px;opacity:.95}.rl-dwords span{opacity:.55}.rl-dwords span.r{opacity:1;color:#3dffa0}.rl-dwords span{cursor:pointer;padding:2px 4px;border-radius:8px}.rl-dwords span.s{background:#8a3dff;color:#fff;opacity:1}',
-'.rl-dstroke{background:#fff;color:#111;border-radius:18px;padding:10px 14px;max-width:100%;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 10px 40px #0008}.rl-dstroke img{max-width:100%;max-height:40vh;object-fit:contain}.rl-dstroke b{font-size:22px}'].join('\n')}
+'.rl-quote{font-style:italic;opacity:.85;max-width:340px;font-size:14px}'].join('\n')}
 function curSlide(){var f=$("rlFeed");return f?f.children[R.idx]:null}
 function toast(t,ms){var e=$("rlToast");e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove("on")},ms||1300)}
 function pop(t,bad){var p=document.createElement("div");p.className="rl-pop"+(bad?" bad":"");p.textContent=t;$("rlRoot").appendChild(p);setTimeout(function(){p.remove()},900)}
@@ -8044,9 +8033,8 @@ function boot(){
   ["reelsModeBtn","rlRoot","rlStyle"].forEach(function(i){var e=$(i);if(e&&e.parentNode)e.parentNode.removeChild(e)});
   var st=document.createElement("style");st.id="rlStyle";st.textContent=css()+css2();document.head.appendChild(st);
   mk("button","reelsModeBtn","",'<span>🎞️ REELS MODE</span><small>SWIPE · LEARN · REPEAT</small>').addEventListener("click",quickStart);
-  mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlDict"></div><div id="rlFl"></div><div id="rlPaused">⏸ PAUSED\nclick or scroll button to resume</div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div><div id="rlStat"></div>'+
+  mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlFl"></div><div id="rlPaused">⏸ PAUSED\nclick or scroll button to resume</div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div><div id="rlStat"></div>'+
   '<div class="rl-row"><button id="rlPause">⏸ Pause</button><button id="rlRestart">↻ Restart</button><button id="rlPrev">⏮ Previous round</button><button id="rlNext">⏭ Next round</button><button id="rlOrd"></button><span id="rlMissQ" class="rl-secs"></span><button id="rlAuto"></button><span class="rl-pill" id="rlDone"></span><span class="rl-sp"></span><button id="rlCfg">⚙</button><button id="rlUi">☰</button><button id="rlClean">🙈</button><button id="rlFs">⛶</button><button id="rlQuit">✖ Exit</button></div>'+
-  '<div class="rl-row" id="rlDictRow"><span class="rl-pill">🎙 Dictation · words/min</span><span id="rlWpm"></span></div>'+
   '<div id="rlMore"><div class="rl-row"><span id="rlCards"></span><span id="rlToday"></span><span id="rlScore"></span><span id="rlCombo"></span><button id="rlMute">🔊</button></div>'+
   '<div class="rl-track"><div id="rlTf"></div><span id="rlGhost">👻</span><span id="rlRocket">🚀</span><span id="rlFlag">🏁</span></div>'+
   '<div class="rl-row"><span id="rlClock"></span><span id="rlBatt"></span><span id="rlPace"></span></div>'+
@@ -8054,13 +8042,6 @@ function boot(){
   '<div class="rl-row"><button class="wide" id="rlFile"></button><button class="wide" id="rlMode"></button></div><div id="rlRounds"></div><div id="rlSched"></div></div></div><div id="rlToast"></div><div id="rlSheet"></div>');
   var tb=document.getElementById("topReelsBtn");if(tb)tb.addEventListener("click",quickStart);
   $("rlQuit").onclick=quit;
-  (function(){var box=$("rlWpm"),h="";for(var w=10;w<=120;w+=10)h+='<button type="button" data-w="'+w+'" title="Dictation '+w+' words per minute">'+w+'</button>';box.innerHTML=h;
-    box.onclick=function(e){var b=e.target.closest?e.target.closest("button[data-w]"):null;if(!b)return;var w=+b.getAttribute("data-w");if(D.on&&D.wpm===w){dictStop(true);return}dictStart(w)}})();
-  $("rlDict").onclick=function(e){var b=e.target.closest?e.target.closest("button[data-d]"):null;
-    var sp=e.target.closest?e.target.closest("span[data-i]"):null;
-    if(sp){var x=D.cur[+sp.getAttribute("data-i")];D.sel=(D.sel===x)?null:x;dictPaint();return}
-    if(!b)return;var a=b.getAttribute("data-d");
-    if(a==="pause")dictPause();else if(a==="show"){D.show=!D.show;dictPaint()}else if(a==="stop")dictStop(true)};
   $("rlPause").onclick=togglePause;$("rlRestart").onclick=restartSet;$("rlNext").onclick=nextRound;$("rlPrev").onclick=prevRound;$("rlPaused").onclick=togglePause;
   $("rlOrd").onclick=function(){cfg.order=!cfg.order;saveCfg();toast(cfg.order?"In order (from next round)":"Random (from next round)");hud()};
   (function(){var box=$("rlMissQ"),h="";for(var q=1;q<=8;q++)h+='<button type="button" data-s="'+q+'" title="Auto-miss '+q+' s">'+q+'</button>';box.innerHTML=h;
@@ -8080,7 +8061,7 @@ function boot(){
       if(e.button===0){e.preventDefault();judge("missed",null,true)}
       else if(e.button===2){e.preventDefault();judge("knew",null,true)}
       return}
-    sx=e.clientX;sy=e.clientY;holding=false;clearTimeout(downT);downT=setTimeout(function(){if(Date.now()-(R.scrollAt||0)<500)return;holding=true;R.holdP=true;stopT()},450)});
+    sx=e.clientX;sy=e.clientY;holding=false;clearTimeout(downT);downT=setTimeout(function(){holding=true;R.holdP=true;stopT()},450)});
   feed.addEventListener("pointerup",function(e){clearTimeout(downT);
     if(e.pointerType==="mouse")return;
     var moved=Math.abs(e.clientX-sx)+Math.abs(e.clientY-sy)>14;
@@ -8107,7 +8088,6 @@ function fitPad(){var t=$("rlTop");if(t)$("rlRoot").style.setProperty("--rl-pad"
 function onKey(e){
   if(!R.open)return;
   if(sheetOn()){var t=e.target&&e.target.tagName;if(e.key==="Escape"&&R.run){closeSheet();e.preventDefault()}if(!/INPUT/.test(t||""))e.stopImmediatePropagation();return}
-  if(D.on){var kk=e.key,hd=true;if(kk==="Escape")dictStop(true);else if(kk==="p"||kk==="P"||kk===" "||kk==="Enter")dictPause();else hd=false;e.stopImmediatePropagation();if(hd)e.preventDefault();return}
   var k=e.key,u=true;
   if(k==="Escape")quit();
   else if(k==="ArrowDown"||k==="PageDown")go(1);else if(k==="ArrowUp"||k==="PageUp")go(-1);
@@ -8252,7 +8232,7 @@ function pass(fi,si,mi,only,st){
       var nm=R.modes[mi]==="s2w"?"Stroke → Word":"Word → Stroke",chg=!prevFile||prevFile!==R.fileName;
       toast(only?"🔁 "+its.length+" missed again":(chg?"📄 "+R.fileName+" · ":"")+(sets.length>1?"Set "+(si+1)+" of "+sets.length+" · ":"")+nm,2200);
       if(!quiet){if(only){tone(330,.12,"triangle",.07);tone(262,.18,"triangle",.07,.12)}else{tone(660,.1,"triangle");tone(990,.15,"triangle",.08,.1)}}
-      setTimeout(function(){fitPad();arm();onActive();if(D.on)dictSync()},80);return true}
+      setTimeout(function(){fitPad();arm();onActive()},80);return true}
     // nothing to play here: next mode of this set, then the next set, then the next file
     if(mi+1<R.modes.length)mi++;else if(si+1<sets.length){si++;mi=0}else{fi=(fi+1)%n;si=0;mi=0}
   }
@@ -8285,16 +8265,13 @@ function fillWindow(){
     if(i>=lo&&i<=hi){if(!s.dataset.b){s.innerHTML=slideHTML(i);s.dataset.b="1";if(R.rev[i])s.classList.add("rev")}}
     else if(s.dataset.b){s.innerHTML="";delete s.dataset.b}}}
 function onScroll(){
-  R.scrollAt=Date.now();clearTimeout(onScroll.t);
+  clearTimeout(onScroll.t);
   onScroll.t=setTimeout(function(){
-    var feed=$("rlFeed"),h=feed.clientHeight||1,i=Math.max(0,Math.min(feed.children.length-1,Math.round(feed.scrollTop/h))),old=R.idx,wasHold=R.holdP;
-    R.holdP=false;   // the card is moving, so the finger is not holding it: a stuck long-press must not stop the timers
+    var feed=$("rlFeed"),h=feed.clientHeight||1,i=Math.max(0,Math.min(feed.children.length-1,Math.round(feed.scrollTop/h))),old=R.idx;
     if(i!==old){R.idx=i;
       if(i===R.items.length&&R.run){clearTimeout(R.endT);R.endT=setTimeout(function(){if(R.run&&R.idx===R.items.length)advance()},650)}
       if(i>old&&R.run)for(var k=old;k<i;k++)judge("missed",k);   // swiped on without Knew it = missed
-      // a card that is already done (for example after scrolling up) is played again from the start, answer hidden
-      if(R.run&&!D.on&&R.jud[i]&&i<R.items.length){R.rev[i]=0;var rs=feed.children[i];if(rs)rs.classList.remove("rev")}
-      fillWindow();hud();onActive()}else if(wasHold)arm();
+      fillWindow();hud();onActive()}
   },70)}
 function silence(){try{var a=A();if(a&&a.silence)a.silence()}catch(e){}}
 // Read aloud: the text is read once, at the moment it becomes visible.
@@ -8303,86 +8280,21 @@ function silence(){try{var a=A();if(a&&a.silence)a.silence()}catch(e){}}
 function sayText(it,rv){var c=it.c,s2w=it.dir==="s2w";if(c.qa)return s2w?c.text:c.answer;if(!s2w)return c.text;return rv?c.text:null}
 function sayOne(t){var a=A();if(!t||!a||!a.speak)return false;a.speak(t);return true}
 // A card became the current one (scrolling forward or back): read its text if text is showing.
-function onActive(){stopT();silence();if(!R.run||D.on)return;
+function onActive(){stopT();silence();if(!R.run)return;
   if(cfg.tts&&!R.paused&&!sheetOn()){var it=R.items[R.idx];if(it)sayOne(sayText(it,!!R.rev[R.idx]))}
   arm()}
 function speakCur(auto){
   var it=R.items[R.idx];if(!it)return;
   if(!sayOne(sayText(it,!!R.rev[R.idx]))&&!auto)toast("Reveal first to hear the word")}
 
-// ---------- Dictation: read the whole set as one passage at a chosen speed (words per minute), then shuffle and repeat ----------
-var D={on:false,wpm:0,slot:6000,ent:[],cur:[],groups:[],gi:0,said:0,total:0,round:1,nextAt:0,t:null,paused:false,pz:0,gap:0,show:false,key:""};
-function sig(a){return a.map(function(x){return x.t}).join("\u0001")}
-function syncWpm(){var b=$("rlWpm");if(!b)return;[].forEach.call(b.querySelectorAll("button"),function(x){x.classList.toggle("on",D.on&&+x.getAttribute("data-w")===D.wpm)})}
-// Build one round: the set's words joined into one passage, cut into small groups that are spoken one after another on a time line.
-function dictLoad(){
-  var e=D.ent.slice();
-  if(!cfg.order&&e.length>1){var prev=sig(D.cur||[]),k=0;do{shuf(e)}while(sig(e)===prev&&++k<8)}
-  D.cur=e;var tk=[];e.forEach(function(x){x.t.split(" ").forEach(function(s){if(s)tk.push(s)})});
-  var g=Math.max(1,Math.ceil(1500/D.slot)),gs=[];
-  for(var i=0;i<tk.length;i+=g){var part=tk.slice(i,i+g);gs.push({t:part.join(" "),n:part.length})}
-  D.groups=gs;D.gi=0;D.said=0;D.total=tk.length}
-function dictStart(w){
-  if(!R.open||!R.run||sheetOn()){toast("Start a set first");return}
-  var fid=R.fl[R.fi],ids=(R.sets||[])[R.si]||[],map={};
-  A().reelCards(fid).forEach(function(c){map[c.id]=c});
-  var ent=[];ids.forEach(function(id){var c=map[id];if(!c)return;var t=String(c.qa?c.answer:c.text).replace(/\s+/g," ").trim();if(t)ent.push({t:t,n:t.split(" ").length,img:c.qa?"":(c.image||"")})});
-  if(!ent.length){toast("No words in this set");return}
-  clearTimeout(R.endT);stopT();silence();
-  D.on=true;D.wpm=w;D.slot=60000/w;D.ent=ent;D.key=fid+"|"+R.si;D.round=1;D.paused=false;D.pz=0;D.gap=0;D.cur=[];
-  D.sel=null;dictLoad();D.nextAt=Date.now()+1500;
-  clearInterval(D.t);D.t=setInterval(dictTick,100);
-  syncWpm();dictPaint();tone(660,.1,"triangle");
-  toast("🎙 "+w+" words/min · "+D.total+" words",2200)}
-function dictStop(back){
-  if(!D.on)return;
-  D.on=false;clearInterval(D.t);D.t=null;silence();
-  var o=$("rlDict");if(o){o.classList.remove("on");o.innerHTML=""}
-  syncWpm();
-  if(back){toast("Dictation stopped · back to cards",1500);if(R.run)onActive()}}
-function dictPause(){if(!D.on)return;D.paused=!D.paused;dictPaint()}
-// the set changed (next / previous round, new game): follow it at the same speed
-function dictSync(){if(!D.on)return;var key=R.fl[R.fi]+"|"+R.si;if(key===D.key)dictPaint();else dictStart(D.wpm)}
-function dictTick(){
-  if(!D.on)return;
-  var now=Date.now();
-  if(R.paused||D.paused||sheetOn()){if(!D.pz){D.pz=now;silence()}return}
-  if(D.pz){D.nextAt+=now-D.pz;D.pz=0;dictPaint()}
-  if(now<D.nextAt)return;
-  if(D.gi>=D.groups.length){
-    // round finished: short pause, then shuffle the words and read them again
-    if(!D.gap){D.gap=1;D.nextAt=now+3500;tone(784,.2,"triangle",.08);tone(523,.25,"triangle",.08,.2);dictPaint();return}
-    D.gap=0;D.round++;dictLoad();D.nextAt=now+700;tone(660,.1,"triangle");tone(990,.15,"triangle",.08,.1);dictPaint();
-    toast((cfg.order?"🔢 Round "+D.round+" · in order":"🔀 Round "+D.round+" · shuffled"),1800);return}
-  var a=A();if(a&&a.reading&&a.reading()&&now<D.nextAt+4000)return;   // let the previous words finish
-  var g=D.groups[D.gi];
-  if(a&&a.speak)a.speak(g.t);
-  D.said+=g.n;D.gi++;D.nextAt=Math.max(D.nextAt+g.n*D.slot,now+300);
-  dictPaint()}
-function dictPaint(){
-  var o=$("rlDict");if(!o||!D.on)return;
-  o.classList.add("on");
-  var n=Math.max(1,(R.sets||[]).length),pct=D.total?Math.round(D.said/D.total*100):0,
-  st=D.gap?"Round "+D.round+" finished"+(cfg.order?" · again in order…":" · shuffling…"):(R.paused||D.paused)?"⏸ Paused":"🎧 Listening · write it down",
-  cum=0,wl="";
-  if(D.show){
-    if(D.sel)wl+='<div class="rl-dstroke"><b>'+esc(D.sel.t)+'</b>'+(D.sel.img?'<img alt="stroke" src="'+esc(D.sel.img)+'">':'<i>no stroke for this word</i>')+'</div>';
-    wl+='<div class="rl-dwords">'+D.cur.map(function(x,i){cum+=x.n;return'<span data-i="'+i+'" class="'+(cum<=D.said?"r":"")+(x===D.sel?" s":"")+'">'+esc(x.t)+'</span>'}).join(" · ")+'</div><div class="rl-dinfo">tap a word to see its stroke</div>'}
-  o.innerHTML='<div class="rl-dbig">🎙 '+D.wpm+'</div><div class="rl-dinfo">words per minute</div>'+
-    '<div class="rl-dinfo">'+(R.fileName?esc(R.fileName)+" · ":"")+"Set "+(R.si+1)+" / "+n+" · "+D.total+" words · Round "+D.round+(cfg.order?" (in order)":" (shuffled)")+'</div>'+
-    '<div class="rl-dbar"><i style="width:'+pct+'%"></i></div><div class="rl-dinfo">'+D.said+" / "+D.total+' words read</div>'+
-    '<div class="rl-dstate">'+st+'</div>'+
-    '<div class="rl-dbtns"><button type="button" data-d="pause">'+(D.paused?"▶ Resume":"⏸ Pause")+'</button><button type="button" data-d="show">'+(D.show?"🙈 Hide words":"👁 Show words")+'</button><button type="button" data-d="stop">■ Stop</button></div>'+wl}
-
 // ---------- timers ----------
-function stopT(){clearTimeout(R.upT);clearTimeout(R.tr);clearTimeout(R.tm);R.tr=R.tm=null;var f=$("rlFill");if(f){f.style.transition="none";f.style.width="0"}}
+function stopT(){clearTimeout(R.tr);clearTimeout(R.tm);R.tr=R.tm=null;var f=$("rlFill");if(f){f.style.transition="none";f.style.width="0"}}
 function arm(){
   stopT();
-  if(!R.open||!R.run||D.on||R.paused||R.holdP||sheetOn()||!R.items[R.idx])return;
-  if(R.jud[R.idx]&&!cfg.autoScroll)return;
+  if(!R.open||!R.run||R.paused||R.holdP||sheetOn()||R.jud[R.idx]||!R.items[R.idx])return;
   var f=$("rlFill");f.style.transition="none";f.style.width="0";void f.offsetWidth;f.style.transition="width "+cfg.miss+"s linear";f.style.width="100%";
   if(!R.rev[R.idx])fire("tr",reveal,cfg.rev*1000);
-  fire("tm",function(){if(R.jud[R.idx])fastGo(1);else judge("missed")},cfg.miss*1000)}
+  fire("tm",function(){judge("missed")},cfg.miss*1000)}
 // Read aloud on: when the time ends while a voice is still speaking, let the sentence finish first, then reveal / go to the next card.
 function fire(slot,fn,ms){R[slot]=setTimeout(function(){var a=A();if(cfg.tts&&a&&a.reading&&a.reading()){fire(slot,fn,250);return}fn()},ms)}
 function reveal(){if(!R.run||R.rev[R.idx]||!R.items[R.idx])return;R.rev[R.idx]=1;var s=curSlide();if(s)s.classList.add("rev");sfx("rev");if(cfg.tts){var ri=R.items[R.idx];if(ri&&!ri.c.qa&&ri.dir==="s2w")sayOne(ri.c.text)}}
@@ -8393,7 +8305,7 @@ function fastGo(d){var feed=$("rlFeed"),j=R.idx+d;if(!feed||j<0||j>=feed.childre
   (function step(){var p=Math.min(1,(Date.now()-t0)/dur),e=1-Math.pow(1-p,3);feed.scrollTop=from+(to-from)*e;
     if(p<1)(window.requestAnimationFrame||setTimeout)(step,16);else{feed.scrollTop=to;feed.style.scrollSnapType=""}})()}
 function go(d){var feed=$("rlFeed"),j=R.idx+d;if(j<0||j>=feed.children.length)return;feed.scrollTo({top:j*feed.clientHeight,behavior:"smooth"})}
-function togglePause(){if(!R.run)return;R.paused=!R.paused;$("rlPaused").classList.toggle("on",R.paused);$("rlPause").textContent=R.paused?"▶ Resume":"⏸ Pause";if(R.paused){stopT();silence()}else arm();if(D.on)dictPaint()}
+function togglePause(){if(!R.run)return;R.paused=!R.paused;$("rlPaused").classList.toggle("on",R.paused);$("rlPause").textContent=R.paused?"▶ Resume":"⏸ Pause";if(R.paused){stopT();silence()}else arm()}
 // Restart the current set in the current mode only (same file, same set, same mode; the day's count stays).
 // Skip to the next round now, whatever the state: unjudged and missed cards are left out (no missed-card retry), and it goes to the next mode, then the next set, then the next file.
 function nextRound(){
@@ -8417,7 +8329,7 @@ function restartSet(){
   clearTimeout(R.endT);stopT();silence();R.rKnew=R.rMiss=0;
   if(!pass(R.fi,R.si,R.mi,null))finish()}
 function judge(res,i,force){
-  if(!R.run||D.on)return;i=i==null?R.idx:i;var it=R.items[i];if(!it||R.jud[i]){if(force&&it&&i===R.idx)go(1);return}
+  if(!R.run)return;i=i==null?R.idx:i;var it=R.items[i];if(!it||R.jud[i]){if(force&&it&&i===R.idx)go(1);return}
   R.jud[i]=res;R.judIds.push(it.id);stopT();
   try{A().record(it.id,res)}catch(e){}it.c.last[it.dir]=res;
   var partial=false;
@@ -8475,7 +8387,7 @@ function tick(){
 
 // ---------- end ----------
 function finish(){
-  if(!R.run)return;R.run=false;stopT();dictStop();try{localStorage.removeItem("stenoGameRun");localStorage.removeItem("stenoGameWasLive")}catch(e){}
+  if(!R.run)return;R.run=false;stopT();try{localStorage.removeItem("stenoGameRun");localStorage.removeItem("stenoGameWasLive")}catch(e){}
   var acc=R.done?Math.round(R.knew/R.done*100):0,Q=window.STENO_QUOTES||[],q=Q.length?Q[Math.floor(Math.random()*Q.length)]:null;
   var sh=$("rlSheet");
   sh.innerHTML='<div class="rl-card"><div class="rl-end"><div style="font-size:64px">🏆</div><h2>ALL DONE!</h2><div class="rl-stats"><div><b>'+R.done+' / '+R.target+'</b>Cards</div><div><b>'+R.score+'</b>Score</div><div><b>'+R.knew+'</b>Knew</div><div><b>'+R.missed+'</b>Missed</div><div><b>'+acc+'%</b>Accuracy</div><div><b>🔥 '+R.maxCombo+'</b>Best combo</div></div>'+(q?'<div class="rl-quote">“'+esc(q[0])+'”<br>— '+esc(q[1])+'</div>':'')+'<button class="rl-go" id="rlAgain">↻ PLAY AGAIN</button><button class="rl-go sec" id="rlEx">✕ Exit</button></div></div>';
@@ -8484,7 +8396,7 @@ function finish(){
   tone(523,.15,"triangle",.09);tone(659,.15,"triangle",.09,.15);tone(784,.15,"triangle",.09,.3);tone(1047,.4,"triangle",.09,.45)}
 function quit(){if(R.run)saveRun();R.run=false;closeReels()}
 function closeReels(){
-  dictStop();stopT();R.open=false;R.run=false;R.paused=false;$("rlPaused").classList.remove("on");$("rlPause").textContent="⏸ Pause";
+  stopT();R.open=false;R.run=false;R.paused=false;$("rlPaused").classList.remove("on");$("rlPause").textContent="⏸ Pause";
   $("rlRoot").classList.remove("on");document.body.classList.remove("reels-open","rl-clean","rl-ui-off");
   var sh=$("rlSheet");sh.classList.remove("on");sh.innerHTML="";sh.style.background="";
   try{window.speechSynthesis&&speechSynthesis.cancel()}catch(e){}
