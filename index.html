@@ -8010,7 +8010,8 @@ function css2(){return [
 '.rl-dbar{width:100%;max-width:420px;height:10px;border-radius:6px;background:#ffffff26;overflow:hidden}.rl-dbar i{display:block;height:100%;background:linear-gradient(90deg,#8a3dff,#3dffa0);transition:width .3s}',
 '.rl-dstate{font-size:20px;font-weight:900;margin:4px 0}',
 '.rl-dbtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.rl-dbtns button{border:1px solid #fff3;background:#ffffff26;color:#fff;border-radius:20px;height:42px;padding:0 18px;font:inherit;font-size:15px;font-weight:800;cursor:pointer}',
-'.rl-dwords{max-width:560px;font-size:20px;font-weight:700;line-height:1.7;margin-top:8px;opacity:.95}.rl-dwords span{opacity:.55}.rl-dwords span.r{opacity:1;color:#3dffa0}'].join('\n')}
+'.rl-dwords{max-width:560px;font-size:20px;font-weight:700;line-height:1.7;margin-top:8px;opacity:.95}.rl-dwords span{opacity:.55}.rl-dwords span.r{opacity:1;color:#3dffa0}.rl-dwords span{cursor:pointer;padding:2px 4px;border-radius:8px}.rl-dwords span.s{background:#8a3dff;color:#fff;opacity:1}',
+'.rl-dstroke{background:#fff;color:#111;border-radius:18px;padding:10px 14px;max-width:100%;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 10px 40px #0008}.rl-dstroke img{max-width:100%;max-height:40vh;object-fit:contain}.rl-dstroke b{font-size:22px}'].join('\n')}
 function curSlide(){var f=$("rlFeed");return f?f.children[R.idx]:null}
 function toast(t,ms){var e=$("rlToast");e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove("on")},ms||1300)}
 function pop(t,bad){var p=document.createElement("div");p.className="rl-pop"+(bad?" bad":"");p.textContent=t;$("rlRoot").appendChild(p);setTimeout(function(){p.remove()},900)}
@@ -8055,7 +8056,10 @@ function boot(){
   $("rlQuit").onclick=quit;
   (function(){var box=$("rlWpm"),h="";for(var w=10;w<=120;w+=10)h+='<button type="button" data-w="'+w+'" title="Dictation '+w+' words per minute">'+w+'</button>';box.innerHTML=h;
     box.onclick=function(e){var b=e.target.closest?e.target.closest("button[data-w]"):null;if(!b)return;var w=+b.getAttribute("data-w");if(D.on&&D.wpm===w){dictStop(true);return}dictStart(w)}})();
-  $("rlDict").onclick=function(e){var b=e.target.closest?e.target.closest("button[data-d]"):null;if(!b)return;var a=b.getAttribute("data-d");
+  $("rlDict").onclick=function(e){var b=e.target.closest?e.target.closest("button[data-d]"):null;
+    var sp=e.target.closest?e.target.closest("span[data-i]"):null;
+    if(sp){var x=D.cur[+sp.getAttribute("data-i")];D.sel=(D.sel===x)?null:x;dictPaint();return}
+    if(!b)return;var a=b.getAttribute("data-d");
     if(a==="pause")dictPause();else if(a==="show"){D.show=!D.show;dictPaint()}else if(a==="stop")dictStop(true)};
   $("rlPause").onclick=togglePause;$("rlRestart").onclick=restartSet;$("rlNext").onclick=nextRound;$("rlPrev").onclick=prevRound;$("rlPaused").onclick=togglePause;
   $("rlOrd").onclick=function(){cfg.order=!cfg.order;saveCfg();toast(cfg.order?"In order (from next round)":"Random (from next round)");hud()};
@@ -8287,7 +8291,9 @@ function onScroll(){
     if(i!==old){R.idx=i;
       if(i===R.items.length&&R.run){clearTimeout(R.endT);R.endT=setTimeout(function(){if(R.run&&R.idx===R.items.length)advance()},650)}
       if(i>old&&R.run)for(var k=old;k<i;k++)judge("missed",k);   // swiped on without Knew it = missed
-      fillWindow();hud();onActive()}
+      fillWindow();hud();onActive();
+      // landed on a card that is already done (for example after scrolling up): move on to the next card by itself
+      if(R.run&&!D.on&&cfg.autoScroll&&R.jud[i]&&i<R.items.length){var at=i;clearTimeout(R.upT);R.upT=setTimeout(function(){if(R.run&&!D.on&&!R.paused&&!R.holdP&&!sheetOn()&&R.idx===at&&R.jud[at])fastGo(1)},Math.max(600,cfg.rev*1000))}}
   },70)}
 function silence(){try{var a=A();if(a&&a.silence)a.silence()}catch(e){}}
 // Read aloud: the text is read once, at the moment it becomes visible.
@@ -8308,9 +8314,9 @@ var D={on:false,wpm:0,slot:6000,ent:[],cur:[],groups:[],gi:0,said:0,total:0,roun
 function sig(a){return a.map(function(x){return x.t}).join("\u0001")}
 function syncWpm(){var b=$("rlWpm");if(!b)return;[].forEach.call(b.querySelectorAll("button"),function(x){x.classList.toggle("on",D.on&&+x.getAttribute("data-w")===D.wpm)})}
 // Build one round: the set's words joined into one passage, cut into small groups that are spoken one after another on a time line.
-function dictLoad(shuffled){
+function dictLoad(){
   var e=D.ent.slice();
-  if(shuffled&&e.length>1){var prev=sig(D.cur||[]),k=0;do{shuf(e)}while(sig(e)===prev&&++k<8)}
+  if(!cfg.order&&e.length>1){var prev=sig(D.cur||[]),k=0;do{shuf(e)}while(sig(e)===prev&&++k<8)}
   D.cur=e;var tk=[];e.forEach(function(x){x.t.split(" ").forEach(function(s){if(s)tk.push(s)})});
   var g=Math.max(1,Math.ceil(1500/D.slot)),gs=[];
   for(var i=0;i<tk.length;i+=g){var part=tk.slice(i,i+g);gs.push({t:part.join(" "),n:part.length})}
@@ -8319,11 +8325,11 @@ function dictStart(w){
   if(!R.open||!R.run||sheetOn()){toast("Start a set first");return}
   var fid=R.fl[R.fi],ids=(R.sets||[])[R.si]||[],map={};
   A().reelCards(fid).forEach(function(c){map[c.id]=c});
-  var ent=[];ids.forEach(function(id){var c=map[id];if(!c)return;var t=String(c.qa?c.answer:c.text).replace(/\s+/g," ").trim();if(t)ent.push({t:t,n:t.split(" ").length})});
+  var ent=[];ids.forEach(function(id){var c=map[id];if(!c)return;var t=String(c.qa?c.answer:c.text).replace(/\s+/g," ").trim();if(t)ent.push({t:t,n:t.split(" ").length,img:c.qa?"":(c.image||"")})});
   if(!ent.length){toast("No words in this set");return}
   clearTimeout(R.endT);stopT();silence();
   D.on=true;D.wpm=w;D.slot=60000/w;D.ent=ent;D.key=fid+"|"+R.si;D.round=1;D.paused=false;D.pz=0;D.gap=0;D.cur=[];
-  dictLoad(false);D.nextAt=Date.now()+1500;
+  D.sel=null;dictLoad();D.nextAt=Date.now()+1500;
   clearInterval(D.t);D.t=setInterval(dictTick,100);
   syncWpm();dictPaint();tone(660,.1,"triangle");
   toast("🎙 "+w+" words/min · "+D.total+" words",2200)}
@@ -8345,8 +8351,8 @@ function dictTick(){
   if(D.gi>=D.groups.length){
     // round finished: short pause, then shuffle the words and read them again
     if(!D.gap){D.gap=1;D.nextAt=now+3500;tone(784,.2,"triangle",.08);tone(523,.25,"triangle",.08,.2);dictPaint();return}
-    D.gap=0;D.round++;dictLoad(true);D.nextAt=now+700;tone(660,.1,"triangle");tone(990,.15,"triangle",.08,.1);dictPaint();
-    toast("🔀 Round "+D.round+" · shuffled",1800);return}
+    D.gap=0;D.round++;dictLoad();D.nextAt=now+700;tone(660,.1,"triangle");tone(990,.15,"triangle",.08,.1);dictPaint();
+    toast((cfg.order?"🔢 Round "+D.round+" · in order":"🔀 Round "+D.round+" · shuffled"),1800);return}
   var a=A();if(a&&a.reading&&a.reading()&&now<D.nextAt+4000)return;   // let the previous words finish
   var g=D.groups[D.gi];
   if(a&&a.speak)a.speak(g.t);
@@ -8356,17 +8362,19 @@ function dictPaint(){
   var o=$("rlDict");if(!o||!D.on)return;
   o.classList.add("on");
   var n=Math.max(1,(R.sets||[]).length),pct=D.total?Math.round(D.said/D.total*100):0,
-  st=D.gap?"Round "+D.round+" finished · shuffling…":(R.paused||D.paused)?"⏸ Paused":"🎧 Listening · write it down",
+  st=D.gap?"Round "+D.round+" finished"+(cfg.order?" · again in order…":" · shuffling…"):(R.paused||D.paused)?"⏸ Paused":"🎧 Listening · write it down",
   cum=0,wl="";
-  if(D.show)wl='<div class="rl-dwords">'+D.cur.map(function(x){cum+=x.n;return'<span class="'+(cum<=D.said?"r":"")+'">'+esc(x.t)+'</span>'}).join(" · ")+'</div>';
+  if(D.show){
+    if(D.sel)wl+='<div class="rl-dstroke"><b>'+esc(D.sel.t)+'</b>'+(D.sel.img?'<img alt="stroke" src="'+esc(D.sel.img)+'">':'<i>no stroke for this word</i>')+'</div>';
+    wl+='<div class="rl-dwords">'+D.cur.map(function(x,i){cum+=x.n;return'<span data-i="'+i+'" class="'+(cum<=D.said?"r":"")+(x===D.sel?" s":"")+'">'+esc(x.t)+'</span>'}).join(" · ")+'</div><div class="rl-dinfo">tap a word to see its stroke</div>'}
   o.innerHTML='<div class="rl-dbig">🎙 '+D.wpm+'</div><div class="rl-dinfo">words per minute</div>'+
-    '<div class="rl-dinfo">'+(R.fileName?esc(R.fileName)+" · ":"")+"Set "+(R.si+1)+" / "+n+" · "+D.total+" words · Round "+D.round+(D.round>1?" (shuffled)":"")+'</div>'+
+    '<div class="rl-dinfo">'+(R.fileName?esc(R.fileName)+" · ":"")+"Set "+(R.si+1)+" / "+n+" · "+D.total+" words · Round "+D.round+(cfg.order?" (in order)":" (shuffled)")+'</div>'+
     '<div class="rl-dbar"><i style="width:'+pct+'%"></i></div><div class="rl-dinfo">'+D.said+" / "+D.total+' words read</div>'+
     '<div class="rl-dstate">'+st+'</div>'+
     '<div class="rl-dbtns"><button type="button" data-d="pause">'+(D.paused?"▶ Resume":"⏸ Pause")+'</button><button type="button" data-d="show">'+(D.show?"🙈 Hide words":"👁 Show words")+'</button><button type="button" data-d="stop">■ Stop</button></div>'+wl}
 
 // ---------- timers ----------
-function stopT(){clearTimeout(R.tr);clearTimeout(R.tm);R.tr=R.tm=null;var f=$("rlFill");if(f){f.style.transition="none";f.style.width="0"}}
+function stopT(){clearTimeout(R.upT);clearTimeout(R.tr);clearTimeout(R.tm);R.tr=R.tm=null;var f=$("rlFill");if(f){f.style.transition="none";f.style.width="0"}}
 function arm(){
   stopT();
   if(!R.open||!R.run||D.on||R.paused||R.holdP||sheetOn()||R.jud[R.idx]||!R.items[R.idx])return;
