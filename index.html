@@ -8055,12 +8055,12 @@ function boot(){
   var tb=document.getElementById("topReelsBtn");if(tb)tb.addEventListener("click",quickStart);
   $("rlQuit").onclick=quit;
   $("rlPause").onclick=togglePause;$("rlRestart").onclick=restartSet;$("rlNext").onclick=nextRound;$("rlPrev").onclick=prevRound;$("rlPaused").onclick=togglePause;
-  $("rlOrd").onclick=function(){cfg.order=!cfg.order;saveCfg();toast(cfg.order?"In order (from next round)":"Random (from next round)");hud()};
+  $("rlOrd").onclick=function(){cfg.order=!cfg.order;saveCfg();if(SR.on){SR.paused=false;srRebuild();toast(cfg.order?"Reading in order":"Reading shuffled",1200)}else toast(cfg.order?"In order (from next round)":"Random (from next round)");hud()};
   (function(){var box=$("rlMissQ"),h="";for(var q=1;q<=8;q++)h+='<button type="button" data-s="'+q+'" title="Auto-miss '+q+' s">'+q+'</button>';box.innerHTML=h;
     box.onclick=function(e){var b=e.target.closest?e.target.closest("button[data-s]"):null;if(!b)return;cfg.miss=+b.getAttribute("data-s");cfg.fast=null;saveCfg();toast("Auto-miss "+cfg.miss+" s");hud();arm()}})();
   (function(){var box=$("rlSpdQ"),h="";for(var q=0;q<=5;q++)h+='<button type="button" data-f="'+q+'" title="'+(q?"Faster voice x"+(1+0.25*q):"Next card right after the voice")+'">'+q+'</button>';box.innerHTML=h;
     box.onclick=function(e){var b=e.target.closest?e.target.closest("button[data-f]"):null;if(!b)return;cfg.fast=+b.getAttribute("data-f");saveCfg();toast((cfg.fast?"Voice speed "+cfg.fast+" · faster":"Speed 0 · no waiting")+(cfg.tts?"":" · turn Read aloud on (⚙)"),1800);hud();arm()}})();
-  (function(){var h="<i>📖 Read set</i>";SR_SP.forEach(function(m){h+='<button type="button" data-r="'+m+'">'+m+'x</button>'});$("rlSetQ").innerHTML=h;$("rlSetQ").onclick=function(e){var b=e.target.closest?e.target.closest("button[data-r]"):null;if(b)srOpen(+b.getAttribute("data-r"))}})();
+  (function(){var h="<i>📖 Read set</i>";SR_SP.forEach(function(m){h+='<button type="button" data-r="'+m+'" title="Read the whole set at '+m+' words per minute">'+m+' wpm</button>'});$("rlSetQ").innerHTML=h;$("rlSetQ").onclick=function(e){var b=e.target.closest?e.target.closest("button[data-r]"):null;if(b)srOpen(+b.getAttribute("data-r"))}})();
   $("rlCfg").onclick=function(){openSheet("live")};$("rlFile").onclick=$("rlMode").onclick=$("rlCfg").onclick;
   $("rlAuto").onclick=function(){cfg.autoScroll=!cfg.autoScroll;saveCfg();toast(cfg.autoScroll?"Auto-scroll ON":"Auto-scroll OFF · swipe yourself",1600);hud()};
   $("rlUi").onclick=function(){cfg.ui=!cfg.ui;saveCfg();syncUi()};
@@ -8313,11 +8313,11 @@ function speakCur(auto){
 // ---------- Read the whole set at a chosen speed ----------
 // Every card of the current set is read aloud one after another at the chosen speed. Each text appears in ONE card
 // list at the moment its voice starts. Tap a text to show or hide its stroke image.
-var SR_SP=[0.25,0.5,1,2,3,4,5],SR={on:false,items:[],base:[],i:0,mul:1,paused:false,tok:0,timer:null,loop:true,shuf:false};
+var SR_SP=[30,40,50,60,70,80],SR={on:false,items:[],base:[],i:0,mul:60,paused:false,tok:0,timer:null,loop:true,shuf:false};
 function srShuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
 function srRows(){var h='';SR.items.forEach(function(it,k){var c=it.c,t=c.qa?esc(c.text||"")+'<span class="sr-a">'+esc(c.answer||"")+'</span>':esc(c.text||"\u2014");h+='<div class="sr-r" data-i="'+k+'"><span class="sr-n">'+(k+1)+'</span><div class="sr-t">'+t+'</div><div class="sr-img"></div></div>'});return h}
-function srRebuild(){SR.items=SR.shuf?srShuffle(SR.base):SR.base.slice();var l=$("srList");if(l){l.innerHTML=srRows();l.scrollTop=0}srStart(0)}
-function srUpd(){[].forEach.call(document.querySelectorAll("#rlSetQ button,#srSp button"),function(b){b.classList.toggle("on",SR.on&&+b.getAttribute("data-r")===SR.mul)});var pb=$("srPause");if(pb)pb.textContent=SR.paused?"\u25B6 Play":"\u23F8 Pause";var lb=$("srLoop"),sb=$("srShuf");if(lb){lb.textContent="\uD83D\uDD01 Loop "+(SR.loop?"ON":"OFF");lb.classList.toggle("on",SR.loop)}if(sb){sb.textContent=SR.shuf?"\uD83D\uDD00 Shuffled":"\u27A1 In order";sb.classList.toggle("on",SR.shuf)}}
+function srRebuild(){SR.shuf=!cfg.order;SR.items=SR.shuf?srShuffle(SR.base):SR.base.slice();var l=$("srList");if(l){l.innerHTML=srRows();l.scrollTop=0}srStart(0)}
+function srUpd(){[].forEach.call(document.querySelectorAll("#rlSetQ button,#srSp button"),function(b){b.classList.toggle("on",SR.on&&+b.getAttribute("data-r")===SR.mul)});var pb=$("srPause");if(pb)pb.textContent=SR.paused?"\u25B6 Play":"\u23F8 Pause";var lb=$("srLoop"),sb=$("srShuf");if(lb){lb.textContent="\uD83D\uDD01 Loop "+(SR.loop?"ON":"OFF");lb.classList.toggle("on",SR.loop)}if(sb){sb.textContent=cfg.order?"\u27A1 Order ON":"\uD83D\uDD00 Order OFF (shuffle)";sb.classList.toggle("on",!cfg.order)}}
 function srOpen(mul){
   if(!R.open||sheetOn())return;
   if(SR.on){srSetMul(mul);return}
@@ -8325,13 +8325,13 @@ function srOpen(mul){
   var its=mkItems(R.fl[R.fi],R.modes[R.mi],R.sets[R.si]||[]);
   if(!its.length){toast("No cards in this set");return}
   stopT();silence();
-  SR.on=true;R.setRead=true;SR.base=its;SR.items=SR.shuf?srShuffle(its):its.slice();SR.mul=mul;SR.paused=false;SR.i=0;
+  SR.on=true;R.setRead=true;SR.shuf=!cfg.order;SR.base=its;SR.items=SR.shuf?srShuffle(its):its.slice();SR.mul=mul;SR.paused=false;SR.i=0;
   var p=$("rlSetRead"),h='<div class="rl-row"><b>📖 Set '+(R.si+1)+' \u00b7 '+its.length+' cards</b><span id="srSp"></span><button type="button" id="srLoop"></button><button type="button" id="srShuf"></button><span class="rl-sp"></span><button type="button" id="srPause"></button><button type="button" id="srClose">\u2715 Close</button></div><div id="srList">';
   h+=srRows();
   p.innerHTML=h+'</div>';p.classList.add("on");
-  var sp="";SR_SP.forEach(function(m){sp+='<button type="button" data-r="'+m+'">'+m+'x</button>'});$("srSp").innerHTML=sp;
+  var sp="";SR_SP.forEach(function(m){sp+='<button type="button" data-r="'+m+'">'+m+' wpm</button>'});$("srSp").innerHTML=sp;
   $("srSp").onclick=function(e){var b=e.target.closest?e.target.closest("button[data-r]"):null;if(b)srSetMul(+b.getAttribute("data-r"))};
-  $("srPause").onclick=srTogglePause;$("srLoop").onclick=function(){SR.loop=!SR.loop;srUpd()};$("srShuf").onclick=function(){SR.shuf=!SR.shuf;SR.paused=false;srRebuild()};$("srClose").onclick=function(){srClose()};
+  $("srPause").onclick=srTogglePause;$("srLoop").onclick=function(){SR.loop=!SR.loop;srUpd()};$("srShuf").onclick=function(){cfg.order=!cfg.order;saveCfg();hud();SR.paused=false;srRebuild()};$("srClose").onclick=function(){srClose()};
   $("srList").onclick=function(e){
     var r=e.target.closest?e.target.closest(".sr-r"):null;if(!r||!r.classList.contains("vis"))return;
     var it=SR.items[+r.getAttribute("data-i")],box=r.querySelector(".sr-img");if(!it||!box)return;
@@ -8354,13 +8354,14 @@ function srStart(i){
     SR.paused=true;srUpd();toast("\u2705 Set read \u00b7 tap any text to see its stroke",2200);return}
   var c=SR.items[i].c,parts=(c.qa?[c.text,c.answer]:[c.text]).filter(function(x){return x&&String(x).trim()}),a=A(),t0=Date.now(),seen=false;
   srReveal(i);srUpd();
-  if(!parts.length||!a||!a.speak){SR.timer=setTimeout(function(){if(tok===SR.tok&&SR.on)srStart(i+1)},1200/SR.mul);return}
-  a.speak(parts,SR.mul);
+  var wc=parts.join(' ').split(/\s+/).filter(Boolean).length||1,target=wc*60000/SR.mul;
+  if(!parts.length||!a||!a.speak){SR.timer=setTimeout(function(){if(tok===SR.tok&&SR.on)srStart(i+1)},Math.max(800,target));return}
+  a.speak(parts,Math.max(0.5,Math.min(1.5,SR.mul/130)));
   (function poll(){
     SR.timer=setTimeout(function(){
       if(tok!==SR.tok||!SR.on)return;
       var rd=!!(a.reading&&a.reading());if(rd)seen=true;
-      if((seen&&!rd)||(!seen&&Date.now()-t0>1500)){SR.timer=setTimeout(function(){if(tok===SR.tok&&SR.on)srStart(i+1)},200/SR.mul);return}
+      if((seen&&!rd)||(!seen&&Date.now()-t0>1500)){SR.timer=setTimeout(function(){if(tok===SR.tok&&SR.on)srStart(i+1)},Math.max(150,target-(Date.now()-t0)));return}
       poll()},50)})()}
 function srClose(noArm){
   if(!SR.on)return;
