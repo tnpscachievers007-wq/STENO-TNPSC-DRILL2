@@ -8291,9 +8291,9 @@ function onScroll(){
     if(i!==old){R.idx=i;
       if(i===R.items.length&&R.run){clearTimeout(R.endT);R.endT=setTimeout(function(){if(R.run&&R.idx===R.items.length)advance()},650)}
       if(i>old&&R.run)for(var k=old;k<i;k++)judge("missed",k);   // swiped on without Knew it = missed
-      fillWindow();hud();onActive();
-      // landed on a card that is already done (for example after scrolling up): move on to the next card by itself
-      if(R.run&&!D.on&&cfg.autoScroll&&R.jud[i]&&i<R.items.length){var at=i;clearTimeout(R.upT);R.upT=setTimeout(function(){if(R.run&&!D.on&&!R.paused&&!R.holdP&&!sheetOn()&&R.idx===at&&R.jud[at])fastGo(1)},Math.max(600,cfg.rev*1000))}}
+      // a card that is already done (for example after scrolling up) is played again from the start, answer hidden
+      if(R.run&&!D.on&&R.jud[i]&&i<R.items.length){R.rev[i]=0;var rs=feed.children[i];if(rs)rs.classList.remove("rev")}
+      fillWindow();hud();onActive()}
   },70)}
 function silence(){try{var a=A();if(a&&a.silence)a.silence()}catch(e){}}
 // Read aloud: the text is read once, at the moment it becomes visible.
@@ -8377,10 +8377,11 @@ function dictPaint(){
 function stopT(){clearTimeout(R.upT);clearTimeout(R.tr);clearTimeout(R.tm);R.tr=R.tm=null;var f=$("rlFill");if(f){f.style.transition="none";f.style.width="0"}}
 function arm(){
   stopT();
-  if(!R.open||!R.run||D.on||R.paused||R.holdP||sheetOn()||R.jud[R.idx]||!R.items[R.idx])return;
+  if(!R.open||!R.run||D.on||R.paused||R.holdP||sheetOn()||!R.items[R.idx])return;
+  if(R.jud[R.idx]&&!cfg.autoScroll)return;
   var f=$("rlFill");f.style.transition="none";f.style.width="0";void f.offsetWidth;f.style.transition="width "+cfg.miss+"s linear";f.style.width="100%";
   if(!R.rev[R.idx])fire("tr",reveal,cfg.rev*1000);
-  fire("tm",function(){judge("missed")},cfg.miss*1000)}
+  fire("tm",function(){if(R.jud[R.idx])fastGo(1);else judge("missed")},cfg.miss*1000)}
 // Read aloud on: when the time ends while a voice is still speaking, let the sentence finish first, then reveal / go to the next card.
 function fire(slot,fn,ms){R[slot]=setTimeout(function(){var a=A();if(cfg.tts&&a&&a.reading&&a.reading()){fire(slot,fn,250);return}fn()},ms)}
 function reveal(){if(!R.run||R.rev[R.idx]||!R.items[R.idx])return;R.rev[R.idx]=1;var s=curSlide();if(s)s.classList.add("rev");sfx("rev");if(cfg.tts){var ri=R.items[R.idx];if(ri&&!ri.c.qa&&ri.dir==="s2w")sayOne(ri.c.text)}}
