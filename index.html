@@ -8080,7 +8080,7 @@ function boot(){
       if(e.button===0){e.preventDefault();judge("missed",null,true)}
       else if(e.button===2){e.preventDefault();judge("knew",null,true)}
       return}
-    sx=e.clientX;sy=e.clientY;holding=false;clearTimeout(downT);downT=setTimeout(function(){holding=true;R.holdP=true;stopT()},450)});
+    sx=e.clientX;sy=e.clientY;holding=false;clearTimeout(downT);downT=setTimeout(function(){if(Date.now()-(R.scrollAt||0)<500)return;holding=true;R.holdP=true;stopT()},450)});
   feed.addEventListener("pointerup",function(e){clearTimeout(downT);
     if(e.pointerType==="mouse")return;
     var moved=Math.abs(e.clientX-sx)+Math.abs(e.clientY-sy)>14;
@@ -8285,15 +8285,16 @@ function fillWindow(){
     if(i>=lo&&i<=hi){if(!s.dataset.b){s.innerHTML=slideHTML(i);s.dataset.b="1";if(R.rev[i])s.classList.add("rev")}}
     else if(s.dataset.b){s.innerHTML="";delete s.dataset.b}}}
 function onScroll(){
-  clearTimeout(onScroll.t);
+  R.scrollAt=Date.now();clearTimeout(onScroll.t);
   onScroll.t=setTimeout(function(){
-    var feed=$("rlFeed"),h=feed.clientHeight||1,i=Math.max(0,Math.min(feed.children.length-1,Math.round(feed.scrollTop/h))),old=R.idx;
+    var feed=$("rlFeed"),h=feed.clientHeight||1,i=Math.max(0,Math.min(feed.children.length-1,Math.round(feed.scrollTop/h))),old=R.idx,wasHold=R.holdP;
+    R.holdP=false;   // the card is moving, so the finger is not holding it: a stuck long-press must not stop the timers
     if(i!==old){R.idx=i;
       if(i===R.items.length&&R.run){clearTimeout(R.endT);R.endT=setTimeout(function(){if(R.run&&R.idx===R.items.length)advance()},650)}
       if(i>old&&R.run)for(var k=old;k<i;k++)judge("missed",k);   // swiped on without Knew it = missed
       // a card that is already done (for example after scrolling up) is played again from the start, answer hidden
       if(R.run&&!D.on&&R.jud[i]&&i<R.items.length){R.rev[i]=0;var rs=feed.children[i];if(rs)rs.classList.remove("rev")}
-      fillWindow();hud();onActive()}
+      fillWindow();hud();onActive()}else if(wasHold)arm();
   },70)}
 function silence(){try{var a=A();if(a&&a.silence)a.silence()}catch(e){}}
 // Read aloud: the text is read once, at the moment it becomes visible.

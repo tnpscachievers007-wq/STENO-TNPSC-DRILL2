@@ -3,7 +3,7 @@
    - Page (index.html) is network-first, so a new upload on GitHub shows up as soon as you are online.
    - Icons, manifest and other files are cache-first and refreshed quietly in the background.
    Change CACHE_VERSION whenever you upload a new index.html, to clear the old copy. */
-var CACHE_VERSION = "steno-drill-v4";
+var CACHE_VERSION = "steno-drill-v5";
 var CORE = [
   "./",
   "./index.html",
