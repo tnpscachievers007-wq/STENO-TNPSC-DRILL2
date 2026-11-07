@@ -7931,7 +7931,7 @@ function sj(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
 function shuf(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
 function mk(tag,id,cls,html){var e=document.createElement(tag);if(id)e.id=id;if(cls)e.className=cls;if(html!=null)e.innerHTML=html;document.body.appendChild(e);return e}
-var cfg=Object.assign({autoScroll:true,file:null,files:[],dir:"s2w",order:true,target:10000,setSize:0,setRandom:false,rev:2,miss:7,knewNeed:3,pace:10,tts:false,missA:5,missB:8,sfx:true,txt:100,img:100,ui:true,clean:false},lj("stenoReelsCfg2",{}));
+var cfg=Object.assign({autoScroll:true,file:null,files:[],dir:"s2w",order:true,target:10000,setSize:0,setRandom:false,rev:2,miss:7,knewNeed:3,pace:10,tts:false,missA:5,missB:8,sfx:true,txt:100,img:100,big:0,ui:true,clean:false},lj("stenoReelsCfg2",{}));
 var R={open:false,run:false,items:[],idx:0,done:0,knew:0,missed:0,score:0,combo:0,maxCombo:0,ms:0,startDone:0,paused:false,holdP:false,rev:{},jud:{},tr:null,tm:null,fi:0,si:0,mi:0,sets:[],sc:{},fl:[],modes:["s2w"],rKnew:0,rMiss:0,hist:[],kc:{},seed:1,missIds:[],fileName:"",retry:false,target:10000,setSize:0,setRandom:false,modeStart:0,pre:0,all:[],judIds:[],retryIds:[],quiet:false};
 function cleanCfg(){
   if(!cfg.file&&Array.isArray(cfg.files)&&cfg.files.length)cfg.file=cfg.files[0];delete cfg.files;
@@ -7939,7 +7939,7 @@ function cleanCfg(){
   cfg.target=Math.max(1,Math.round(+cfg.target)||10000);cfg.setSize=Math.max(0,Math.round(+cfg.setSize)||0);cfg.setRandom=!!cfg.setRandom;
   cfg.rev=Math.max(1,Math.round(+cfg.rev)||2);cfg.miss=Math.max(1,Math.round(+cfg.miss)||7);cfg.missA=Math.min(9999,Math.max(1,Math.round(+cfg.missA)||5));cfg.missB=Math.min(9999,Math.max(1,Math.round(+cfg.missB)||8));cfg.knewNeed=Math.min(99,Math.max(1,Math.round(+cfg.knewNeed)||3));cfg.pace=Math.max(1,Math.round(+cfg.pace)||10);
   cfg.txt=Math.min(250,Math.max(40,Math.round(+cfg.txt)||100));cfg.img=Math.min(100,Math.max(10,Math.round(+cfg.img)||100));
-  cfg.autoScroll=cfg.autoScroll!==false;cfg.tts=!!cfg.tts;cfg.sfx=cfg.sfx!==false;cfg.ui=cfg.ui!==false;cfg.clean=!!cfg.clean}
+  cfg.big=Math.min(4,Math.max(0,Math.round(+cfg.big)||0));cfg.autoScroll=cfg.autoScroll!==false;cfg.tts=!!cfg.tts;cfg.sfx=cfg.sfx!==false;cfg.ui=cfg.ui!==false;cfg.clean=!!cfg.clean}
 function T(){return R.run?R.target:cfg.target}
 // Knew-it counts are the same object Game mode uses
 function KC(){if(!window.stenoKnewCounts||typeof window.stenoKnewCounts!=="object")window.stenoKnewCounts={};return window.stenoKnewCounts}
@@ -7998,6 +7998,19 @@ body.reels-open{overflow:hidden!important}\
 
 function css2(){return [
 '#rlRoot.on{display:block}',
+'#rlRoot[data-big="1"] .rl-s,#rlRoot[data-big="2"] .rl-s,#rlRoot[data-big="3"] .rl-s,#rlRoot[data-big="4"] .rl-s{padding-left:10px;padding-right:10px}',
+'#rlRoot[data-big="1"] .rl-img,#rlRoot[data-big="2"] .rl-img,#rlRoot[data-big="3"] .rl-img,#rlRoot[data-big="4"] .rl-img{padding:6px;border-radius:14px}',
+'#rlRoot[data-big="1"] .rl-img img,#rlRoot[data-big="2"] .rl-img img,#rlRoot[data-big="3"] .rl-img img,#rlRoot[data-big="4"] .rl-img img{width:auto;max-width:100%;max-height:none;object-fit:contain}',
+'#rlRoot[data-big="1"] .rl-a.ph,#rlRoot[data-big="2"] .rl-a.ph,#rlRoot[data-big="3"] .rl-a.ph,#rlRoot[data-big="4"] .rl-a.ph{padding:6px}',
+'#rlRoot[data-big="1"] .rl-a.ph img,#rlRoot[data-big="2"] .rl-a.ph img,#rlRoot[data-big="3"] .rl-a.ph img,#rlRoot[data-big="4"] .rl-a.ph img{width:auto;max-width:100%;max-height:none;object-fit:contain}',
+'#rlRoot[data-big="1"] .rl-img img{height:58vh;height:min(58dvh,calc(100dvh - var(--rl-pad,90px) - 140px))}',
+'#rlRoot[data-big="1"] .rl-a.ph img{height:42vh;height:min(42dvh,calc(100dvh - var(--rl-pad,90px) - 210px))}',
+'#rlRoot[data-big="2"] .rl-img img{height:70vh;height:min(70dvh,calc(100dvh - var(--rl-pad,90px) - 140px))}',
+'#rlRoot[data-big="2"] .rl-a.ph img{height:54vh;height:min(54dvh,calc(100dvh - var(--rl-pad,90px) - 210px))}',
+'#rlRoot[data-big="3"] .rl-img img{height:80vh;height:min(80dvh,calc(100dvh - var(--rl-pad,90px) - 140px))}',
+'#rlRoot[data-big="3"] .rl-a.ph img{height:64vh;height:min(64dvh,calc(100dvh - var(--rl-pad,90px) - 210px))}',
+'#rlRoot[data-big="4"] .rl-img img{height:100vh;height:min(100dvh,calc(100dvh - var(--rl-pad,90px) - 140px))}',
+'#rlRoot[data-big="4"] .rl-a.ph img{height:100vh;height:min(100dvh,calc(100dvh - var(--rl-pad,90px) - 210px))}',
 '#rlTop{position:absolute;left:0;right:0;top:0;z-index:6;padding:calc(6px + env(safe-area-inset-top,0px)) 8px 0;pointer-events:none;background:linear-gradient(#000c,#0000)}',
 '#rlTop>*{pointer-events:auto}',
 '#rlBar{height:4px;border-radius:3px;background:rgba(255,255,255,.25);overflow:hidden;margin-bottom:6px}#rlFill{height:100%;width:0;background:#fff}',
@@ -8054,7 +8067,7 @@ function boot(){
   var st=document.createElement("style");st.id="rlStyle";st.textContent=css()+css2();document.head.appendChild(st);
   mk("button","reelsModeBtn","",'<span>🎞️ REELS MODE</span><small>SWIPE · LEARN · REPEAT</small>').addEventListener("click",quickStart);
   mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlFl"></div><div id="rlPaused">⏸ PAUSED\nclick or scroll button to resume</div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div><div id="rlStat"></div>'+
-  '<div class="rl-row"><button id="rlPause">⏸ Pause</button><button id="rlRestart">↻ Restart</button><button id="rlPrev">⏮ Previous round</button><button id="rlNext">⏭ Next round</button><button id="rlOrd"></button><span id="rlMissQ" class="rl-secs"></span><button id="rlAuto"></button><span class="rl-pill" id="rlDone"></span><span class="rl-sp"></span><button id="rlCfg">⚙</button><button id="rlUi">☰</button><button id="rlClean">🙈</button><button id="rlFs">⛶</button><button id="rlQuit">✖ Exit</button></div>'+
+  '<div class="rl-row"><button id="rlPause">⏸ Pause</button><button id="rlRestart">↻ Restart</button><button id="rlPrev">⏮ Previous round</button><button id="rlNext">⏭ Next round</button><button id="rlOrd"></button><span id="rlMissQ" class="rl-secs"></span><button id="rlAuto"></button><span class="rl-pill" id="rlDone"></span><span class="rl-sp"></span><button id="rlCfg">⚙</button><button id="rlUi">☰</button><button id="rlClean">🙈</button><button id="rlFs">⛶</button><button id="rlBig" title="Image size">🔍</button><button id="rlQuit">✖ Exit</button></div>'+
   '<div id="rlMore"><div class="rl-row"><span id="rlCards"></span><span id="rlToday"></span><span id="rlScore"></span><span id="rlCombo"></span><button id="rlMute">🔊</button></div>'+
   '<div class="rl-track"><div id="rlTf"></div><span id="rlGhost">👻</span><span id="rlRocket">🚀</span><span id="rlFlag">🏁</span></div>'+
   '<div class="rl-row"><span id="rlClock"></span><span id="rlBatt"></span><span id="rlPace"></span></div>'+
@@ -8071,6 +8084,7 @@ function boot(){
   $("rlUi").onclick=function(){cfg.ui=!cfg.ui;saveCfg();syncUi()};
   $("rlClean").onclick=function(){cfg.clean=!cfg.clean;saveCfg();syncUi()};
   $("rlMute").onclick=function(){cfg.sfx=!cfg.sfx;saveCfg();this.textContent=cfg.sfx?"🔊":"🔇"};
+  $("rlBig").onclick=function(){cfg.big=((cfg.big|0)+1)%5;saveCfg();vars();toast("Image size: "+["Normal","Big","Huge","Giant","Full screen"][cfg.big],1400)};
   $("rlFs").onclick=function(){try{var d=document.documentElement;if(document.fullscreenElement)document.exitFullscreen();else d.requestFullscreen()}catch(e){}};
   var feed=$("rlFeed");feed.addEventListener("scroll",onScroll,{passive:true});
   var lastTap=0,tapT=null,downT=null,holding=false,sx=0,sy=0,ptype="touch";
@@ -8172,6 +8186,7 @@ function openSheet(mode){
   h+='<div class="rl-row"><label>Auto-miss time (seconds)</label><div class="rl-chips">'+[1,2,3,4,5,6,7,8].map(function(q){return chip("miss",q,q+" s",cfg.miss===q)}).join("")+'</div></div>';
   h+=num("knewNeed","Knew it clicks to finish a card",1)+num("pace","Pace target (s per card)",1);
   h+='<div class="rl-row"><label>Image size <span id="rlImgV">'+cfg.img+'</span>%</label><input type="range" id="rlImg" min="10" max="100" step="5" value="'+cfg.img+'"></div>';
+  h+='<div class="rl-row"><label>Big image (Reels)</label><div class="rl-chips">'+[[0,"Normal"],[1,"Big"],[2,"Huge"],[3,"Giant"],[4,"Full screen"]].map(function(p){return chip("big",p[0],p[1],cfg.big===p[0])}).join("")+'</div></div>';
   h+='<div class="rl-row"><label>Text size <span id="rlTxtV">'+cfg.txt+'</span>%</label><input type="range" id="rlTxt" min="40" max="250" step="10" value="'+cfg.txt+'"></div>';
   h+='<div class="rl-row"><label>Extras</label><div class="rl-chips">'+chip("tts","1","🔊 Read aloud",cfg.tts)+chip("sfx","1","🎵 Sounds",cfg.sfx)+chip("auto","1","⏬ Auto-scroll",cfg.autoScroll)+'</div></div>';
   h+=live?'<button type="button" class="rl-go" id="rlApply">Apply</button><button type="button" class="rl-go sec" id="rlOk">Back to cards</button><button type="button" class="rl-go sec" id="rlNew">🔄 Start a new game</button>':'<button type="button" class="rl-go" id="rlStart">▶ Start</button><button type="button" class="rl-go sec" id="rlCancel">Cancel</button>';
@@ -8190,6 +8205,7 @@ function openSheet(mode){
     else if(g==="tts"||g==="sfx")cfg[g]=!cfg[g];
     else if(g==="auto")cfg.autoScroll=!cfg.autoScroll;
     else if(g==="setRandom")cfg.setRandom=v==="1";
+    else if(g==="big"){cfg.big=+v;vars()}
     else if(g==="miss"){cfg.miss=+v;if(R.run)hud()}
     else cfg[g]=v;
     saveCfg();again()};
@@ -8200,7 +8216,7 @@ function openSheet(mode){
   else{$("rlStart").onclick=function(){if(!cfg.file){alert("Pick a file");return}closeSheet(true);startNew()};$("rlCancel").onclick=function(){closeSheet(true);closeReels()};if($("rlResume"))$("rlResume").onclick=function(){closeSheet(true);resume()}}
 }
 function closeSheet(skip){var sh=$("rlSheet");sh.classList.remove("on");sh.innerHTML="";sh.style.background="";if(R.open&&!skip)arm()}
-function vars(){var r=$("rlRoot");r.style.setProperty("--rl-txt",cfg.txt);r.style.setProperty("--rl-img",cfg.img)}
+function vars(){var r=$("rlRoot");r.style.setProperty("--rl-txt",cfg.txt);r.style.setProperty("--rl-img",cfg.img);r.setAttribute("data-big",String(cfg.big|0));var b=$("rlBig");if(b)b.textContent="\uD83D\uDD0D"+(cfg.big?" "+["","Big","Huge","Giant","Full"][cfg.big]:"");try{fitPad()}catch(e){}}
 
 // ---------- game flow ----------
 function playable(f){return (f.s2w||0)>0||(f.w2s||0)>0}
