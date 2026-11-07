@@ -8006,12 +8006,12 @@ function css2(){return [
 '.rl-row #rlWpm button{flex:none;min-width:42px;padding:0 9px}',
 'body.rl-clean #rlDictRow{display:none!important}',
 '#rlDict{display:none;position:absolute;inset:0;z-index:5;background:radial-gradient(120% 90% at 50% 0%,#0f9b8e,#0b0b14 72%);padding:var(--rl-pad,120px) 16px 24px;box-sizing:border-box;overflow-y:auto;flex-direction:column;align-items:center;gap:10px;text-align:center;-webkit-user-select:none;user-select:none}#rlDict.on{display:flex}',
-'.rl-dbig{font-size:64px;font-weight:900;line-height:1.05;margin-top:6px}.rl-dinfo{font-size:14px;font-weight:700;opacity:.85}',
+'.rl-dbig{font-size:44px;font-weight:900;line-height:1.05;margin-top:6px}.rl-dinfo{font-size:14px;font-weight:700;opacity:.85}',
 '.rl-dbar{width:100%;max-width:420px;height:10px;border-radius:6px;background:#ffffff26;overflow:hidden}.rl-dbar i{display:block;height:100%;background:linear-gradient(90deg,#8a3dff,#3dffa0);transition:width .3s}',
 '.rl-dstate{font-size:20px;font-weight:900;margin:4px 0}',
 '.rl-dbtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.rl-dbtns button{border:1px solid #fff3;background:#ffffff26;color:#fff;border-radius:20px;height:42px;padding:0 18px;font:inherit;font-size:15px;font-weight:800;cursor:pointer}',
 '.rl-dwords{max-width:560px;font-size:20px;font-weight:700;line-height:1.7;margin-top:8px;opacity:.95}.rl-dwords span{opacity:.55}.rl-dwords span.r{opacity:1;color:#3dffa0}.rl-dwords span{cursor:pointer;padding:2px 4px;border-radius:8px}.rl-dwords span.s{background:#8a3dff;color:#fff;opacity:1}',
-'.rl-dstroke{background:#fff;color:#111;border-radius:18px;padding:10px 14px;max-width:100%;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 10px 40px #0008}.rl-dstroke img{max-width:100%;max-height:40vh;object-fit:contain}.rl-dstroke b{font-size:22px}.rl-dnow{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;width:100%}.rl-dnow .rl-dstroke{flex:1 1 220px;max-width:420px}.rl-dnow .rl-dstroke img{max-height:28vh}'].join('\n')}
+'.rl-dstroke{background:#fff;color:#111;border-radius:18px;padding:10px 14px;max-width:100%;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 10px 40px #0008}.rl-dstroke img{width:100%;height:auto;max-height:60vh;object-fit:contain}.rl-dstroke b{font-size:22px}.rl-dnow{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;width:100%}.rl-dnow .rl-dstroke{flex:1 1 320px;max-width:min(96vw,1000px);padding:8px 10px}.rl-dnow .rl-dstroke img{min-height:34vh;max-height:62vh}.rl-dnow:has(.rl-dstroke+.rl-dstroke) .rl-dstroke img{min-height:26vh;max-height:46vh}'].join('\n')}
 function curSlide(){var f=$("rlFeed");return f?f.children[R.idx]:null}
 function toast(t,ms){var e=$("rlToast");e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove("on")},ms||1300)}
 function pop(t,bad){var p=document.createElement("div");p.className="rl-pop"+(bad?" bad":"");p.textContent=t;$("rlRoot").appendChild(p);setTimeout(function(){p.remove()},900)}
@@ -8046,7 +8046,7 @@ function boot(){
   mk("button","reelsModeBtn","",'<span>🎞️ REELS MODE</span><small>SWIPE · LEARN · REPEAT</small>').addEventListener("click",quickStart);
   mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlDict"></div><div id="rlFl"></div><div id="rlPaused">⏸ PAUSED\nclick or scroll button to resume</div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div><div id="rlStat"></div>'+
   '<div class="rl-row"><button id="rlPause">⏸ Pause</button><button id="rlRestart">↻ Restart</button><button id="rlPrev">⏮ Previous round</button><button id="rlNext">⏭ Next round</button><button id="rlOrd"></button><span id="rlMissQ" class="rl-secs"></span><button id="rlAuto"></button><span class="rl-pill" id="rlDone"></span><span class="rl-sp"></span><button id="rlCfg">⚙</button><button id="rlUi">☰</button><button id="rlClean">🙈</button><button id="rlFs">⛶</button><button id="rlQuit">✖ Exit</button></div>'+
-  '<div class="rl-row" id="rlDictRow"><span class="rl-pill">🎙 Dictation · words/min · v7</span><span id="rlWpm"></span></div>'+
+  '<div class="rl-row" id="rlDictRow"><span class="rl-pill">🎙 Dictation · words/min · v8</span><span id="rlWpm"></span></div>'+
   '<div id="rlMore"><div class="rl-row"><span id="rlCards"></span><span id="rlToday"></span><span id="rlScore"></span><span id="rlCombo"></span><button id="rlMute">🔊</button></div>'+
   '<div class="rl-track"><div id="rlTf"></div><span id="rlGhost">👻</span><span id="rlRocket">🚀</span><span id="rlFlag">🏁</span></div>'+
   '<div class="rl-row"><span id="rlClock"></span><span id="rlBatt"></span><span id="rlPace"></span></div>'+
@@ -8362,6 +8362,8 @@ function dictTick(){
 function dictPaint(){
   var o=$("rlDict");if(!o||!D.on)return;
   o.classList.add("on");
+  if(R.paused){o.innerHTML="";return}
+  if(D.paused){o.innerHTML='<div class="rl-dbig" style="margin-top:20vh">⏸</div><div class="rl-dbtns"><button type="button" data-d="pause">▶ Resume</button></div>';return}
   var n=Math.max(1,(R.sets||[]).length),pct=D.total?Math.round(D.said/D.total*100):0,
   st=D.gap?"Round "+D.round+" finished"+(cfg.order?" · again in order…":" · shuffling…"):(R.paused||D.paused)?"⏸ Paused":"🎧 Listening · write it down",
   cum=0,wl="",pl="";
