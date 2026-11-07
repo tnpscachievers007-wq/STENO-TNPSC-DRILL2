@@ -7918,7 +7918,7 @@ function cleanCfg(){
   cfg.dir=cfg.dir==="w2s"?"w2s":"s2w";cfg.order=!!cfg.order;
   cfg.target=Math.max(1,Math.round(+cfg.target)||10000);cfg.setSize=Math.max(0,Math.round(+cfg.setSize)||0);cfg.setRandom=!!cfg.setRandom;
   cfg.rev=Math.max(1,Math.round(+cfg.rev)||2);cfg.miss=Math.max(1,Math.round(+cfg.miss)||7);cfg.missA=Math.min(9999,Math.max(1,Math.round(+cfg.missA)||5));cfg.missB=Math.min(9999,Math.max(1,Math.round(+cfg.missB)||8));cfg.knewNeed=Math.min(99,Math.max(1,Math.round(+cfg.knewNeed)||3));cfg.pace=Math.max(1,Math.round(+cfg.pace)||10);
-  cfg.txt=Math.min(250,Math.max(40,Math.round(+cfg.txt)||100));cfg.img=Math.min(100,Math.max(10,Math.round(+cfg.img)||100));
+  cfg.txt=Math.min(250,Math.max(40,Math.round(+cfg.txt)||100));cfg.img=Math.min(250,Math.max(20,Math.round(+cfg.img)||100));
   cfg.autoScroll=cfg.autoScroll!==false;cfg.tts=!!cfg.tts;cfg.sfx=cfg.sfx!==false;cfg.ui=cfg.ui!==false;cfg.clean=!!cfg.clean}
 function T(){return R.run?R.target:cfg.target}
 // Knew-it counts are the same object Game mode uses
@@ -7951,12 +7951,12 @@ body.reels-open{overflow:hidden!important}\
 .rl-s:nth-child(5n+4){background:radial-gradient(120% 90% at 80% 90%,#fa7e1e,#0b0b14 75%)}\
 .rl-s:nth-child(5n){background:radial-gradient(120% 90% at 50% 0%,#0f9b8e,#0b0b14 72%)}\
 .rl-media{width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;max-height:100%}\
-.rl-img{background:#fff;border-radius:18px;padding:10px;box-sizing:border-box;width:calc(var(--rl-img,100)*1%);max-width:100%;display:flex;justify-content:center;box-shadow:0 10px 40px rgba(0,0,0,.5)}\
-.rl-img img{max-width:100%;max-height:46vh;max-height:46dvh;object-fit:contain;display:block}\
+.rl-img{background:#fff;border-radius:18px;padding:10px;box-sizing:border-box;width:min(100%,calc(var(--rl-img,100)*1%));max-width:100%;display:flex;justify-content:center;box-shadow:0 10px 40px rgba(0,0,0,.5)}\
+.rl-img img{width:100%;height:calc(var(--rl-img,100)*.46vh);height:calc(var(--rl-img,100)*.46dvh);max-width:100%;object-fit:contain;display:block}\
 .rl-q{font-weight:900;text-align:center;line-height:1.25;font-size:calc(38px*var(--rl-txt,100)/100);word-break:break-word;text-shadow:0 2px 12px rgba(0,0,0,.5);max-width:100%}\
 .rl-a{font-weight:900;text-align:center;line-height:1.25;font-size:calc(34px*var(--rl-txt,100)/100);word-break:break-word;padding:12px 18px;border-radius:18px;background:rgba(255,255,255,.14);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.25);max-width:100%;opacity:0;transform:translateY(18px) scale(.94);transition:opacity .25s,transform .25s;pointer-events:none}\
 .rl-s.rev .rl-a{opacity:1;transform:none}\
-.rl-a.ph{padding:10px}.rl-a.ph img{max-width:100%;max-height:40vh;max-height:40dvh;background:#fff;border-radius:12px;display:block}\
+.rl-a.ph{padding:10px;box-sizing:border-box;width:100%}.rl-a.ph img{width:100%;height:calc(var(--rl-img,100)*.4vh);height:calc(var(--rl-img,100)*.4dvh);object-fit:contain;max-width:100%;background:#fff;border-radius:12px;display:block}\
 .rl-pill{padding:6px 11px;border-radius:16px;background:rgba(255,255,255,.16);font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}\
 #rlToast{position:absolute;left:50%;bottom:calc(30px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);padding:8px 16px;border-radius:20px;background:rgba(0,0,0,.75);font-weight:900;font-size:15px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9;white-space:nowrap}#rlToast.on{opacity:1}\
 #rlSheet{display:none;position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.6);align-items:flex-end;justify-content:center}\
@@ -7993,7 +7993,7 @@ function css2(){return [
 '#rlSched{font-size:12px;padding:5px 10px;border-radius:12px;background:#0007;margin-bottom:4px}#rlSched u{display:block;height:4px;border-radius:2px;background:#1fbf75;margin-top:3px}',
 'body.rl-ui-off #rlMore{display:none}',
 'body.rl-clean #rlMore,body.rl-clean #rlOrd,body.rl-clean #rlMissQ,body.rl-clean #rlDone,body.rl-clean #rlUi,body.rl-clean #rlFs,body.rl-clean #rlCfg{display:none!important}',
-'#rlPaused{display:none;position:absolute;inset:0;z-index:7;background:#000b;align-items:center;justify-content:center;text-align:center;font-size:30px;font-weight:900;white-space:pre}#rlPaused.on{display:flex}',
+'#rlPaused{display:none;position:absolute;inset:0;z-index:5;background:transparent}#rlPaused.on{display:flex}',
 '.rl-pop{position:absolute;left:50%;top:42%;transform:translateX(-50%);font-size:42px;font-weight:900;color:#3dffa0;z-index:8;pointer-events:none;animation:rlUp .9s ease-out forwards}.rl-pop.bad{color:#ff5470}',
 '@keyframes rlUp{to{opacity:0;transform:translate(-50%,-70px)}}',
 '#rlFl{position:absolute;inset:0;z-index:7;pointer-events:none;opacity:0}#rlFl.g{animation:rlF .35s;background:#1fbf7544}#rlFl.r{animation:rlF .35s;background:#ef444455}@keyframes rlF{from{opacity:1}to{opacity:0}}',
@@ -8011,7 +8011,7 @@ function css2(){return [
 '.rl-dstate{font-size:20px;font-weight:900;margin:4px 0}',
 '.rl-dbtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.rl-dbtns button{border:1px solid #fff3;background:#ffffff26;color:#fff;border-radius:20px;height:42px;padding:0 18px;font:inherit;font-size:15px;font-weight:800;cursor:pointer}',
 '.rl-dwords{max-width:560px;font-size:20px;font-weight:700;line-height:1.7;margin-top:8px;opacity:.95}.rl-dwords span{opacity:.55}.rl-dwords span.r{opacity:1;color:#3dffa0}.rl-dwords span{cursor:pointer;padding:2px 4px;border-radius:8px}.rl-dwords span.s{background:#8a3dff;color:#fff;opacity:1}',
-'.rl-dstroke{background:#fff;color:#111;border-radius:18px;padding:10px 14px;max-width:100%;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 10px 40px #0008}.rl-dstroke img{width:100%;height:auto;max-height:60vh;object-fit:contain}.rl-dstroke b{font-size:22px}.rl-dnow{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;width:100%}.rl-dnow .rl-dstroke{flex:1 1 320px;max-width:min(96vw,1000px);padding:8px 10px}.rl-dnow .rl-dstroke img{min-height:34vh;max-height:62vh}.rl-dnow:has(.rl-dstroke+.rl-dstroke) .rl-dstroke img{min-height:26vh;max-height:46vh}'].join('\n')}
+'.rl-dstroke{background:#fff;color:#111;border-radius:18px;padding:10px 14px;max-width:100%;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 10px 40px #0008}.rl-dstroke img{width:100%;height:calc(var(--rl-img,100)*.4vh);height:calc(var(--rl-img,100)*.4dvh);object-fit:contain}.rl-dstroke b{font-size:22px}.rl-dnow{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;width:100%}.rl-dnow .rl-dstroke{flex:1 1 320px;max-width:min(96vw,1600px);padding:8px 10px}.rl-dnow .rl-dstroke img{height:calc(var(--rl-img,100)*.5vh);height:calc(var(--rl-img,100)*.5dvh)}.rl-dnow:has(.rl-dstroke+.rl-dstroke) .rl-dstroke img{height:calc(var(--rl-img,100)*.36vh);height:calc(var(--rl-img,100)*.36dvh)}#rlDictRow button{flex:none}'].join('\n')}
 function curSlide(){var f=$("rlFeed");return f?f.children[R.idx]:null}
 function toast(t,ms){var e=$("rlToast");e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove("on")},ms||1300)}
 function pop(t,bad){var p=document.createElement("div");p.className="rl-pop"+(bad?" bad":"");p.textContent=t;$("rlRoot").appendChild(p);setTimeout(function(){p.remove()},900)}
@@ -8044,9 +8044,9 @@ function boot(){
   ["reelsModeBtn","rlRoot","rlStyle"].forEach(function(i){var e=$(i);if(e&&e.parentNode)e.parentNode.removeChild(e)});
   var st=document.createElement("style");st.id="rlStyle";st.textContent=css()+css2();document.head.appendChild(st);
   mk("button","reelsModeBtn","",'<span>🎞️ REELS MODE</span><small>SWIPE · LEARN · REPEAT</small>').addEventListener("click",quickStart);
-  mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlDict"></div><div id="rlFl"></div><div id="rlPaused">⏸ PAUSED\nclick or scroll button to resume</div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div><div id="rlStat"></div>'+
+  mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlDict"></div><div id="rlFl"></div><div id="rlPaused"></div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div><div id="rlStat"></div>'+
   '<div class="rl-row"><button id="rlPause">⏸ Pause</button><button id="rlRestart">↻ Restart</button><button id="rlPrev">⏮ Previous round</button><button id="rlNext">⏭ Next round</button><button id="rlOrd"></button><span id="rlMissQ" class="rl-secs"></span><button id="rlAuto"></button><span class="rl-pill" id="rlDone"></span><span class="rl-sp"></span><button id="rlCfg">⚙</button><button id="rlUi">☰</button><button id="rlClean">🙈</button><button id="rlFs">⛶</button><button id="rlQuit">✖ Exit</button></div>'+
-  '<div class="rl-row" id="rlDictRow"><span class="rl-pill">🎙 Dictation · words/min · v8</span><span id="rlWpm"></span></div>'+
+  '<div class="rl-row" id="rlDictRow"><span class="rl-pill">🎙 Dictation · words/min · v10</span><button type="button" id="rlImgM" title="Smaller strokes">🖼 −</button><button type="button" id="rlImgP" title="Bigger strokes">🖼 +</button><span id="rlWpm"></span></div>'+
   '<div id="rlMore"><div class="rl-row"><span id="rlCards"></span><span id="rlToday"></span><span id="rlScore"></span><span id="rlCombo"></span><button id="rlMute">🔊</button></div>'+
   '<div class="rl-track"><div id="rlTf"></div><span id="rlGhost">👻</span><span id="rlRocket">🚀</span><span id="rlFlag">🏁</span></div>'+
   '<div class="rl-row"><span id="rlClock"></span><span id="rlBatt"></span><span id="rlPace"></span></div>'+
@@ -8056,6 +8056,8 @@ function boot(){
   $("rlQuit").onclick=quit;
   (function(){var box=$("rlWpm"),h="";for(var w=10;w<=120;w+=10)h+='<button type="button" data-w="'+w+'" title="Dictation '+w+' words per minute">'+w+'</button>';box.innerHTML=h;
     box.onclick=function(e){var b=e.target.closest?e.target.closest("button[data-w]"):null;if(!b)return;var w=+b.getAttribute("data-w");if(D.on&&D.wpm===w){dictStop(true);return}dictStart(w)}})();
+  function bump(d){cfg.img=Math.min(250,Math.max(20,Math.round(cfg.img/10)*10+d));saveCfg();vars();toast("Stroke size "+cfg.img+"%",900)}
+  $("rlImgM").onclick=function(){bump(-10)};$("rlImgP").onclick=function(){bump(10)};
   $("rlDict").onclick=function(e){var b=e.target.closest?e.target.closest("button[data-d]"):null;
     var sp=e.target.closest?e.target.closest("span[data-i]"):null;
     if(sp){var x=D.cur[+sp.getAttribute("data-i")];D.sel=(D.sel===x)?null:x;dictPaint();return}
@@ -8171,7 +8173,7 @@ function openSheet(mode){
   h+=num("rev","Auto-reveal (s)",1);
   h+='<div class="rl-row"><label>Auto-miss time (seconds)</label><div class="rl-chips">'+[1,2,3,4,5,6,7,8].map(function(q){return chip("miss",q,q+" s",cfg.miss===q)}).join("")+'</div></div>';
   h+=num("knewNeed","Knew it clicks to finish a card",1)+num("pace","Pace target (s per card)",1);
-  h+='<div class="rl-row"><label>Image size <span id="rlImgV">'+cfg.img+'</span>%</label><input type="range" id="rlImg" min="10" max="100" step="5" value="'+cfg.img+'"></div>';
+  h+='<div class="rl-row"><label>Image size <span id="rlImgV">'+cfg.img+'</span>%</label><input type="range" id="rlImg" min="20" max="250" step="10" value="'+cfg.img+'"></div>';
   h+='<div class="rl-row"><label>Text size <span id="rlTxtV">'+cfg.txt+'</span>%</label><input type="range" id="rlTxt" min="40" max="250" step="10" value="'+cfg.txt+'"></div>';
   h+='<div class="rl-row"><label>Extras</label><div class="rl-chips">'+chip("tts","1","🔊 Read aloud",cfg.tts)+chip("sfx","1","🎵 Sounds",cfg.sfx)+chip("auto","1","⏬ Auto-scroll",cfg.autoScroll)+'</div></div>';
   h+=live?'<button type="button" class="rl-go" id="rlApply">Apply</button><button type="button" class="rl-go sec" id="rlOk">Back to cards</button><button type="button" class="rl-go sec" id="rlNew">🔄 Start a new game</button>':'<button type="button" class="rl-go" id="rlStart">▶ Start</button><button type="button" class="rl-go sec" id="rlCancel">Cancel</button>';
@@ -8340,7 +8342,7 @@ function dictStop(back){
   var o=$("rlDict");if(o){o.classList.remove("on");o.innerHTML=""}
   syncWpm();
   if(back){toast("Dictation stopped · back to cards",1500);if(R.run)onActive()}}
-function dictPause(){if(!D.on)return;D.paused=!D.paused;dictPaint()}
+function dictPause(){if(!D.on)return;togglePause()}
 // the set changed (next / previous round, new game): follow it at the same speed
 function dictSync(){if(!D.on)return;var key=R.fl[R.fi]+"|"+R.si;if(key===D.key)dictPaint();else dictStart(D.wpm)}
 function dictTick(){
@@ -8362,10 +8364,8 @@ function dictTick(){
 function dictPaint(){
   var o=$("rlDict");if(!o||!D.on)return;
   o.classList.add("on");
-  if(R.paused){o.innerHTML="";return}
-  if(D.paused){o.innerHTML='<div class="rl-dbig" style="margin-top:20vh">⏸</div><div class="rl-dbtns"><button type="button" data-d="pause">▶ Resume</button></div>';return}
   var n=Math.max(1,(R.sets||[]).length),pct=D.total?Math.round(D.said/D.total*100):0,
-  st=D.gap?"Round "+D.round+" finished"+(cfg.order?" · again in order…":" · shuffling…"):(R.paused||D.paused)?"⏸ Paused":"🎧 Listening · write it down",
+  st=D.gap?"Round "+D.round+" finished"+(cfg.order?" · again in order…":" · shuffling…"):"🎧 Listening · write it down",
   cum=0,wl="",pl="";
   if(D.strokes&&D.curG)pl='<div class="rl-dnow">'+D.curG.es.map(function(x){return'<div class="rl-dstroke"><b>'+esc(x.t)+'</b>'+(x.img?'<img alt="stroke" src="'+esc(x.img)+'">':'<i>no stroke</i>')+'</div>'}).join("")+'</div>';
   if(D.show){
@@ -8375,7 +8375,7 @@ function dictPaint(){
     '<div class="rl-dinfo">'+(R.fileName?esc(R.fileName)+" · ":"")+"Set "+(R.si+1)+" / "+n+" · "+D.total+" words · Round "+D.round+(cfg.order?" (in order)":" (shuffled)")+'</div>'+
     '<div class="rl-dbar"><i style="width:'+pct+'%"></i></div><div class="rl-dinfo">'+D.said+" / "+D.total+' words read</div>'+
     '<div class="rl-dstate">'+st+'</div>'+
-    '<div class="rl-dbtns"><button type="button" data-d="pause">'+(D.paused?"▶ Resume":"⏸ Pause")+'</button><button type="button" data-d="show">'+(D.show?"🙈 Hide words":"👁 Show words")+'</button><button type="button" data-d="stroke">'+(D.strokes?"✏ Hide strokes":"✏ Show strokes")+'</button><button type="button" data-d="stop">■ Stop</button></div>'+wl}
+    '<div class="rl-dbtns"><button type="button" data-d="pause">'+(R.paused?"▶ Resume":"⏸ Pause")+'</button><button type="button" data-d="show">'+(D.show?"🙈 Hide words":"👁 Show words")+'</button><button type="button" data-d="stroke">'+(D.strokes?"✏ Hide strokes":"✏ Show strokes")+'</button><button type="button" data-d="stop">■ Stop</button></div>'+wl}
 
 // ---------- timers ----------
 function stopT(){clearTimeout(R.upT);clearTimeout(R.tr);clearTimeout(R.tm);R.tr=R.tm=null;var f=$("rlFill");if(f){f.style.transition="none";f.style.width="0"}}
