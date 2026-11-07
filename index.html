@@ -1777,7 +1777,7 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
       <details class="lib-box" open>
         <summary><h3>➕ Add words / cards in bulk</h3><span class="chev">›</span></summary>
         <div class="lib-box-body">
-          <p class="hint only-steno">Paste one word or phrase per line, then press <strong>Add to library</strong>. You can add words and stroke images in <strong>any order and in any number of batches</strong> (for example 70 words, then 50 images, then 50 images, then 30 words). Each batch first fills the empty spots already in the list, from the top, and only then adds new rows, so nothing is left blank in between. Images are paired in filename order.</p>
+          <p class="hint only-steno">Paste one word or phrase per line, in the order you want them to appear. Then choose the matching stroke images — select them in the same order (most file pickers keep the order you click them in, or sort by filename to be safe). The nth image is paired with the nth line. If you choose more images than lines, the extra images are still added, with the text left blank for you to type in later. Audio clips (optional) are matched the same way, sorted by filename.</p>
           <p class="hint only-qa">Paste your cards here. Line 1 is the question. Line 2 is its answer. Line 3 is the next question. Line 4 is its answer. And so on. Empty lines are skipped.</p>
           <textarea id="bulkWords" placeholder="there their&#10;which&#10;because"></textarea>
           <span class="field-label only-steno">Stroke images (optional)</span>
@@ -4316,7 +4316,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   document.getElementById("bulkAddBtn").addEventListener("click", function(){
     if(activeKind() === "qa"){ bulkAddQA(); return; }
     var lines = document.getElementById("bulkWords").value
-      .split(/\r?\n/)
+      .split("\n")
       .map(function(s){ return s.trim(); })
       .filter(function(s){ return s.length > 0; });
     var files = Array.prototype.slice.call(document.getElementById("bulkImages").files || []);
@@ -4335,48 +4335,28 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     ]).then(function(results){
       var urls = results[0];
       var audioUrls = results[1];
-
-      // SMART FILL: every batch first fills the EMPTY spots that already exist
-      // in the list (top to bottom), and only the leftovers become new rows.
-      // So words -> images -> images -> words in any order never leaves a gap.
-      function hasText(w){ return !!(w.text && String(w.text).trim()); }
-      function place(items, isEmpty, setFn){
-        var i = 0, filled = 0, added = 0, ws = state.words;
-        for(var r = 0; r < ws.length && i < items.length; r++){
-          if(isEmpty(ws[r])){ setFn(ws[r], items[i]); i++; filled++; }
-        }
-        for(; i < items.length; i++){
-          var nw = { id: uid(), text: "", image: null, audio: null };
-          setFn(nw, items[i]); ws.push(nw); added++;
-        }
-        return { filled: filled, added: added };
+      // If there are more images (or audio clips) than lines of text, the extra
+      // ones are still added, with the text left blank to fill in later.
+      var total = Math.max(lines.length, urls.length, audioUrls.length);
+      for(var bi = 0; bi < total; bi++){
+        state.words.push({ id: uid(), text: lines[bi] || "", image: urls[bi] || null, audio: audioUrls[bi] || null });
       }
-      var rWords = place(lines,     function(w){ return !hasText(w); }, function(w, v){ w.text  = v; });
-      var rImgs  = place(urls,      function(w){ return !w.image;    }, function(w, v){ w.image = v; });
-      var rAud   = place(audioUrls, function(w){ return !w.audio;    }, function(w, v){ w.audio = v; });
-
       save();
       renderLibrary();
       document.getElementById("bulkWords").value = "";
       document.getElementById("bulkImages").value = "";
       document.getElementById("bulkAudio").value = "";
       document.getElementById("bulkImagesNames").textContent = "";
-
-      function part(label, r){
-        if(!r.filled && !r.added) return "";
-        var t = label + ": ";
-        if(r.filled) t += "filled " + r.filled + " empty spot" + (r.filled === 1 ? "" : "s");
-        if(r.filled && r.added) t += " + ";
-        if(r.added) t += "added " + r.added + " new row" + (r.added === 1 ? "" : "s");
-        return t + ". ";
-      }
-      var noText = state.words.filter(function(w){ return !hasText(w); }).length;
-      var noImg  = state.words.filter(function(w){ return !w.image; }).length;
-      var left = (noText || noImg)
-        ? "Still empty: " + (noText ? noText + " without a word" : "") + (noText && noImg ? ", " : "") + (noImg ? noImg + " without an image" : "") + "."
-        : "No empty spots left.";
-      document.getElementById("bulkStatus").textContent =
-        part("Words", rWords) + part("Images", rImgs) + part("Audio", rAud) + left;
+      var note = urls.length < total
+        ? " (" + (total - urls.length) + " words had no matching image — add them later from the list)"
+        : "";
+      var audioNote = audioUrls.length < total
+        ? " (" + (total - audioUrls.length) + " words had no matching audio — add them later from the list)"
+        : "";
+      var extraNote = total > lines.length
+        ? " " + (total - lines.length) + " extra file(s) were added with the text left blank — type the words in from the list."
+        : "";
+      document.getElementById("bulkStatus").textContent = "Added " + total + " rows." + extraNote + note + audioNote;
     });
   });
 
@@ -7931,7 +7911,7 @@ function sj(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
 function shuf(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
 function mk(tag,id,cls,html){var e=document.createElement(tag);if(id)e.id=id;if(cls)e.className=cls;if(html!=null)e.innerHTML=html;document.body.appendChild(e);return e}
-var cfg=Object.assign({autoScroll:true,file:null,files:[],dir:"s2w",order:true,target:10000,setSize:0,setRandom:false,rev:2,miss:7,knewNeed:3,pace:10,tts:false,missA:5,missB:8,sfx:true,txt:100,img:100,big:0,ui:true,clean:false},lj("stenoReelsCfg2",{}));
+var cfg=Object.assign({autoScroll:true,file:null,files:[],dir:"s2w",order:true,target:10000,setSize:0,setRandom:false,rev:2,miss:7,knewNeed:3,pace:10,tts:false,missA:5,missB:8,sfx:true,txt:100,img:100,ui:true,clean:false},lj("stenoReelsCfg2",{}));
 var R={open:false,run:false,items:[],idx:0,done:0,knew:0,missed:0,score:0,combo:0,maxCombo:0,ms:0,startDone:0,paused:false,holdP:false,rev:{},jud:{},tr:null,tm:null,fi:0,si:0,mi:0,sets:[],sc:{},fl:[],modes:["s2w"],rKnew:0,rMiss:0,hist:[],kc:{},seed:1,missIds:[],fileName:"",retry:false,target:10000,setSize:0,setRandom:false,modeStart:0,pre:0,all:[],judIds:[],retryIds:[],quiet:false};
 function cleanCfg(){
   if(!cfg.file&&Array.isArray(cfg.files)&&cfg.files.length)cfg.file=cfg.files[0];delete cfg.files;
@@ -7939,7 +7919,7 @@ function cleanCfg(){
   cfg.target=Math.max(1,Math.round(+cfg.target)||10000);cfg.setSize=Math.max(0,Math.round(+cfg.setSize)||0);cfg.setRandom=!!cfg.setRandom;
   cfg.rev=Math.max(1,Math.round(+cfg.rev)||2);cfg.miss=Math.max(1,Math.round(+cfg.miss)||7);cfg.missA=Math.min(9999,Math.max(1,Math.round(+cfg.missA)||5));cfg.missB=Math.min(9999,Math.max(1,Math.round(+cfg.missB)||8));cfg.knewNeed=Math.min(99,Math.max(1,Math.round(+cfg.knewNeed)||3));cfg.pace=Math.max(1,Math.round(+cfg.pace)||10);
   cfg.txt=Math.min(250,Math.max(40,Math.round(+cfg.txt)||100));cfg.img=Math.min(100,Math.max(10,Math.round(+cfg.img)||100));
-  cfg.big=Math.min(4,Math.max(0,Math.round(+cfg.big)||0));cfg.autoScroll=cfg.autoScroll!==false;cfg.tts=!!cfg.tts;cfg.sfx=cfg.sfx!==false;cfg.ui=cfg.ui!==false;cfg.clean=!!cfg.clean}
+  cfg.autoScroll=cfg.autoScroll!==false;cfg.tts=!!cfg.tts;cfg.sfx=cfg.sfx!==false;cfg.ui=cfg.ui!==false;cfg.clean=!!cfg.clean}
 function T(){return R.run?R.target:cfg.target}
 // Knew-it counts are the same object Game mode uses
 function KC(){if(!window.stenoKnewCounts||typeof window.stenoKnewCounts!=="object")window.stenoKnewCounts={};return window.stenoKnewCounts}
@@ -7998,19 +7978,6 @@ body.reels-open{overflow:hidden!important}\
 
 function css2(){return [
 '#rlRoot.on{display:block}',
-'#rlRoot[data-big="1"] .rl-s,#rlRoot[data-big="2"] .rl-s,#rlRoot[data-big="3"] .rl-s,#rlRoot[data-big="4"] .rl-s{padding-left:10px;padding-right:10px}',
-'#rlRoot[data-big="1"] .rl-img,#rlRoot[data-big="2"] .rl-img,#rlRoot[data-big="3"] .rl-img,#rlRoot[data-big="4"] .rl-img{padding:6px;border-radius:14px}',
-'#rlRoot[data-big="1"] .rl-img img,#rlRoot[data-big="2"] .rl-img img,#rlRoot[data-big="3"] .rl-img img,#rlRoot[data-big="4"] .rl-img img{width:auto;max-width:100%;max-height:none;object-fit:contain}',
-'#rlRoot[data-big="1"] .rl-a.ph,#rlRoot[data-big="2"] .rl-a.ph,#rlRoot[data-big="3"] .rl-a.ph,#rlRoot[data-big="4"] .rl-a.ph{padding:6px}',
-'#rlRoot[data-big="1"] .rl-a.ph img,#rlRoot[data-big="2"] .rl-a.ph img,#rlRoot[data-big="3"] .rl-a.ph img,#rlRoot[data-big="4"] .rl-a.ph img{width:auto;max-width:100%;max-height:none;object-fit:contain}',
-'#rlRoot[data-big="1"] .rl-img img{height:58vh;height:min(58dvh,calc(100dvh - var(--rl-pad,90px) - 140px))}',
-'#rlRoot[data-big="1"] .rl-a.ph img{height:42vh;height:min(42dvh,calc(100dvh - var(--rl-pad,90px) - 210px))}',
-'#rlRoot[data-big="2"] .rl-img img{height:70vh;height:min(70dvh,calc(100dvh - var(--rl-pad,90px) - 140px))}',
-'#rlRoot[data-big="2"] .rl-a.ph img{height:54vh;height:min(54dvh,calc(100dvh - var(--rl-pad,90px) - 210px))}',
-'#rlRoot[data-big="3"] .rl-img img{height:80vh;height:min(80dvh,calc(100dvh - var(--rl-pad,90px) - 140px))}',
-'#rlRoot[data-big="3"] .rl-a.ph img{height:64vh;height:min(64dvh,calc(100dvh - var(--rl-pad,90px) - 210px))}',
-'#rlRoot[data-big="4"] .rl-img img{height:100vh;height:min(100dvh,calc(100dvh - var(--rl-pad,90px) - 140px))}',
-'#rlRoot[data-big="4"] .rl-a.ph img{height:100vh;height:min(100dvh,calc(100dvh - var(--rl-pad,90px) - 210px))}',
 '#rlTop{position:absolute;left:0;right:0;top:0;z-index:6;padding:calc(6px + env(safe-area-inset-top,0px)) 8px 0;pointer-events:none;background:linear-gradient(#000c,#0000)}',
 '#rlTop>*{pointer-events:auto}',
 '#rlBar{height:4px;border-radius:3px;background:rgba(255,255,255,.25);overflow:hidden;margin-bottom:6px}#rlFill{height:100%;width:0;background:#fff}',
@@ -8033,7 +8000,18 @@ function css2(){return [
 
 '.rl-stp{display:flex;align-items:center;gap:8px}.rl-stp input[type=number]{width:90px;padding:8px;border-radius:10px;border:1px solid #34344a;background:#262633;color:#fff;font:inherit}',
 '#rlStat{display:none;margin:0 0 5px;text-align:center;font-size:13px;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap}#rlStat.on{display:block}#rlStat b{color:#3dffa0}body.rl-clean #rlStat{display:none!important}',
-'.rl-quote{font-style:italic;opacity:.85;max-width:340px;font-size:14px}'].join('\n')}
+'.rl-quote{font-style:italic;opacity:.85;max-width:340px;font-size:14px}',
+'#rlDictRow{flex-wrap:nowrap;gap:6px}#rlDictRow .rl-pill{flex:none}',
+'#rlWpm{display:flex;gap:5px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none;padding:1px 0}#rlWpm::-webkit-scrollbar{display:none}',
+'.rl-row #rlWpm button{flex:none;min-width:42px;padding:0 9px}',
+'body.rl-clean #rlDictRow{display:none!important}',
+'#rlDict{display:none;position:absolute;inset:0;z-index:5;background:radial-gradient(120% 90% at 50% 0%,#0f9b8e,#0b0b14 72%);padding:var(--rl-pad,120px) 16px 24px;box-sizing:border-box;overflow-y:auto;flex-direction:column;align-items:center;gap:10px;text-align:center;-webkit-user-select:none;user-select:none}#rlDict.on{display:flex}',
+'.rl-dbig{font-size:64px;font-weight:900;line-height:1.05;margin-top:6px}.rl-dinfo{font-size:14px;font-weight:700;opacity:.85}',
+'.rl-dbar{width:100%;max-width:420px;height:10px;border-radius:6px;background:#ffffff26;overflow:hidden}.rl-dbar i{display:block;height:100%;background:linear-gradient(90deg,#8a3dff,#3dffa0);transition:width .3s}',
+'.rl-dstate{font-size:20px;font-weight:900;margin:4px 0}',
+'.rl-dbtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.rl-dbtns button{border:1px solid #fff3;background:#ffffff26;color:#fff;border-radius:20px;height:42px;padding:0 18px;font:inherit;font-size:15px;font-weight:800;cursor:pointer}',
+'.rl-dwords{max-width:560px;font-size:20px;font-weight:700;line-height:1.7;margin-top:8px;opacity:.95}.rl-dwords span{opacity:.55}.rl-dwords span.r{opacity:1;color:#3dffa0}.rl-dwords span{cursor:pointer;padding:2px 4px;border-radius:8px}.rl-dwords span.s{background:#8a3dff;color:#fff;opacity:1}',
+'.rl-dstroke{background:#fff;color:#111;border-radius:18px;padding:10px 14px;max-width:100%;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 10px 40px #0008}.rl-dstroke img{max-width:100%;max-height:40vh;object-fit:contain}.rl-dstroke b{font-size:22px}.rl-dnow{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;width:100%}.rl-dnow .rl-dstroke{flex:1 1 220px;max-width:420px}.rl-dnow .rl-dstroke img{max-height:28vh}'].join('\n')}
 function curSlide(){var f=$("rlFeed");return f?f.children[R.idx]:null}
 function toast(t,ms){var e=$("rlToast");e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove("on")},ms||1300)}
 function pop(t,bad){var p=document.createElement("div");p.className="rl-pop"+(bad?" bad":"");p.textContent=t;$("rlRoot").appendChild(p);setTimeout(function(){p.remove()},900)}
@@ -8066,8 +8044,9 @@ function boot(){
   ["reelsModeBtn","rlRoot","rlStyle"].forEach(function(i){var e=$(i);if(e&&e.parentNode)e.parentNode.removeChild(e)});
   var st=document.createElement("style");st.id="rlStyle";st.textContent=css()+css2();document.head.appendChild(st);
   mk("button","reelsModeBtn","",'<span>🎞️ REELS MODE</span><small>SWIPE · LEARN · REPEAT</small>').addEventListener("click",quickStart);
-  mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlFl"></div><div id="rlPaused">⏸ PAUSED\nclick or scroll button to resume</div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div><div id="rlStat"></div>'+
-  '<div class="rl-row"><button id="rlPause">⏸ Pause</button><button id="rlRestart">↻ Restart</button><button id="rlPrev">⏮ Previous round</button><button id="rlNext">⏭ Next round</button><button id="rlOrd"></button><span id="rlMissQ" class="rl-secs"></span><button id="rlAuto"></button><span class="rl-pill" id="rlDone"></span><span class="rl-sp"></span><button id="rlCfg">⚙</button><button id="rlUi">☰</button><button id="rlClean">🙈</button><button id="rlFs">⛶</button><button id="rlBig" title="Image size">🔍</button><button id="rlQuit">✖ Exit</button></div>'+
+  mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlDict"></div><div id="rlFl"></div><div id="rlPaused">⏸ PAUSED\nclick or scroll button to resume</div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div><div id="rlStat"></div>'+
+  '<div class="rl-row"><button id="rlPause">⏸ Pause</button><button id="rlRestart">↻ Restart</button><button id="rlPrev">⏮ Previous round</button><button id="rlNext">⏭ Next round</button><button id="rlOrd"></button><span id="rlMissQ" class="rl-secs"></span><button id="rlAuto"></button><span class="rl-pill" id="rlDone"></span><span class="rl-sp"></span><button id="rlCfg">⚙</button><button id="rlUi">☰</button><button id="rlClean">🙈</button><button id="rlFs">⛶</button><button id="rlQuit">✖ Exit</button></div>'+
+  '<div class="rl-row" id="rlDictRow"><span class="rl-pill">🎙 Dictation · words/min · v7</span><span id="rlWpm"></span></div>'+
   '<div id="rlMore"><div class="rl-row"><span id="rlCards"></span><span id="rlToday"></span><span id="rlScore"></span><span id="rlCombo"></span><button id="rlMute">🔊</button></div>'+
   '<div class="rl-track"><div id="rlTf"></div><span id="rlGhost">👻</span><span id="rlRocket">🚀</span><span id="rlFlag">🏁</span></div>'+
   '<div class="rl-row"><span id="rlClock"></span><span id="rlBatt"></span><span id="rlPace"></span></div>'+
@@ -8075,6 +8054,13 @@ function boot(){
   '<div class="rl-row"><button class="wide" id="rlFile"></button><button class="wide" id="rlMode"></button></div><div id="rlRounds"></div><div id="rlSched"></div></div></div><div id="rlToast"></div><div id="rlSheet"></div>');
   var tb=document.getElementById("topReelsBtn");if(tb)tb.addEventListener("click",quickStart);
   $("rlQuit").onclick=quit;
+  (function(){var box=$("rlWpm"),h="";for(var w=10;w<=120;w+=10)h+='<button type="button" data-w="'+w+'" title="Dictation '+w+' words per minute">'+w+'</button>';box.innerHTML=h;
+    box.onclick=function(e){var b=e.target.closest?e.target.closest("button[data-w]"):null;if(!b)return;var w=+b.getAttribute("data-w");if(D.on&&D.wpm===w){dictStop(true);return}dictStart(w)}})();
+  $("rlDict").onclick=function(e){var b=e.target.closest?e.target.closest("button[data-d]"):null;
+    var sp=e.target.closest?e.target.closest("span[data-i]"):null;
+    if(sp){var x=D.cur[+sp.getAttribute("data-i")];D.sel=(D.sel===x)?null:x;dictPaint();return}
+    if(!b)return;var a=b.getAttribute("data-d");
+    if(a==="pause")dictPause();else if(a==="show"){D.show=!D.show;dictPaint()}else if(a==="stroke"){D.strokes=!D.strokes;dictPaint()}else if(a==="stop")dictStop(true)};
   $("rlPause").onclick=togglePause;$("rlRestart").onclick=restartSet;$("rlNext").onclick=nextRound;$("rlPrev").onclick=prevRound;$("rlPaused").onclick=togglePause;
   $("rlOrd").onclick=function(){cfg.order=!cfg.order;saveCfg();toast(cfg.order?"In order (from next round)":"Random (from next round)");hud()};
   (function(){var box=$("rlMissQ"),h="";for(var q=1;q<=8;q++)h+='<button type="button" data-s="'+q+'" title="Auto-miss '+q+' s">'+q+'</button>';box.innerHTML=h;
@@ -8084,7 +8070,6 @@ function boot(){
   $("rlUi").onclick=function(){cfg.ui=!cfg.ui;saveCfg();syncUi()};
   $("rlClean").onclick=function(){cfg.clean=!cfg.clean;saveCfg();syncUi()};
   $("rlMute").onclick=function(){cfg.sfx=!cfg.sfx;saveCfg();this.textContent=cfg.sfx?"🔊":"🔇"};
-  $("rlBig").onclick=function(){cfg.big=((cfg.big|0)+1)%5;saveCfg();vars();toast("Image size: "+["Normal","Big","Huge","Giant","Full screen"][cfg.big],1400)};
   $("rlFs").onclick=function(){try{var d=document.documentElement;if(document.fullscreenElement)document.exitFullscreen();else d.requestFullscreen()}catch(e){}};
   var feed=$("rlFeed");feed.addEventListener("scroll",onScroll,{passive:true});
   var lastTap=0,tapT=null,downT=null,holding=false,sx=0,sy=0,ptype="touch";
@@ -8095,7 +8080,7 @@ function boot(){
       if(e.button===0){e.preventDefault();judge("missed",null,true)}
       else if(e.button===2){e.preventDefault();judge("knew",null,true)}
       return}
-    sx=e.clientX;sy=e.clientY;holding=false;clearTimeout(downT);downT=setTimeout(function(){holding=true;R.holdP=true;stopT()},450)});
+    sx=e.clientX;sy=e.clientY;holding=false;clearTimeout(downT);downT=setTimeout(function(){if(Date.now()-(R.scrollAt||0)<500)return;holding=true;R.holdP=true;stopT()},450)});
   feed.addEventListener("pointerup",function(e){clearTimeout(downT);
     if(e.pointerType==="mouse")return;
     var moved=Math.abs(e.clientX-sx)+Math.abs(e.clientY-sy)>14;
@@ -8122,6 +8107,7 @@ function fitPad(){var t=$("rlTop");if(t)$("rlRoot").style.setProperty("--rl-pad"
 function onKey(e){
   if(!R.open)return;
   if(sheetOn()){var t=e.target&&e.target.tagName;if(e.key==="Escape"&&R.run){closeSheet();e.preventDefault()}if(!/INPUT/.test(t||""))e.stopImmediatePropagation();return}
+  if(D.on){var kk=e.key,hd=true;if(kk==="Escape")dictStop(true);else if(kk==="p"||kk==="P"||kk===" "||kk==="Enter")dictPause();else hd=false;e.stopImmediatePropagation();if(hd)e.preventDefault();return}
   var k=e.key,u=true;
   if(k==="Escape")quit();
   else if(k==="ArrowDown"||k==="PageDown")go(1);else if(k==="ArrowUp"||k==="PageUp")go(-1);
@@ -8186,7 +8172,6 @@ function openSheet(mode){
   h+='<div class="rl-row"><label>Auto-miss time (seconds)</label><div class="rl-chips">'+[1,2,3,4,5,6,7,8].map(function(q){return chip("miss",q,q+" s",cfg.miss===q)}).join("")+'</div></div>';
   h+=num("knewNeed","Knew it clicks to finish a card",1)+num("pace","Pace target (s per card)",1);
   h+='<div class="rl-row"><label>Image size <span id="rlImgV">'+cfg.img+'</span>%</label><input type="range" id="rlImg" min="10" max="100" step="5" value="'+cfg.img+'"></div>';
-  h+='<div class="rl-row"><label>Big image (Reels)</label><div class="rl-chips">'+[[0,"Normal"],[1,"Big"],[2,"Huge"],[3,"Giant"],[4,"Full screen"]].map(function(p){return chip("big",p[0],p[1],cfg.big===p[0])}).join("")+'</div></div>';
   h+='<div class="rl-row"><label>Text size <span id="rlTxtV">'+cfg.txt+'</span>%</label><input type="range" id="rlTxt" min="40" max="250" step="10" value="'+cfg.txt+'"></div>';
   h+='<div class="rl-row"><label>Extras</label><div class="rl-chips">'+chip("tts","1","🔊 Read aloud",cfg.tts)+chip("sfx","1","🎵 Sounds",cfg.sfx)+chip("auto","1","⏬ Auto-scroll",cfg.autoScroll)+'</div></div>';
   h+=live?'<button type="button" class="rl-go" id="rlApply">Apply</button><button type="button" class="rl-go sec" id="rlOk">Back to cards</button><button type="button" class="rl-go sec" id="rlNew">🔄 Start a new game</button>':'<button type="button" class="rl-go" id="rlStart">▶ Start</button><button type="button" class="rl-go sec" id="rlCancel">Cancel</button>';
@@ -8205,7 +8190,6 @@ function openSheet(mode){
     else if(g==="tts"||g==="sfx")cfg[g]=!cfg[g];
     else if(g==="auto")cfg.autoScroll=!cfg.autoScroll;
     else if(g==="setRandom")cfg.setRandom=v==="1";
-    else if(g==="big"){cfg.big=+v;vars()}
     else if(g==="miss"){cfg.miss=+v;if(R.run)hud()}
     else cfg[g]=v;
     saveCfg();again()};
@@ -8216,7 +8200,7 @@ function openSheet(mode){
   else{$("rlStart").onclick=function(){if(!cfg.file){alert("Pick a file");return}closeSheet(true);startNew()};$("rlCancel").onclick=function(){closeSheet(true);closeReels()};if($("rlResume"))$("rlResume").onclick=function(){closeSheet(true);resume()}}
 }
 function closeSheet(skip){var sh=$("rlSheet");sh.classList.remove("on");sh.innerHTML="";sh.style.background="";if(R.open&&!skip)arm()}
-function vars(){var r=$("rlRoot");r.style.setProperty("--rl-txt",cfg.txt);r.style.setProperty("--rl-img",cfg.img);r.setAttribute("data-big",String(cfg.big|0));var b=$("rlBig");if(b)b.textContent="\uD83D\uDD0D"+(cfg.big?" "+["","Big","Huge","Giant","Full"][cfg.big]:"");try{fitPad()}catch(e){}}
+function vars(){var r=$("rlRoot");r.style.setProperty("--rl-txt",cfg.txt);r.style.setProperty("--rl-img",cfg.img)}
 
 // ---------- game flow ----------
 function playable(f){return (f.s2w||0)>0||(f.w2s||0)>0}
@@ -8268,7 +8252,7 @@ function pass(fi,si,mi,only,st){
       var nm=R.modes[mi]==="s2w"?"Stroke → Word":"Word → Stroke",chg=!prevFile||prevFile!==R.fileName;
       toast(only?"🔁 "+its.length+" missed again":(chg?"📄 "+R.fileName+" · ":"")+(sets.length>1?"Set "+(si+1)+" of "+sets.length+" · ":"")+nm,2200);
       if(!quiet){if(only){tone(330,.12,"triangle",.07);tone(262,.18,"triangle",.07,.12)}else{tone(660,.1,"triangle");tone(990,.15,"triangle",.08,.1)}}
-      setTimeout(function(){fitPad();arm();onActive()},80);return true}
+      setTimeout(function(){fitPad();arm();onActive();if(D.on)dictSync()},80);return true}
     // nothing to play here: next mode of this set, then the next set, then the next file
     if(mi+1<R.modes.length)mi++;else if(si+1<sets.length){si++;mi=0}else{fi=(fi+1)%n;si=0;mi=0}
   }
@@ -8301,13 +8285,16 @@ function fillWindow(){
     if(i>=lo&&i<=hi){if(!s.dataset.b){s.innerHTML=slideHTML(i);s.dataset.b="1";if(R.rev[i])s.classList.add("rev")}}
     else if(s.dataset.b){s.innerHTML="";delete s.dataset.b}}}
 function onScroll(){
-  clearTimeout(onScroll.t);
+  R.scrollAt=Date.now();clearTimeout(onScroll.t);
   onScroll.t=setTimeout(function(){
-    var feed=$("rlFeed"),h=feed.clientHeight||1,i=Math.max(0,Math.min(feed.children.length-1,Math.round(feed.scrollTop/h))),old=R.idx;
+    var feed=$("rlFeed"),h=feed.clientHeight||1,i=Math.max(0,Math.min(feed.children.length-1,Math.round(feed.scrollTop/h))),old=R.idx,wasHold=R.holdP;
+    R.holdP=false;   // the card is moving, so the finger is not holding it: a stuck long-press must not stop the timers
     if(i!==old){R.idx=i;
       if(i===R.items.length&&R.run){clearTimeout(R.endT);R.endT=setTimeout(function(){if(R.run&&R.idx===R.items.length)advance()},650)}
       if(i>old&&R.run)for(var k=old;k<i;k++)judge("missed",k);   // swiped on without Knew it = missed
-      fillWindow();hud();onActive()}
+      // a card that is already done (for example after scrolling up) is played again from the start, answer hidden
+      if(R.run&&!D.on&&R.jud[i]&&i<R.items.length){R.rev[i]=0;var rs=feed.children[i];if(rs)rs.classList.remove("rev")}
+      fillWindow();hud();onActive()}else if(wasHold)arm();
   },70)}
 function silence(){try{var a=A();if(a&&a.silence)a.silence()}catch(e){}}
 // Read aloud: the text is read once, at the moment it becomes visible.
@@ -8316,21 +8303,87 @@ function silence(){try{var a=A();if(a&&a.silence)a.silence()}catch(e){}}
 function sayText(it,rv){var c=it.c,s2w=it.dir==="s2w";if(c.qa)return s2w?c.text:c.answer;if(!s2w)return c.text;return rv?c.text:null}
 function sayOne(t){var a=A();if(!t||!a||!a.speak)return false;a.speak(t);return true}
 // A card became the current one (scrolling forward or back): read its text if text is showing.
-function onActive(){stopT();silence();if(!R.run)return;
+function onActive(){stopT();silence();if(!R.run||D.on)return;
   if(cfg.tts&&!R.paused&&!sheetOn()){var it=R.items[R.idx];if(it)sayOne(sayText(it,!!R.rev[R.idx]))}
   arm()}
 function speakCur(auto){
   var it=R.items[R.idx];if(!it)return;
   if(!sayOne(sayText(it,!!R.rev[R.idx]))&&!auto)toast("Reveal first to hear the word")}
 
+// ---------- Dictation: read the whole set as one passage at a chosen speed (words per minute), then shuffle and repeat ----------
+var D={strokes:true,curG:null,on:false,wpm:0,slot:6000,ent:[],cur:[],groups:[],gi:0,said:0,total:0,round:1,nextAt:0,t:null,paused:false,pz:0,gap:0,show:false,key:""};
+function sig(a){return a.map(function(x){return x.t}).join("\u0001")}
+function syncWpm(){var b=$("rlWpm");if(!b)return;[].forEach.call(b.querySelectorAll("button"),function(x){x.classList.toggle("on",D.on&&+x.getAttribute("data-w")===D.wpm)})}
+// Build one round: the set's words joined into one passage, cut into small groups that are spoken one after another on a time line.
+function dictLoad(){
+  var e=D.ent.slice();
+  if(!cfg.order&&e.length>1){var prev=sig(D.cur||[]),k=0;do{shuf(e)}while(sig(e)===prev&&++k<8)}
+  D.cur=e;var tk=[];e.forEach(function(x){x.t.split(" ").forEach(function(s){if(s)tk.push({s:s,e:x})})});
+  var g=Math.max(1,Math.ceil(1500/D.slot)),gs=[];
+  for(var i=0;i<tk.length;i+=g){var part=tk.slice(i,i+g),es=[];part.forEach(function(q){if(es.indexOf(q.e)<0)es.push(q.e)});gs.push({t:part.map(function(q){return q.s}).join(" "),n:part.length,es:es})}
+  D.groups=gs;D.gi=0;D.said=0;D.total=tk.length;D.curG=null}
+function dictStart(w){
+  if(!R.open||!R.run||sheetOn()){toast("Start a set first");return}
+  var fid=R.fl[R.fi],ids=(R.sets||[])[R.si]||[],map={};
+  A().reelCards(fid).forEach(function(c){map[c.id]=c});
+  var ent=[];ids.forEach(function(id){var c=map[id];if(!c)return;var t=String(c.qa?c.answer:c.text).replace(/\s+/g," ").trim();if(t)ent.push({t:t,n:t.split(" ").length,img:c.qa?"":(c.image||"")})});
+  if(!ent.length){toast("No words in this set");return}
+  clearTimeout(R.endT);stopT();silence();
+  D.on=true;D.wpm=w;D.slot=60000/w;D.ent=ent;D.key=fid+"|"+R.si;D.round=1;D.paused=false;D.pz=0;D.gap=0;D.cur=[];
+  D.sel=null;dictLoad();D.nextAt=Date.now()+1500;
+  clearInterval(D.t);D.t=setInterval(dictTick,100);
+  syncWpm();dictPaint();tone(660,.1,"triangle");
+  toast("🎙 "+w+" words/min · "+D.total+" words",2200)}
+function dictStop(back){
+  if(!D.on)return;
+  D.on=false;clearInterval(D.t);D.t=null;silence();
+  var o=$("rlDict");if(o){o.classList.remove("on");o.innerHTML=""}
+  syncWpm();
+  if(back){toast("Dictation stopped · back to cards",1500);if(R.run)onActive()}}
+function dictPause(){if(!D.on)return;D.paused=!D.paused;dictPaint()}
+// the set changed (next / previous round, new game): follow it at the same speed
+function dictSync(){if(!D.on)return;var key=R.fl[R.fi]+"|"+R.si;if(key===D.key)dictPaint();else dictStart(D.wpm)}
+function dictTick(){
+  if(!D.on)return;
+  var now=Date.now();
+  if(R.paused||D.paused||sheetOn()){if(!D.pz){D.pz=now;silence()}return}
+  if(D.pz){D.nextAt+=now-D.pz;D.pz=0;dictPaint()}
+  if(now<D.nextAt)return;
+  if(D.gi>=D.groups.length){
+    // round finished: short pause, then shuffle the words and read them again
+    if(!D.gap){D.gap=1;D.curG=null;D.nextAt=now+3500;tone(784,.2,"triangle",.08);tone(523,.25,"triangle",.08,.2);dictPaint();return}
+    D.gap=0;D.round++;dictLoad();D.nextAt=now+700;tone(660,.1,"triangle");tone(990,.15,"triangle",.08,.1);dictPaint();
+    toast((cfg.order?"🔢 Round "+D.round+" · in order":"🔀 Round "+D.round+" · shuffled"),1800);return}
+  var a=A();if(a&&a.reading&&a.reading()&&now<D.nextAt+4000)return;   // let the previous words finish
+  var g=D.groups[D.gi];
+  if(a&&a.speak)a.speak(g.t);
+  D.curG=g;D.said+=g.n;D.gi++;D.nextAt=Math.max(D.nextAt+g.n*D.slot,now+300);
+  dictPaint()}
+function dictPaint(){
+  var o=$("rlDict");if(!o||!D.on)return;
+  o.classList.add("on");
+  var n=Math.max(1,(R.sets||[]).length),pct=D.total?Math.round(D.said/D.total*100):0,
+  st=D.gap?"Round "+D.round+" finished"+(cfg.order?" · again in order…":" · shuffling…"):(R.paused||D.paused)?"⏸ Paused":"🎧 Listening · write it down",
+  cum=0,wl="",pl="";
+  if(D.strokes&&D.curG)pl='<div class="rl-dnow">'+D.curG.es.map(function(x){return'<div class="rl-dstroke"><b>'+esc(x.t)+'</b>'+(x.img?'<img alt="stroke" src="'+esc(x.img)+'">':'<i>no stroke</i>')+'</div>'}).join("")+'</div>';
+  if(D.show){
+    if(D.sel)wl+='<div class="rl-dstroke"><b>'+esc(D.sel.t)+'</b>'+(D.sel.img?'<img alt="stroke" src="'+esc(D.sel.img)+'">':'<i>no stroke for this word</i>')+'</div>';
+    wl+='<div class="rl-dwords">'+D.cur.map(function(x,i){cum+=x.n;return'<span data-i="'+i+'" class="'+(cum<=D.said?"r":"")+(x===D.sel?" s":"")+'">'+esc(x.t)+'</span>'}).join(" · ")+'</div><div class="rl-dinfo">tap a word to see its stroke</div>'}
+  o.innerHTML='<div class="rl-dbig">🎙 '+D.wpm+'</div><div class="rl-dinfo">words per minute</div>'+pl+
+    '<div class="rl-dinfo">'+(R.fileName?esc(R.fileName)+" · ":"")+"Set "+(R.si+1)+" / "+n+" · "+D.total+" words · Round "+D.round+(cfg.order?" (in order)":" (shuffled)")+'</div>'+
+    '<div class="rl-dbar"><i style="width:'+pct+'%"></i></div><div class="rl-dinfo">'+D.said+" / "+D.total+' words read</div>'+
+    '<div class="rl-dstate">'+st+'</div>'+
+    '<div class="rl-dbtns"><button type="button" data-d="pause">'+(D.paused?"▶ Resume":"⏸ Pause")+'</button><button type="button" data-d="show">'+(D.show?"🙈 Hide words":"👁 Show words")+'</button><button type="button" data-d="stroke">'+(D.strokes?"✏ Hide strokes":"✏ Show strokes")+'</button><button type="button" data-d="stop">■ Stop</button></div>'+wl}
+
 // ---------- timers ----------
-function stopT(){clearTimeout(R.tr);clearTimeout(R.tm);R.tr=R.tm=null;var f=$("rlFill");if(f){f.style.transition="none";f.style.width="0"}}
+function stopT(){clearTimeout(R.upT);clearTimeout(R.tr);clearTimeout(R.tm);R.tr=R.tm=null;var f=$("rlFill");if(f){f.style.transition="none";f.style.width="0"}}
 function arm(){
   stopT();
-  if(!R.open||!R.run||R.paused||R.holdP||sheetOn()||R.jud[R.idx]||!R.items[R.idx])return;
+  if(!R.open||!R.run||D.on||R.paused||R.holdP||sheetOn()||!R.items[R.idx])return;
+  if(R.jud[R.idx]&&!cfg.autoScroll)return;
   var f=$("rlFill");f.style.transition="none";f.style.width="0";void f.offsetWidth;f.style.transition="width "+cfg.miss+"s linear";f.style.width="100%";
   if(!R.rev[R.idx])fire("tr",reveal,cfg.rev*1000);
-  fire("tm",function(){judge("missed")},cfg.miss*1000)}
+  fire("tm",function(){if(R.jud[R.idx])fastGo(1);else judge("missed")},cfg.miss*1000)}
 // Read aloud on: when the time ends while a voice is still speaking, let the sentence finish first, then reveal / go to the next card.
 function fire(slot,fn,ms){R[slot]=setTimeout(function(){var a=A();if(cfg.tts&&a&&a.reading&&a.reading()){fire(slot,fn,250);return}fn()},ms)}
 function reveal(){if(!R.run||R.rev[R.idx]||!R.items[R.idx])return;R.rev[R.idx]=1;var s=curSlide();if(s)s.classList.add("rev");sfx("rev");if(cfg.tts){var ri=R.items[R.idx];if(ri&&!ri.c.qa&&ri.dir==="s2w")sayOne(ri.c.text)}}
@@ -8341,7 +8394,7 @@ function fastGo(d){var feed=$("rlFeed"),j=R.idx+d;if(!feed||j<0||j>=feed.childre
   (function step(){var p=Math.min(1,(Date.now()-t0)/dur),e=1-Math.pow(1-p,3);feed.scrollTop=from+(to-from)*e;
     if(p<1)(window.requestAnimationFrame||setTimeout)(step,16);else{feed.scrollTop=to;feed.style.scrollSnapType=""}})()}
 function go(d){var feed=$("rlFeed"),j=R.idx+d;if(j<0||j>=feed.children.length)return;feed.scrollTo({top:j*feed.clientHeight,behavior:"smooth"})}
-function togglePause(){if(!R.run)return;R.paused=!R.paused;$("rlPaused").classList.toggle("on",R.paused);$("rlPause").textContent=R.paused?"▶ Resume":"⏸ Pause";if(R.paused){stopT();silence()}else arm()}
+function togglePause(){if(!R.run)return;R.paused=!R.paused;$("rlPaused").classList.toggle("on",R.paused);$("rlPause").textContent=R.paused?"▶ Resume":"⏸ Pause";if(R.paused){stopT();silence()}else arm();if(D.on)dictPaint()}
 // Restart the current set in the current mode only (same file, same set, same mode; the day's count stays).
 // Skip to the next round now, whatever the state: unjudged and missed cards are left out (no missed-card retry), and it goes to the next mode, then the next set, then the next file.
 function nextRound(){
@@ -8365,7 +8418,7 @@ function restartSet(){
   clearTimeout(R.endT);stopT();silence();R.rKnew=R.rMiss=0;
   if(!pass(R.fi,R.si,R.mi,null))finish()}
 function judge(res,i,force){
-  if(!R.run)return;i=i==null?R.idx:i;var it=R.items[i];if(!it||R.jud[i]){if(force&&it&&i===R.idx)go(1);return}
+  if(!R.run||D.on)return;i=i==null?R.idx:i;var it=R.items[i];if(!it||R.jud[i]){if(force&&it&&i===R.idx)go(1);return}
   R.jud[i]=res;R.judIds.push(it.id);stopT();
   try{A().record(it.id,res)}catch(e){}it.c.last[it.dir]=res;
   var partial=false;
@@ -8423,7 +8476,7 @@ function tick(){
 
 // ---------- end ----------
 function finish(){
-  if(!R.run)return;R.run=false;stopT();try{localStorage.removeItem("stenoGameRun");localStorage.removeItem("stenoGameWasLive")}catch(e){}
+  if(!R.run)return;R.run=false;stopT();dictStop();try{localStorage.removeItem("stenoGameRun");localStorage.removeItem("stenoGameWasLive")}catch(e){}
   var acc=R.done?Math.round(R.knew/R.done*100):0,Q=window.STENO_QUOTES||[],q=Q.length?Q[Math.floor(Math.random()*Q.length)]:null;
   var sh=$("rlSheet");
   sh.innerHTML='<div class="rl-card"><div class="rl-end"><div style="font-size:64px">🏆</div><h2>ALL DONE!</h2><div class="rl-stats"><div><b>'+R.done+' / '+R.target+'</b>Cards</div><div><b>'+R.score+'</b>Score</div><div><b>'+R.knew+'</b>Knew</div><div><b>'+R.missed+'</b>Missed</div><div><b>'+acc+'%</b>Accuracy</div><div><b>🔥 '+R.maxCombo+'</b>Best combo</div></div>'+(q?'<div class="rl-quote">“'+esc(q[0])+'”<br>— '+esc(q[1])+'</div>':'')+'<button class="rl-go" id="rlAgain">↻ PLAY AGAIN</button><button class="rl-go sec" id="rlEx">✕ Exit</button></div></div>';
@@ -8432,7 +8485,7 @@ function finish(){
   tone(523,.15,"triangle",.09);tone(659,.15,"triangle",.09,.15);tone(784,.15,"triangle",.09,.3);tone(1047,.4,"triangle",.09,.45)}
 function quit(){if(R.run)saveRun();R.run=false;closeReels()}
 function closeReels(){
-  stopT();R.open=false;R.run=false;R.paused=false;$("rlPaused").classList.remove("on");$("rlPause").textContent="⏸ Pause";
+  dictStop();stopT();R.open=false;R.run=false;R.paused=false;$("rlPaused").classList.remove("on");$("rlPause").textContent="⏸ Pause";
   $("rlRoot").classList.remove("on");document.body.classList.remove("reels-open","rl-clean","rl-ui-off");
   var sh=$("rlSheet");sh.classList.remove("on");sh.innerHTML="";sh.style.background="";
   try{window.speechSynthesis&&speechSynthesis.cancel()}catch(e){}

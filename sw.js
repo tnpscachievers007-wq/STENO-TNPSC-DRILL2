@@ -1,67 +1,73 @@
 /* Steno + TNPSC Drill - service worker
-   Change CACHE_VERSION each time you upload a new index.html, so phones pick up the new file. */
-const CACHE_VERSION = "steno-drill-2026-11-07-bigimage-1";
-const CORE = [
+   - Works offline after the first visit.
+   - Page (index.html) is network-first, so a new upload on GitHub shows up as soon as you are online.
+   - Icons, manifest and other files are cache-first and refreshed quietly in the background.
+   Change CACHE_VERSION whenever you upload a new index.html, to clear the old copy. */
+var CACHE_VERSION = "steno-drill-v7";
+var CORE = [
   "./",
-  "index.html",
-  "manifest.webmanifest",
-  "icon-192.png",
-  "apple-touch-icon.png"
+  "./index.html",
+  "./manifest.webmanifest",
+  "./icon-192.png",
+  "./apple-touch-icon.png"
 ];
 
-self.addEventListener("install", (event) => {
+self.addEventListener("install", function (event) {
   event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) =>
-      // add one by one, so a missing icon never blocks the install
-      Promise.all(CORE.map((url) => cache.add(url).catch(() => null)))
-    ).then(() => self.skipWaiting())
+    caches.open(CACHE_VERSION).then(function (cache) {
+      // add one by one, so a missing icon does not stop the install
+      return Promise.all(CORE.map(function (url) {
+        return cache.add(url).catch(function () {});
+      }));
+    }).then(function () { return self.skipWaiting(); })
   );
 });
 
-self.addEventListener("activate", (event) => {
+self.addEventListener("activate", function (event) {
   event.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim())
+    caches.keys().then(function (keys) {
+      return Promise.all(keys.filter(function (k) { return k !== CACHE_VERSION; })
+        .map(function (k) { return caches.delete(k); }));
+    }).then(function () { return self.clients.claim(); })
   );
 });
 
-self.addEventListener("fetch", (event) => {
-  const req = event.request;
+self.addEventListener("fetch", function (event) {
+  var req = event.request;
   if (req.method !== "GET") return;
-  const url = new URL(req.url);
+  var url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
-  const isPage = req.mode === "navigate" ||
-    url.pathname.endsWith("/") || url.pathname.endsWith("index.html");
+  var isPage = req.mode === "navigate" ||
+    (req.headers.get("accept") || "").indexOf("text/html") !== -1;
 
   if (isPage) {
-    // Pages: try the network first so updates show up, use the saved copy when offline.
+    // network first, fall back to the saved copy when offline
     event.respondWith(
-      fetch(req).then((res) => {
-        if (res && res.ok) {
-          const copy = res.clone();
-          caches.open(CACHE_VERSION).then((c) => c.put(req, copy)).catch(() => {});
-        }
+      fetch(req, { cache: "no-store" }).then(function (res) {
+        var copy = res.clone();
+        caches.open(CACHE_VERSION).then(function (c) { c.put("./index.html", copy); });
         return res;
-      }).catch(() =>
-        caches.match(req).then((hit) => hit || caches.match("index.html") || caches.match("./"))
-      )
+      }).catch(function () {
+        return caches.match(req).then(function (hit) {
+          return hit || caches.match("./index.html") || caches.match("./");
+        });
+      })
     );
     return;
   }
 
-  // Other files (icons, manifest): use the saved copy fast, refresh it in the background.
+  // other files: saved copy first, refreshed in the background
   event.respondWith(
-    caches.match(req).then((hit) => {
-      const fresh = fetch(req).then((res) => {
-        if (res && res.ok) {
-          const copy = res.clone();
-          caches.open(CACHE_VERSION).then((c) => c.put(req, copy)).catch(() => {});
+    caches.match(req).then(function (hit) {
+      var net = fetch(req).then(function (res) {
+        if (res && res.status === 200) {
+          var copy = res.clone();
+          caches.open(CACHE_VERSION).then(function (c) { c.put(req, copy); });
         }
         return res;
-      }).catch(() => hit);
-      return hit || fresh;
+      }).catch(function () { return hit; });
+      return hit || net;
     })
   );
 });
