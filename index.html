@@ -6619,6 +6619,28 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     }catch(e){}
     return false;
   }
+  // Unstable / slow internet: the online voice is used only while it really answers fast.
+  // If it is silent for 1.5 s, errors out, or starts slowly, the same words are spoken at once by an installed voice,
+  // later words keep using the installed voice, and the online voice is tried again when the connection looks healthy
+  // (browser says online, a quick test request succeeds, or a cool-down ends).
+  var NET = { off: false, badUntil: 0, fails: 0, probeT: null };
+  function netBad(){ return navigator.onLine === false || NET.off || Date.now() < NET.badUntil; }
+  function netMarkGood(){ NET.fails = 0; NET.badUntil = 0; }
+  function netMarkBad(){ NET.fails = Math.min(NET.fails + 1, 3); NET.badUntil = Date.now() + Math.min(60000, 8000 * Math.pow(2, NET.fails - 1)); netProbe(); }
+  function netProbe(){
+    if(NET.probeT) return;
+    NET.probeT = setInterval(function(){
+      if(!netBad()){ clearInterval(NET.probeT); NET.probeT = null; return; }
+      if(navigator.onLine === false || NET.off) return;
+      var t0 = Date.now(), ac = window.AbortController ? new AbortController() : null;
+      var to = setTimeout(function(){ if(ac) ac.abort(); }, 2000);
+      fetch("sw.js?ping=" + t0, { cache: "no-store", signal: ac ? ac.signal : undefined })
+        .then(function(r){ clearTimeout(to); if(r.ok && Date.now() - t0 < 800) NET.badUntil = 0; })
+        .catch(function(){ clearTimeout(to); });
+    }, 5000);
+  }
+  window.addEventListener("offline", function(){ NET.off = true; netProbe(); });
+  window.addEventListener("online", function(){ NET.off = false; NET.badUntil = 0; });
   function voiceList(){
     try{ return window.speechSynthesis ? speechSynthesis.getVoices() : []; }catch(e){ return []; }
   }
@@ -6628,6 +6650,8 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   // An exact voice picked in Settings still wins for its own language.
   function findVoice(lang){
     var vs = voiceList(), i, v;
+    // Offline: online-only voices (like the Natural ones) cannot speak, so use the voices installed on this device.
+    if(netBad()){ var lv = vs.filter(function(x){ return x.localService !== false; }); if(lv.length) vs = lv; }
     var chosen = state.settings.ttsVoice;
     if(chosen){
       for(i = 0; i < vs.length; i++){ if(vs[i].name === chosen && vBase(vs[i]) === lang) return vs[i]; }
@@ -6680,7 +6704,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     if(sel.value !== (state.settings.ttsVoice || "")) sel.value = "";
   }
   var voicesWaited = false;
-  function speak(t){
+  function speak(t, retried){
     try{
       speakingNow = false;
       if(!window.speechSynthesis) return;
@@ -6702,6 +6726,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       var tok = ++speakToken;
       speakingNow = true; speakStart = Date.now();
       var setLang = langOfSetting();
+      var anyOnline = false, started = false, t0 = Date.now();
       segs.forEach(function(g, i){
         var u = new SpeechSynthesisUtterance(g.text);
         var v = findVoice(g.lang);
@@ -6709,9 +6734,21 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
         if(v) u.voice = v;
         u.rate = parseFloat(state.settings.ttsRate) || 0.9;
         var last = (i === segs.length - 1);
-        u.onend = u.onerror = function(){ if(last && tok === speakToken) speakingNow = false; };
+        var online = !!(v && v.localService === false); if(online) anyOnline = true;
+        u.onstart = function(){
+          if(i === 0 && tok === speakToken){ started = true; if(online){ if(Date.now() - t0 > 1200) netMarkBad(); else netMarkGood(); } }
+        };
+        u.onend = function(){ if(last && tok === speakToken) speakingNow = false; };
+        u.onerror = function(ev){
+          if(tok !== speakToken) return;
+          var er = ev && ev.error;
+          if(online && !retried && er && er !== "canceled" && er !== "interrupted"){ netMarkBad(); speak(t, true); return; }
+          if(last) speakingNow = false;
+        };
         speechSynthesis.speak(u);
       });
+      // online voice silent for 1.5 s (slow or dead connection): say it again right away with the installed voice
+      if(anyOnline && !retried) setTimeout(function(){ if(tok === speakToken && !started){ netMarkBad(); speak(t, true); } }, 1500);
     }catch(e){ speakingNow = false; }
   }
   function sayCurrent(){
@@ -8064,7 +8101,7 @@ function boot(){
   mk("button","reelsModeBtn","",'<span>🎞️ REELS MODE</span><small>SWIPE · LEARN · REPEAT</small>').addEventListener("click",quickStart);
   mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlDict"></div><div id="rlSV"></div><div id="rlFl"></div><div id="rlPaused"></div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div><div id="rlStat"></div>'+
   '<div class="rl-row"><button id="rlPause">⏸ Pause</button><button id="rlRestart">↻ Restart</button><button id="rlPrev">⏮ Previous round</button><button id="rlNext">⏭ Next round</button><button id="rlOrd"></button><span id="rlMissQ" class="rl-secs"></span><button id="rlAuto"></button><span class="rl-pill" id="rlDone"></span><span class="rl-sp"></span><button id="rlCfg">⚙</button><button id="rlUi">☰</button><button id="rlClean">🙈</button><button id="rlFs">⛶</button><button id="rlQuit">✖ Exit</button></div>'+
-  '<div class="rl-row" id="rlDictRow"><span class="rl-pill">🎙 Dictation · words/min · v12</span><button type="button" id="rlImgM" title="Smaller strokes">🖼 −</button><button type="button" id="rlImgP" title="Bigger strokes">🖼 +</button><button type="button" id="rlSet" title="See every stroke and word of this set (V)">🗂 Set</button><span id="rlWpm"></span></div>'+
+  '<div class="rl-row" id="rlDictRow"><span class="rl-pill">🎙 Dictation · words/min · v14</span><button type="button" id="rlImgM" title="Smaller strokes">🖼 −</button><button type="button" id="rlImgP" title="Bigger strokes">🖼 +</button><button type="button" id="rlSet" title="See every stroke and word of this set (V)">🗂 Set</button><span id="rlWpm"></span></div>'+
   '<div id="rlMore"><div class="rl-row"><span id="rlCards"></span><span id="rlToday"></span><span id="rlScore"></span><span id="rlCombo"></span><button id="rlMute">🔊</button></div>'+
   '<div class="rl-track"><div id="rlTf"></div><span id="rlGhost">👻</span><span id="rlRocket">🚀</span><span id="rlFlag">🏁</span></div>'+
   '<div class="rl-row"><span id="rlClock"></span><span id="rlBatt"></span><span id="rlPace"></span></div>'+
