@@ -1778,6 +1778,7 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
         <summary><h3>➕ Add words / cards in bulk</h3><span class="chev">›</span></summary>
         <div class="lib-box-body">
           <p class="hint only-steno">Paste one word or phrase per line, in the order you want them to appear. Then choose the matching stroke images — select them in the same order (most file pickers keep the order you click them in, or sort by filename to be safe). The nth image is paired with the nth line. If you choose more images than lines, the extra images are still added, with the text left blank for you to type in later. Audio clips (optional) are matched the same way, sorted by filename.</p>
+          <p class="hint only-steno">You can import in several rounds, in any order (for example 80 words, then 40 strokes, then 60 strokes, then 20 words). Each import first fills the gaps already in the list, from the top, and only the leftovers become new rows, so words and strokes stay matched with no empty rows in between.</p>
           <p class="hint only-qa">Paste your cards here. Line 1 is the question. Line 2 is its answer. Line 3 is the next question. Line 4 is its answer. And so on. Empty lines are skipped.</p>
           <textarea id="bulkWords" placeholder="there their&#10;which&#10;because"></textarea>
           <span class="field-label only-steno">Stroke images (optional)</span>
@@ -4335,11 +4336,22 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     ]).then(function(results){
       var urls = results[0];
       var audioUrls = results[1];
-      // If there are more images (or audio clips) than lines of text, the extra
-      // ones are still added, with the text left blank to fill in later.
-      var total = Math.max(lines.length, urls.length, audioUrls.length);
-      for(var bi = 0; bi < total; bi++){
-        state.words.push({ id: uid(), text: lines[bi] || "", image: urls[bi] || null, audio: audioUrls[bi] || null });
+      // Words, strokes and audio can be imported in any number of rounds, in any order.
+      // Each new batch first fills the gaps already in the list (a word that still has no stroke,
+      // a stroke that still has no word, ...) from the top, in order. Only what is left over becomes new rows.
+      var li = 0, ui = 0, ai = 0, filled = 0;
+      state.words.forEach(function(w){
+        if(li < lines.length && !String(w.text || "").trim()){ w.text = lines[li++]; filled++; }
+      });
+      state.words.forEach(function(w){
+        if(ui < urls.length && !w.image){ w.image = urls[ui++]; filled++; }
+      });
+      state.words.forEach(function(w){
+        if(ai < audioUrls.length && !w.audio){ w.audio = audioUrls[ai++]; filled++; }
+      });
+      var rest = Math.max(lines.length - li, urls.length - ui, audioUrls.length - ai);
+      for(var bi = 0; bi < rest; bi++){
+        state.words.push({ id: uid(), text: lines[li + bi] || "", image: urls[ui + bi] || null, audio: audioUrls[ai + bi] || null });
       }
       save();
       renderLibrary();
@@ -4347,16 +4359,15 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       document.getElementById("bulkImages").value = "";
       document.getElementById("bulkAudio").value = "";
       document.getElementById("bulkImagesNames").textContent = "";
-      var note = urls.length < total
-        ? " (" + (total - urls.length) + " words had no matching image — add them later from the list)"
-        : "";
-      var audioNote = audioUrls.length < total
-        ? " (" + (total - audioUrls.length) + " words had no matching audio — add them later from the list)"
-        : "";
-      var extraNote = total > lines.length
-        ? " " + (total - lines.length) + " extra file(s) were added with the text left blank — type the words in from the list."
-        : "";
-      document.getElementById("bulkStatus").textContent = "Added " + total + " rows." + extraNote + note + audioNote;
+      var needStroke = state.words.filter(function(w){ return String(w.text || "").trim() && !w.image; }).length;
+      var needWord = state.words.filter(function(w){ return !String(w.text || "").trim() && w.image; }).length;
+      var msg = "Imported " + (lines.length + urls.length + audioUrls.length) + " item(s): " + filled + " filled into existing rows, " + rest + " new row(s). List now has " + state.words.length + " rows.";
+      if(urls.length || lines.length){
+        msg += (needStroke || needWord)
+          ? " Still waiting: " + needStroke + " word(s) need a stroke, " + needWord + " stroke(s) need a word."
+          : " All words and strokes match.";
+      }
+      document.getElementById("bulkStatus").textContent = msg;
     });
   });
 
@@ -8053,7 +8064,7 @@ function boot(){
   mk("button","reelsModeBtn","",'<span>🎞️ REELS MODE</span><small>SWIPE · LEARN · REPEAT</small>').addEventListener("click",quickStart);
   mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlDict"></div><div id="rlSV"></div><div id="rlFl"></div><div id="rlPaused"></div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div><div id="rlStat"></div>'+
   '<div class="rl-row"><button id="rlPause">⏸ Pause</button><button id="rlRestart">↻ Restart</button><button id="rlPrev">⏮ Previous round</button><button id="rlNext">⏭ Next round</button><button id="rlOrd"></button><span id="rlMissQ" class="rl-secs"></span><button id="rlAuto"></button><span class="rl-pill" id="rlDone"></span><span class="rl-sp"></span><button id="rlCfg">⚙</button><button id="rlUi">☰</button><button id="rlClean">🙈</button><button id="rlFs">⛶</button><button id="rlQuit">✖ Exit</button></div>'+
-  '<div class="rl-row" id="rlDictRow"><span class="rl-pill">🎙 Dictation · words/min · v11</span><button type="button" id="rlImgM" title="Smaller strokes">🖼 −</button><button type="button" id="rlImgP" title="Bigger strokes">🖼 +</button><button type="button" id="rlSet" title="See every stroke and word of this set (V)">🗂 Set</button><span id="rlWpm"></span></div>'+
+  '<div class="rl-row" id="rlDictRow"><span class="rl-pill">🎙 Dictation · words/min · v12</span><button type="button" id="rlImgM" title="Smaller strokes">🖼 −</button><button type="button" id="rlImgP" title="Bigger strokes">🖼 +</button><button type="button" id="rlSet" title="See every stroke and word of this set (V)">🗂 Set</button><span id="rlWpm"></span></div>'+
   '<div id="rlMore"><div class="rl-row"><span id="rlCards"></span><span id="rlToday"></span><span id="rlScore"></span><span id="rlCombo"></span><button id="rlMute">🔊</button></div>'+
   '<div class="rl-track"><div id="rlTf"></div><span id="rlGhost">👻</span><span id="rlRocket">🚀</span><span id="rlFlag">🏁</span></div>'+
   '<div class="rl-row"><span id="rlClock"></span><span id="rlBatt"></span><span id="rlPace"></span></div>'+
