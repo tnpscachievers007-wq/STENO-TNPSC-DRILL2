@@ -7723,6 +7723,18 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       });
     },
     record: function(id, res){ recordResult(id, res); save(); },
+    unrecord: function(id, res){ unrecord(id, res); save(); },
+    editCard: function(fileId, id, patch){
+      var f = fileById(fileId); if(!f) return false;
+      syncActiveWords();
+      var ws = f.id === state.activeFileId ? state.words : f.words;
+      var w = (ws || []).filter(function(x){ return x.id === id; })[0]; if(!w) return false;
+      if(patch.text !== undefined) w.text = String(patch.text);
+      if(isQA(w) && patch.answer !== undefined) w.answer = String(patch.answer);
+      if(patch.image !== undefined) w.image = patch.image || null;
+      save(); try{ renderLibrary(); }catch(e){}
+      return true;
+    },
     speak: function(t){ speak(t); },
     voiceMode: function(m){ if(m === "online" || m === "offline"){ state.settings.ttsNet = m; save(); } return state.settings.ttsNet === "offline" ? "offline" : "online"; },
     // Reels mode: is a voice or audio clip still playing, and stop it.
@@ -8073,7 +8085,13 @@ function css2(){return [
 '#rlSV .sv-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:12px}',
 '#rlSV .sv-c{background:#fff;color:#111;border-radius:16px;padding:10px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}',
 '#rlSV .sv-c img{width:100%;height:calc(var(--rl-img,100)*.24vh);height:calc(var(--rl-img,100)*.24dvh);object-fit:contain}',
-'#rlSV .sv-c b{font-size:22px;line-height:1.25}#rlSV .sv-c i{font-size:15px;opacity:.7;font-style:normal}'].join('\n')}
+'#rlSV .sv-c b{font-size:22px;line-height:1.25}#rlSV .sv-c i{font-size:15px;opacity:.7;font-style:normal}',
+'#rlUndo{display:none;position:absolute;left:12px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:6;border:1px solid #fff4;background:#000b;color:#fff;border-radius:24px;height:46px;padding:0 20px;font:inherit;font-size:16px;font-weight:900;cursor:pointer}#rlUndo.on{display:block}',
+'#rlEd{display:none;position:fixed;inset:0;z-index:32;background:#000b;align-items:center;justify-content:center;padding:14px;box-sizing:border-box}#rlEd.on{display:flex}',
+'#rlEd .ed-c{background:#15152a;color:#fff;border:1px solid #fff3;border-radius:18px;padding:16px;max-width:560px;width:100%;max-height:94vh;overflow-y:auto;display:flex;flex-direction:column;gap:10px}#rlEd label{font-size:13px;font-weight:800;opacity:.85}',
+'#rlEd textarea{width:100%;box-sizing:border-box;min-height:64px;border-radius:10px;border:1px solid #fff3;background:#0b0b14;color:#fff;font:inherit;font-size:18px;padding:8px}',
+'#rlEd img{max-width:100%;max-height:34vh;background:#fff;border-radius:12px;object-fit:contain;align-self:center}#rlEd input[type=file]{font-size:14px;color:#fff}',
+'#rlEd .ed-r{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}#rlEd button{border:1px solid #fff3;background:#ffffff26;color:#fff;border-radius:20px;height:42px;padding:0 20px;font:inherit;font-size:15px;font-weight:800;cursor:pointer}'].join('\n')}
 function curSlide(){var f=$("rlFeed");return f?f.children[R.idx]:null}
 function toast(t,ms){var e=$("rlToast");e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove("on")},ms||1300)}
 function pop(t,bad){var p=document.createElement("div");p.className="rl-pop"+(bad?" bad":"");p.textContent=t;$("rlRoot").appendChild(p);setTimeout(function(){p.remove()},900)}
@@ -8106,9 +8124,9 @@ function boot(){
   ["reelsModeBtn","rlRoot","rlStyle"].forEach(function(i){var e=$(i);if(e&&e.parentNode)e.parentNode.removeChild(e)});
   var st=document.createElement("style");st.id="rlStyle";st.textContent=css()+css2();document.head.appendChild(st);
   mk("button","reelsModeBtn","",'<span>🎞️ REELS MODE</span><small>SWIPE · LEARN · REPEAT</small>').addEventListener("click",quickStart);
-  mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlDict"></div><div id="rlSV"></div><div id="rlFl"></div><div id="rlPaused"></div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div><div id="rlStat"></div>'+
+  mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlDict"></div><div id="rlSV"></div><button type="button" id="rlUndo">↶ Undo</button><div id="rlEd"></div><div id="rlFl"></div><div id="rlPaused"></div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div><div id="rlStat"></div>'+
   '<div class="rl-row"><button id="rlPause">⏸ Pause</button><button id="rlRestart">↻ Restart</button><button id="rlPrev">⏮ Previous round</button><button id="rlNext">⏭ Next round</button><button id="rlOrd"></button><span id="rlMissQ" class="rl-secs"></span><button id="rlAuto"></button><span class="rl-pill" id="rlDone"></span><span class="rl-sp"></span><button id="rlCfg">⚙</button><button id="rlUi">☰</button><button id="rlClean">🙈</button><button id="rlFs">⛶</button><button id="rlQuit">✖ Exit</button></div>'+
-  '<div class="rl-row" id="rlDictRow"><span class="rl-pill">🎙 Dictation · words/min · v16</span><button type="button" id="rlImgM" title="Smaller strokes">🖼 −</button><button type="button" id="rlImgP" title="Bigger strokes">🖼 +</button><button type="button" id="rlSet" title="See every stroke and word of this set (V)">🗂 Set</button><button type="button" id="rlNet" title="Voice: Online / Offline (the offline voice is chosen in Settings)">🟢 Online</button><span id="rlWpm"></span></div>'+
+  '<div class="rl-row" id="rlDictRow"><span class="rl-pill">🎙 Dictation · words/min · v17</span><button type="button" id="rlImgM" title="Smaller strokes">🖼 −</button><button type="button" id="rlImgP" title="Bigger strokes">🖼 +</button><button type="button" id="rlSet" title="See every stroke and word of this set (V)">🗂 Set</button><button type="button" id="rlEdit" title="Edit this card (or double-click / double-tap its picture or text) · E">✎ Edit</button><button type="button" id="rlNet" title="Voice: Online / Offline (the offline voice is chosen in Settings)">🟢 Online</button><span id="rlWpm"></span></div>'+
   '<div id="rlMore"><div class="rl-row"><span id="rlCards"></span><span id="rlToday"></span><span id="rlScore"></span><span id="rlCombo"></span><button id="rlMute">🔊</button></div>'+
   '<div class="rl-track"><div id="rlTf"></div><span id="rlGhost">👻</span><span id="rlRocket">🚀</span><span id="rlFlag">🏁</span></div>'+
   '<div class="rl-row"><span id="rlClock"></span><span id="rlBatt"></span><span id="rlPace"></span></div>'+
@@ -8121,6 +8139,9 @@ function boot(){
   function bump(d){cfg.img=Math.min(250,Math.max(20,Math.round(cfg.img/10)*10+d));saveCfg();vars();toast("Stroke size "+cfg.img+"%",900)}
   $("rlImgM").onclick=function(){bump(-10)};$("rlImgP").onclick=function(){bump(10)};
   $("rlSet").onclick=svOpen;
+  $("rlUndo").onclick=undoLast;$("rlEdit").onclick=function(){edOpen()};
+  $("rlEd").onclick=function(e){var b=e.target.closest?e.target.closest("button[data-e]"):null;if(!b)return;if(b.getAttribute("data-e")==="s")edSave();else edClose()};
+  $("rlEd").onchange=function(e){var t=e.target;if(t&&t.id==="edF"&&t.files&&t.files[0])edImg(t.files[0])};
   $("rlNet").onclick=function(){var n=A().voiceMode()==="online"?"offline":"online";A().voiceMode(n);syncNet();
     toast(n==="online"?"Online voice only":"Offline voice only",1400)};
   syncNet();
@@ -8147,7 +8168,12 @@ function boot(){
     ptype=e.pointerType||"touch";
     if(ptype==="mouse"){
       // Mouse: left click = missed it, right click = knew it, scroll button = pause (handled on window below).
-      if(e.button===0){e.preventDefault();judge("missed",null,true)}
+      if(e.button===0){e.preventDefault();
+        var onC=e.target.closest&&e.target.closest(".rl-img,.rl-q,.rl-a");
+        if(onC){   // on the picture or text, wait a moment: a second click means "edit", not "missed"
+          if(R.clkT){clearTimeout(R.clkT);R.clkT=null;edOpen(R.clkI);return}
+          R.clkI=R.idx;R.clkT=setTimeout(function(){R.clkT=null;judge("missed",R.clkI,true)},260);return}
+        judge("missed",null,true)}
       else if(e.button===2){e.preventDefault();judge("knew",null,true)}
       return}
     sx=e.clientX;sy=e.clientY;holding=false;clearTimeout(downT);downT=setTimeout(function(){if(Date.now()-(R.scrollAt||0)<500)return;holding=true;R.holdP=true;stopT()},450)});
@@ -8157,7 +8183,7 @@ function boot(){
     if(holding){holding=false;R.holdP=false;arm();return}
     if(moved)return;
     var now=Date.now();
-    if(now-lastTap<300){clearTimeout(tapT);lastTap=0;judge("knew",null,true);return}
+    if(now-lastTap<300){clearTimeout(tapT);lastTap=0;if(e.target.closest&&e.target.closest(".rl-img,.rl-q,.rl-a")){edOpen(R.idx);return}judge("knew",null,true);return}
     lastTap=now;clearTimeout(tapT);tapT=setTimeout(function(){if(R.paused)togglePause();else reveal()},300)});
   feed.addEventListener("pointercancel",function(){clearTimeout(downT);if(holding){holding=false;R.holdP=false;arm()}});
   window.addEventListener("keydown",onKey,true);
@@ -8177,6 +8203,7 @@ function fitPad(){var t=$("rlTop");if(t)$("rlRoot").style.setProperty("--rl-pad"
 function onKey(e){
   if(!R.open)return;
   if(sheetOn()){var t=e.target&&e.target.tagName;if(e.key==="Escape"&&R.run){closeSheet();e.preventDefault()}if(!/INPUT/.test(t||""))e.stopImmediatePropagation();return}
+  if(ED.on){var tg=e.target&&e.target.tagName;if(e.key==="Escape"){edClose();e.preventDefault()}else if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){edSave();e.preventDefault()}if(!/INPUT|TEXTAREA/.test(tg||"")||e.key==="Escape")e.stopImmediatePropagation();return}
   if(SV.on){if(e.key==="Escape"||e.key==="v"||e.key==="V"){svClose();e.preventDefault()}e.stopImmediatePropagation();return}
   if((e.key==="v"||e.key==="V")&&!e.ctrlKey&&!e.metaKey&&!e.altKey){svOpen();e.stopImmediatePropagation();e.preventDefault();return}
   if(D.on){var kk=e.key,hd=true;if(kk==="Escape")dictStop(true);else if(kk==="p"||kk==="P"||kk===" "||kk==="Enter")dictPause();else hd=false;e.stopImmediatePropagation();if(hd)e.preventDefault();return}
@@ -8186,7 +8213,7 @@ function onKey(e){
   else if(k===" "||k==="Enter")reveal();
   else if(k==="y"||k==="Y"||k==="ArrowRight")judge("knew",null,true);
   else if(k==="n"||k==="N"||k==="ArrowLeft")judge("missed");
-  else if(k==="p"||k==="P")togglePause();else if(k==="r"||k==="R")speakCur();else u=false;
+  else if(k==="p"||k==="P")togglePause();else if(k==="r"||k==="R")speakCur();else if(k==="u"||k==="U"||((k==="z"||k==="Z")&&(e.ctrlKey||e.metaKey)))undoLast();else if((k==="e"||k==="E")&&!e.ctrlKey&&!e.metaKey)edOpen();else u=false;
   e.stopImmediatePropagation();if(u)e.preventDefault();
 }
 
@@ -8315,7 +8342,7 @@ function pass(fi,si,mi,only,st){
       R.judIds=all.filter(function(x){return skip.indexOf(x.id)>=0}).map(function(x){return x.id});
       R.pre=all.length-rest.length;
       R.fileName=(A().files().filter(function(f){return f.id===fid})[0]||{}).name||"";
-      var feed=$("rlFeed");feed.innerHTML="";R.items=[];R.idx=0;R.rev={};R.jud={};
+      var feed=$("rlFeed");feed.innerHTML="";R.items=[];R.idx=0;R.rev={};R.jud={};R.undo=[];
       if(!rest.length){saveRun();hud();advance();return true}   // everything in this round was already judged
       its=rest.slice();if(!cfg.order)shuf(its);
       R.items=its;
@@ -8467,11 +8494,57 @@ function svClose(){
 // ---------- Voice switch: Online / Offline (the offline voice is chosen in Settings) ----------
 var NETL={online:"🟢 Online",offline:"📴 Offline"};
 function syncNet(){var b=$("rlNet");if(!b||!A()||!A().voiceMode)return;b.textContent=NETL[A().voiceMode()]||NETL.online}
+// ---------- Undo the last Knew / Missed ----------
+function undoLast(){
+  if(!R.run||D.on||ED.on)return;
+  if(!R.undo||!R.undo.length){toast("Nothing to undo",1000);return}
+  var s=R.undo.pop(),it=R.items[s.i];if(!it)return;
+  clearTimeout(R.nxT);clearTimeout(R.finT);clearTimeout(R.endT);stopT();silence();
+  try{A().unrecord(s.id,s.res)}catch(e){}
+  it.c.last[it.dir]=s.prevLast;
+  var kc=KC();if(s.kc===undefined)delete kc[it.id];else kc[it.id]=s.kc;saveKC();
+  if(!s.had){var q=R.missIds.indexOf(it.id);if(q>-1)R.missIds.splice(q,1)}
+  delete R.jud[s.i];R.judIds.pop();
+  R.knew=s.knew;R.rKnew=s.rKnew;R.missed=s.missed;R.rMiss=s.rMiss;R.combo=s.combo;R.maxCombo=s.maxCombo;R.score=s.score;R.done=R.knew+R.missed;
+  R.rev[s.i]=s.rev;var sl=$("rlFeed").children[s.i];if(sl&&!s.rev)sl.classList.remove("rev");
+  saveRun();hud();toast("↶ Undone · card "+(R.pre+s.i+1),1100);
+  if(R.idx===s.i)onActive();
+  else{var f=$("rlFeed");f.style.scrollSnapType="none";f.scrollTop=s.i*f.clientHeight;f.style.scrollSnapType=""}}
+// ---------- Edit the card while playing ----------
+var ED={on:false,i:-1,img:undefined};
+function edOpen(i){
+  if(!R.open||!R.run||D.on||sheetOn()||SV.on||ED.on)return;
+  i=i==null?R.idx:i;var it=R.items[i];if(!it)return;var c=it.c;
+  clearTimeout(R.nxT);stopT();silence();ED.on=true;ED.i=i;ED.img=undefined;
+  var h='<div class="ed-c"><h3 style="margin:0">✎ Edit card</h3><label>'+(c.qa?"Question":"Word")+'</label><textarea id="edT">'+esc(c.text)+'</textarea>';
+  if(c.qa)h+='<label>Answer</label><textarea id="edA">'+esc(c.answer)+'</textarea>';
+  else h+='<label>Stroke picture</label>'+(c.image?'<img id="edI" alt="stroke" src="'+esc(c.image)+'">':'<div id="edI0" style="opacity:.7">no picture yet</div>')+'<input type="file" id="edF" accept="image/*">';
+  h+='<div class="ed-r"><button type="button" data-e="x">Cancel</button><button type="button" data-e="s">💾 Save</button></div></div>';
+  var o=$("rlEd");o.innerHTML=h;o.classList.add("on");hud();
+  var t=$("edT");if(t){t.focus();t.select()}}
+function edClose(){ED.on=false;var o=$("rlEd");o.classList.remove("on");o.innerHTML="";hud();if(R.run)arm()}
+function edImg(file){
+  var fr=new FileReader();
+  fr.onload=function(){var im=new Image();im.onload=function(){
+    var sc=Math.min(1,1600/Math.max(im.width,im.height)),cv=document.createElement("canvas");cv.width=Math.max(1,Math.round(im.width*sc));cv.height=Math.max(1,Math.round(im.height*sc));
+    cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);var u;try{u=cv.toDataURL("image/png")}catch(e){u=fr.result}
+    ED.img=u;var p=$("edI");if(!p){p=document.createElement("img");p.id="edI";p.alt="stroke";var z=$("edI0");if(z)z.replaceWith(p);else $("edF").before(p)}p.src=u};im.src=fr.result};
+  fr.readAsDataURL(file)}
+function edSave(){
+  var it=R.items[ED.i];if(!it){edClose();return}
+  var c=it.c,patch={text:$("edT").value.trim()};
+  if(c.qa)patch.answer=$("edA").value.trim();
+  if(ED.img!==undefined)patch.image=ED.img;
+  var ok=false;try{ok=A().editCard(R.fl[R.fi],c.id,patch)}catch(e){}
+  if(!ok){toast("Could not save");return}
+  R.items.forEach(function(x){if(x.c.id===c.id){x.c.text=patch.text;if(c.qa)x.c.answer=patch.answer;if(patch.image!==undefined)x.c.image=patch.image}});
+  var feed=$("rlFeed");for(var k=0;k<feed.children.length;k++){var q=R.items[k];if(q&&q.c.id===c.id&&feed.children[k].dataset.b)feed.children[k].innerHTML=slideHTML(k)}
+  edClose();toast("💾 Saved",1000)}
 // ---------- timers ----------
 function stopT(){clearTimeout(R.upT);clearTimeout(R.tr);clearTimeout(R.tm);R.tr=R.tm=null;var f=$("rlFill");if(f){f.style.transition="none";f.style.width="0"}}
 function arm(){
   stopT();
-  if(!R.open||!R.run||D.on||R.paused||R.holdP||sheetOn()||!R.items[R.idx])return;
+  if(!R.open||!R.run||D.on||ED.on||R.paused||R.holdP||sheetOn()||!R.items[R.idx])return;
   if(R.jud[R.idx]&&!cfg.autoScroll)return;
   var f=$("rlFill");f.style.transition="none";f.style.width="0";void f.offsetWidth;f.style.transition="width "+cfg.miss+"s linear";f.style.width="100%";
   if(!R.rev[R.idx])fire("tr",reveal,cfg.rev*1000);
@@ -8510,7 +8583,8 @@ function restartSet(){
   clearTimeout(R.endT);stopT();silence();R.rKnew=R.rMiss=0;
   if(!pass(R.fi,R.si,R.mi,null))finish()}
 function judge(res,i,force){
-  if(!R.run||D.on)return;i=i==null?R.idx:i;var it=R.items[i];if(!it||R.jud[i]){if(force&&it&&i===R.idx)go(1);return}
+  if(!R.run||D.on||ED.on)return;i=i==null?R.idx:i;var it=R.items[i];if(!it||R.jud[i]){if(force&&it&&i===R.idx)go(1);return}
+  (R.undo=R.undo||[]).push({i:i,res:res,id:it.id,dir:it.dir,prevLast:it.c.last[it.dir],kc:KC()[it.id],had:R.missIds.indexOf(it.id)>=0,knew:R.knew,rKnew:R.rKnew,missed:R.missed,rMiss:R.rMiss,combo:R.combo,maxCombo:R.maxCombo,score:R.score,rev:R.rev[i]||0});if(R.undo.length>60)R.undo.shift();
   R.jud[i]=res;R.judIds.push(it.id);stopT();
   try{A().record(it.id,res)}catch(e){}it.c.last[it.dir]=res;
   var partial=false;
@@ -8521,8 +8595,8 @@ function judge(res,i,force){
   R.done=R.knew+R.missed;saveRun();
   if(!R.rev[i]){R.rev[i]=1;var s=$("rlFeed").children[i];if(s)s.classList.add("rev")}
   hud();
-  if(R.done>=R.target){setTimeout(finish,500);return}
-  if(i===R.idx&&(cfg.autoScroll||force))setTimeout(function(){fastGo(1)},force?30:300)}   // the last card scrolls on to the end slide, which opens the missed cards / next mode, set and file
+  if(R.done>=R.target){R.finT=setTimeout(finish,500);return}
+  if(i===R.idx&&(cfg.autoScroll||force))R.nxT=setTimeout(function(){fastGo(1)},force?30:300)}   // the last card scrolls on to the end slide, which opens the missed cards / next mode, set and file
 
 // ---------- HUD ----------
 function fmtDur(s){s=Math.max(0,Math.round(s));var h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h>0?h+"h "+m+"m":m>0?m+"m "+(s%60)+"s":s+"s"}
@@ -8542,6 +8616,7 @@ function hud(){
   function pc(k,m){return (k+m)?Math.round(100*k/(k+m))+"%":"-"}
   for(var q=off;q<hs.length;q++)h+="<i>R"+(q+1)+" "+pc(hs[q].k,hs[q].m)+"</i>";
   $("rlRounds").innerHTML=h+"<i>R"+(hs.length+1)+" live "+pc(R.rKnew,R.rMiss)+"</i>";
+  var ub=$("rlUndo");if(ub)ub.classList.toggle("on",!!(R.run&&R.undo&&R.undo.length&&!D.on&&!ED.on));
   track();fitPad()}
 function track(){
   var t=T()||1,gc=Math.min(t,R.startDone+R.ms/1000/Math.max(1,cfg.pace));
@@ -8563,7 +8638,7 @@ var lastTick=Date.now();
 function tick(){
   var now=Date.now(),dt=now-lastTick;lastTick=now;if(dt>2000)dt=0;
   if(!R.open)return;
-  if(R.run&&!R.paused&&!document.hidden&&!sheetOn()){R.ms+=dt;schedAdd(dt)}else schedAdd(0);
+  if(R.run&&!R.paused&&!document.hidden&&!sheetOn()&&!ED.on){R.ms+=dt;schedAdd(dt)}else schedAdd(0);
   batt();track()}
 
 // ---------- end ----------
