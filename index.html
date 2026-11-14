@@ -1588,6 +1588,7 @@ html body.game-mode:not(.gm-ui) .card img,html body.game-mode:not(.gm-ui) .revea
     background:#fff; padding:14px; border-radius:var(--radius-md);
   }
 
+  body.reels-open .ce-ov{ z-index:2147483600 !important; }   /* the crop window must sit above the Reels screen */
   .ce-ov{
     position:fixed; top:0; right:0; bottom:0; left:0; z-index:500; display:none;
     flex-direction:column; align-items:center;
@@ -3555,7 +3556,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   var CE = null;
   function cropper(){
     if(CE) return CE;
-    var ce = { id: null, mime: "image/png", crop: {x:0, y:0, w:1, h:1}, scale: 1, ready: false, isOpen: false };
+    var ce = { id: null, cb: null, mime: "image/png", crop: {x:0, y:0, w:1, h:1}, scale: 1, ready: false, isOpen: false };
 
     var ov = document.createElement("div");
     ov.className = "ce-ov";
@@ -3751,8 +3752,9 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
         showToast("This image comes from a web link, so it can't be cropped here.");
         return;
       }
-      var id = ce.id;
+      var id = ce.id, cb = ce.cb;
       close();
+      if(cb){ cb(url); return; }   // opened from the Reels card editor: give the cropped picture back
       setWordImage(id, url, "Image cropped.");
     }
 
@@ -3760,7 +3762,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       var i = wordIndex(id);
       if(i < 0 || !state.words[i].image) return;
       var src = state.words[i].image;
-      ce.id = id;
+      ce.id = id; ce.cb = null;
       ce.mime = mimeOf(src) === "image/jpeg" ? "image/jpeg" : "image/png";
       ce.ready = false;
       loadImg(src).then(function(im){
@@ -3778,7 +3780,25 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     }
 
     window.addEventListener("resize", function(){ if(ce.isOpen) layout(); });
-    CE = { open: open, close: close, apply: apply, isOpen: function(){ return ce.isOpen; } };
+    function openSrc(src, cb){
+      if(!src) return;
+      ce.id = null; ce.cb = cb;
+      ce.mime = mimeOf(src) === "image/jpeg" ? "image/jpeg" : "image/png";
+      ce.ready = false;
+      loadImg(src).then(function(im){
+        cv.width = im.naturalWidth || 300;
+        cv.height = im.naturalHeight || 150;
+        var x = cv.getContext("2d");
+        x.clearRect(0, 0, cv.width, cv.height);
+        x.drawImage(im, 0, 0);
+        fullCrop();
+        ce.ready = true;
+        ce.isOpen = true;
+        ov.classList.add("open");
+        requestAnimationFrame(layout);
+      }).catch(function(){ showToast("Could not open this image for cropping."); });
+    }
+    CE = { open: open, openSrc: openSrc, close: close, apply: apply, isOpen: function(){ return ce.isOpen; } };
     return CE;
   }
 
@@ -7724,6 +7744,8 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     },
     record: function(id, res){ recordResult(id, res); save(); },
     unrecord: function(id, res){ unrecord(id, res); save(); },
+    cropImage: function(src, cb){ cropper().openSrc(src, cb); },
+    cropOpen: function(){ return !!(CE && CE.isOpen()); },
     editCard: function(fileId, id, patch){
       var f = fileById(fileId); if(!f) return false;
       syncActiveWords();
@@ -8091,6 +8113,7 @@ function css2(){return [
 '#rlEd .ed-c{background:#15152a;color:#fff;border:1px solid #fff3;border-radius:18px;padding:16px;max-width:560px;width:100%;max-height:94vh;overflow-y:auto;display:flex;flex-direction:column;gap:10px}#rlEd label{font-size:13px;font-weight:800;opacity:.85}',
 '#rlEd textarea{width:100%;box-sizing:border-box;min-height:64px;border-radius:10px;border:1px solid #fff3;background:#0b0b14;color:#fff;font:inherit;font-size:18px;padding:8px}',
 '#rlEd img{max-width:100%;max-height:34vh;background:#fff;border-radius:12px;object-fit:contain;align-self:center}#rlEd input[type=file]{font-size:14px;color:#fff}',
+'#rlEd #edP{display:flex;justify-content:center;align-items:center;min-height:70px;padding:8px;border:2px dashed #fff4;border-radius:14px;cursor:pointer;outline:none}#rlEd #edP:focus{border-color:#3dffa0;background:#3dffa014}',
 '#rlEd .ed-r{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}#rlEd button{border:1px solid #fff3;background:#ffffff26;color:#fff;border-radius:20px;height:42px;padding:0 20px;font:inherit;font-size:15px;font-weight:800;cursor:pointer}'].join('\n')}
 function curSlide(){var f=$("rlFeed");return f?f.children[R.idx]:null}
 function toast(t,ms){var e=$("rlToast");e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.remove("on")},ms||1300)}
@@ -8126,7 +8149,7 @@ function boot(){
   mk("button","reelsModeBtn","",'<span>🎞️ REELS MODE</span><small>SWIPE · LEARN · REPEAT</small>').addEventListener("click",quickStart);
   mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlDict"></div><div id="rlSV"></div><button type="button" id="rlUndo">↶ Undo</button><div id="rlEd"></div><div id="rlFl"></div><div id="rlPaused"></div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div><div id="rlStat"></div>'+
   '<div class="rl-row"><button id="rlPause">⏸ Pause</button><button id="rlRestart">↻ Restart</button><button id="rlPrev">⏮ Previous round</button><button id="rlNext">⏭ Next round</button><button id="rlOrd"></button><span id="rlMissQ" class="rl-secs"></span><button id="rlAuto"></button><span class="rl-pill" id="rlDone"></span><span class="rl-sp"></span><button id="rlCfg">⚙</button><button id="rlUi">☰</button><button id="rlClean">🙈</button><button id="rlFs">⛶</button><button id="rlQuit">✖ Exit</button></div>'+
-  '<div class="rl-row" id="rlDictRow"><span class="rl-pill">🎙 Dictation · words/min · v17</span><button type="button" id="rlImgM" title="Smaller strokes">🖼 −</button><button type="button" id="rlImgP" title="Bigger strokes">🖼 +</button><button type="button" id="rlSet" title="See every stroke and word of this set (V)">🗂 Set</button><button type="button" id="rlEdit" title="Edit this card (or double-click / double-tap its picture or text) · E">✎ Edit</button><button type="button" id="rlNet" title="Voice: Online / Offline (the offline voice is chosen in Settings)">🟢 Online</button><span id="rlWpm"></span></div>'+
+  '<div class="rl-row" id="rlDictRow"><span class="rl-pill">🎙 Dictation · words/min · v18</span><button type="button" id="rlImgM" title="Smaller strokes">🖼 −</button><button type="button" id="rlImgP" title="Bigger strokes">🖼 +</button><button type="button" id="rlSet" title="See every stroke and word of this set (V)">🗂 Set</button><button type="button" id="rlEdit" title="Edit this card (or double-click / double-tap its picture or text) · E">✎ Edit</button><button type="button" id="rlNet" title="Voice: Online / Offline (the offline voice is chosen in Settings)">🟢 Online</button><span id="rlWpm"></span></div>'+
   '<div id="rlMore"><div class="rl-row"><span id="rlCards"></span><span id="rlToday"></span><span id="rlScore"></span><span id="rlCombo"></span><button id="rlMute">🔊</button></div>'+
   '<div class="rl-track"><div id="rlTf"></div><span id="rlGhost">👻</span><span id="rlRocket">🚀</span><span id="rlFlag">🏁</span></div>'+
   '<div class="rl-row"><span id="rlClock"></span><span id="rlBatt"></span><span id="rlPace"></span></div>'+
@@ -8140,7 +8163,10 @@ function boot(){
   $("rlImgM").onclick=function(){bump(-10)};$("rlImgP").onclick=function(){bump(10)};
   $("rlSet").onclick=svOpen;
   $("rlUndo").onclick=undoLast;$("rlEdit").onclick=function(){edOpen()};
-  $("rlEd").onclick=function(e){var b=e.target.closest?e.target.closest("button[data-e]"):null;if(!b)return;if(b.getAttribute("data-e")==="s")edSave();else edClose()};
+  $("rlEd").onclick=function(e){
+    var pb=e.target.closest?e.target.closest("#edP"):null;if(pb){pb.focus();return}
+    var b=e.target.closest?e.target.closest("button[data-e]"):null;if(!b)return;var k=b.getAttribute("data-e");
+    if(k==="s")edSave();else if(k==="c")edCrop();else if(k==="p")edPasteBtn();else edClose()};
   $("rlEd").onchange=function(e){var t=e.target;if(t&&t.id==="edF"&&t.files&&t.files[0])edImg(t.files[0])};
   $("rlNet").onclick=function(){var n=A().voiceMode()==="online"?"offline":"online";A().voiceMode(n);syncNet();
     toast(n==="online"?"Online voice only":"Offline voice only",1400)};
@@ -8202,6 +8228,7 @@ function syncUi(){document.body.classList.toggle("rl-ui-off",!cfg.ui);document.b
 function fitPad(){var t=$("rlTop");if(t)$("rlRoot").style.setProperty("--rl-pad",Math.round(t.offsetHeight+8)+"px")}
 function onKey(e){
   if(!R.open)return;
+  if(A().cropOpen&&A().cropOpen())return;
   if(sheetOn()){var t=e.target&&e.target.tagName;if(e.key==="Escape"&&R.run){closeSheet();e.preventDefault()}if(!/INPUT/.test(t||""))e.stopImmediatePropagation();return}
   if(ED.on){var tg=e.target&&e.target.tagName;if(e.key==="Escape"){edClose();e.preventDefault()}else if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){edSave();e.preventDefault()}if(!/INPUT|TEXTAREA/.test(tg||"")||e.key==="Escape")e.stopImmediatePropagation();return}
   if(SV.on){if(e.key==="Escape"||e.key==="v"||e.key==="V"){svClose();e.preventDefault()}e.stopImmediatePropagation();return}
@@ -8518,18 +8545,36 @@ function edOpen(i){
   clearTimeout(R.nxT);stopT();silence();ED.on=true;ED.i=i;ED.img=undefined;
   var h='<div class="ed-c"><h3 style="margin:0">✎ Edit card</h3><label>'+(c.qa?"Question":"Word")+'</label><textarea id="edT">'+esc(c.text)+'</textarea>';
   if(c.qa)h+='<label>Answer</label><textarea id="edA">'+esc(c.answer)+'</textarea>';
-  else h+='<label>Stroke picture</label>'+(c.image?'<img id="edI" alt="stroke" src="'+esc(c.image)+'">':'<div id="edI0" style="opacity:.7">no picture yet</div>')+'<input type="file" id="edF" accept="image/*">';
+  else h+='<label>Stroke picture (click it, then Ctrl+V to paste a picture)</label><div id="edP" tabindex="0">'+(c.image?'<img id="edI" alt="stroke" src="'+esc(c.image)+'">':'<div id="edI0" style="opacity:.7">no picture yet · click here, then Ctrl+V</div>')+'</div>'+
+    '<div class="ed-r" style="justify-content:flex-start"><button type="button" data-e="c">✂ Crop</button><button type="button" data-e="p">📋 Paste</button><input type="file" id="edF" accept="image/*"></div>';
   h+='<div class="ed-r"><button type="button" data-e="x">Cancel</button><button type="button" data-e="s">💾 Save</button></div></div>';
   var o=$("rlEd");o.innerHTML=h;o.classList.add("on");hud();
   var t=$("edT");if(t){t.focus();t.select()}}
 function edClose(){ED.on=false;var o=$("rlEd");o.classList.remove("on");o.innerHTML="";hud();if(R.run)arm()}
+function edShow(u){ED.img=u;var p=$("edI");if(!p){p=document.createElement("img");p.id="edI";p.alt="stroke";var z=$("edI0");if(z)z.replaceWith(p);else{var h=$("edP");if(h)h.appendChild(p)}}p.src=u}
 function edImg(file){
   var fr=new FileReader();
   fr.onload=function(){var im=new Image();im.onload=function(){
     var sc=Math.min(1,1600/Math.max(im.width,im.height)),cv=document.createElement("canvas");cv.width=Math.max(1,Math.round(im.width*sc));cv.height=Math.max(1,Math.round(im.height*sc));
     cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);var u;try{u=cv.toDataURL("image/png")}catch(e){u=fr.result}
-    ED.img=u;var p=$("edI");if(!p){p=document.createElement("img");p.id="edI";p.alt="stroke";var z=$("edI0");if(z)z.replaceWith(p);else $("edF").before(p)}p.src=u};im.src=fr.result};
+    edShow(u);toast("Picture added · press Save",1200)};im.onerror=function(){toast("That is not a picture")};im.src=fr.result};
   fr.readAsDataURL(file)}
+function edCrop(){
+  var it=R.items[ED.i];if(!it)return;var src=ED.img!==undefined?ED.img:it.c.image;
+  if(!src){toast("Add a picture first");return}
+  try{A().cropImage(src,function(u){edShow(u);toast("Cropped · press Save",1200)})}catch(e){toast("Crop is not available")}}
+function edPasteBtn(){
+  try{navigator.clipboard.read().then(function(items){
+    for(var k=0;k<items.length;k++){var ty=(items[k].types||[]).filter(function(t){return /^image\//.test(t)})[0];
+      if(ty){items[k].getType(ty).then(function(b){edImg(b)});return}}
+    toast("No picture on the clipboard")}).catch(function(){toast("Click the picture and press Ctrl+V")})}catch(e){toast("Click the picture and press Ctrl+V")}}
+// pasting a picture while the editor is open (click the picture box first, then Ctrl+V)
+document.addEventListener("paste",function(e){
+  if(!ED.on||!e.clipboardData||!$("edP"))return;
+  var its=e.clipboardData.items||[],f=null;
+  for(var k=0;k<its.length;k++){if(its[k].kind==="file"&&/^image\//.test(its[k].type)){f=its[k].getAsFile();break}}
+  if(!f)return;   // plain text paste in the text boxes works as usual
+  e.preventDefault();edImg(f)},true);
 function edSave(){
   var it=R.items[ED.i];if(!it){edClose();return}
   var c=it.c,patch={text:$("edT").value.trim()};
