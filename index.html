@@ -1694,6 +1694,7 @@ html body.game-mode #gmUiBtn,html body.game-mode #gmFsBtn,html body.game-mode #g
 body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d81);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
+<meta name="color-scheme" content="light dark">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 </head>
@@ -2025,6 +2026,7 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
     var req=indexedDB.open("steno-store",1);
     req.onupgradeneeded=function(){req.result.createObjectStore("kv")};
     req.onerror=function(){clearTimeout(timer);go()};
+    req.onblocked=function(){clearTimeout(timer);go()};
     req.onsuccess=function(){
       db=req.result;
       try{
@@ -6751,7 +6753,16 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       var tok = ++speakToken;
       speakingNow = true; speakStart = Date.now();
       var setLang = langOfSetting();
-      
+      window.__utts = [];
+      clearInterval(window.__ttsKeep);
+      window.__ttsKeep = setInterval(function(){
+        try{
+          if(!speechSynthesis.speaking){ clearInterval(window.__ttsKeep); return; }
+          if(!speechSynthesis.paused){ speechSynthesis.pause(); speechSynthesis.resume(); }
+        }catch(e){}
+      }, 10000);
+      setTimeout(function(){
+      if(tok !== speakToken) return;
       segs.forEach(function(g, i){
         var u = new SpeechSynthesisUtterance(g.text);
         var v = findVoice(g.lang);
@@ -6759,10 +6770,12 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
         if(v) u.voice = v;
         u.rate = parseFloat(state.settings.ttsRate) || 0.9;
         var last = (i === segs.length - 1);
-        u.onend = function(){ if(last && tok === speakToken) speakingNow = false; };
-        u.onerror = function(){ if(last && tok === speakToken) speakingNow = false; };
+        u.onend = function(){ if(last && tok === speakToken){ speakingNow = false; clearInterval(window.__ttsKeep); } };
+        u.onerror = function(){ if(last && tok === speakToken){ speakingNow = false; clearInterval(window.__ttsKeep); } };
+        window.__utts.push(u);
         speechSynthesis.speak(u);
       });
+      }, 60);
     }catch(e){ speakingNow = false; }
   }
   function sayCurrent(){
@@ -8812,7 +8825,7 @@ render();
 </script>
 <script>
 if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){
-  window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});
+  window.addEventListener("load",function(){navigator.serviceWorker.register("./sw.js").catch(function(){});});
 }
 </script>
 </body>

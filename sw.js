@@ -1,70 +1,47 @@
-/* Steno + TNPSC Drill - service worker
-   - Works offline after the first visit.
-   - Page (index.html) is network-first, so a new upload on GitHub shows up as soon as you are online.
-   - Icons, manifest and other files are cache-first and refreshed quietly in the background.
-   Change CACHE_VERSION whenever you upload a new index.html, to clear the old copy. */
-var CACHE_VERSION = "steno-drill-v18";
-var CORE = [
-  "./",
-  "./index.html",
-  "./manifest.webmanifest",
-  "./icon-192.png",
-  "./apple-touch-icon.png"
-];
+// Steno + TNPSC Drill service worker: offline-first app shell, safe updates.
+var CACHE = "steno-drill-v2";
+var SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
-self.addEventListener("install", function (event) {
-  event.waitUntil(
-    caches.open(CACHE_VERSION).then(function (cache) {
-      // add one by one, so a missing icon does not stop the install
-      return Promise.all(CORE.map(function (url) {
-        return cache.add(url).catch(function () {});
-      }));
-    }).then(function () { return self.skipWaiting(); })
-  );
+self.addEventListener("install", function (e) {
+  self.skipWaiting();
+  e.waitUntil(caches.open(CACHE).then(function (c) {
+    return Promise.all(SHELL.map(function (u) { return c.add(u).catch(function () {}); }));
+  }));
 });
 
-self.addEventListener("activate", function (event) {
-  event.waitUntil(
+self.addEventListener("activate", function (e) {
+  e.waitUntil(
     caches.keys().then(function (keys) {
-      return Promise.all(keys.filter(function (k) { return k !== CACHE_VERSION; })
-        .map(function (k) { return caches.delete(k); }));
+      return Promise.all(keys.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); }));
     }).then(function () { return self.clients.claim(); })
   );
 });
 
-self.addEventListener("fetch", function (event) {
-  var req = event.request;
+self.addEventListener("fetch", function (e) {
+  var req = e.request;
   if (req.method !== "GET") return;
   var url = new URL(req.url);
-  if (url.origin !== self.location.origin) return;
+  if (url.origin !== location.origin) return;          // never touch other sites (audio, fonts, etc.)
+  if (req.headers.has("range")) return;                // let the browser handle audio/video ranges
 
-  var isPage = req.mode === "navigate" ||
-    (req.headers.get("accept") || "").indexOf("text/html") !== -1;
-
+  var isPage = req.mode === "navigate" || (req.headers.get("accept") || "").indexOf("text/html") > -1;
   if (isPage) {
-    // network first, fall back to the saved copy when offline
-    event.respondWith(
-      fetch(req, { cache: "no-store" }).then(function (res) {
-        var copy = res.clone();
-        caches.open(CACHE_VERSION).then(function (c) { c.put("./index.html", copy); });
+    // network first so updates arrive, cache fallback so it works offline
+    e.respondWith(
+      fetch(req).then(function (res) {
+        if (res && res.ok) { var copy = res.clone(); caches.open(CACHE).then(function (c) { c.put("./index.html", copy); }); }
         return res;
       }).catch(function () {
-        return caches.match(req).then(function (hit) {
-          return hit || caches.match("./index.html") || caches.match("./");
-        });
+        return caches.match("./index.html").then(function (r) { return r || caches.match("./"); });
       })
     );
     return;
   }
-
-  // other files: saved copy first, refreshed in the background
-  event.respondWith(
+  // other files: cache first, refresh in background
+  e.respondWith(
     caches.match(req).then(function (hit) {
       var net = fetch(req).then(function (res) {
-        if (res && res.status === 200) {
-          var copy = res.clone();
-          caches.open(CACHE_VERSION).then(function (c) { c.put(req, copy); });
-        }
+        if (res && res.ok) { var copy = res.clone(); caches.open(CACHE).then(function (c) { c.put(req, copy); }); }
         return res;
       }).catch(function () { return hit; });
       return hit || net;
