@@ -1498,6 +1498,11 @@ html body.game-mode:not(.gm-ui) .card img,html body.game-mode:not(.gm-ui) .revea
 .file-row.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft, rgba(99,102,241,.22))}
 .file-row .file-name{flex:1 1 auto;min-width:0;padding:6px 8px;font:inherit;font-weight:700;color:var(--text);background:transparent;border:1px solid transparent;border-radius:var(--radius-sm)}
 .file-row .file-name:focus{background:var(--surface);border-color:var(--border-strong);outline:none}
+.file-row .file-grip{cursor:grab;user-select:none;padding:2px 6px;color:var(--text-faint);font-size:16px;line-height:1}
+.file-row.dragging{opacity:.4}
+.file-row.drop-before{box-shadow:0 -3px 0 0 var(--accent)}
+.file-row.drop-after{box-shadow:0 3px 0 0 var(--accent)}
+.file-row .mv{padding:4px 8px;min-width:0}
 .file-row .file-meta{font-size:12px;color:var(--text-faint);white-space:nowrap}
 #trainerFileSel{max-width:100%;padding:6px 8px;font:inherit;border-radius:var(--radius-sm)}
 
@@ -1732,6 +1737,7 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
         <p class="hint">Every HTML file you import is kept as its own separate file. Tap <strong>Edit</strong> on a file to work on it. Everything in the library tools below (words, images, audio, export, shareable copy) only changes the file you picked. Game mode lets you play any of your files.</p>
         <div class="file-list" id="fileList"></div>
         <div class="lib-row">
+          <button class="btn secondary small" id="clearAllFilesBtn" type="button" title="Delete every file at once">\uD83D\uDDD1 Clear all files</button>
           <button class="btn secondary small" id="newFileBtn">➕ New empty file</button>
           <label class="status-text" style="display:inline-flex;align-items:center;gap:6px;">This file holds:
             <select id="fileKindSel" aria-label="What kind of cards this file holds">
@@ -4957,6 +4963,45 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     st.textContent = t || "";
     if(t) setTimeout(function(){ if(st.textContent === t) st.textContent = ""; }, 4000);
   }
+  var dragFileId = null;
+  function clearDropMarks(){
+    [].forEach.call(document.querySelectorAll("#fileList .drop-before,#fileList .drop-after"), function(r){ r.classList.remove("drop-before","drop-after"); });
+  }
+  function afterFileOrderChange(){
+    syncActiveWords();
+    save();
+    renderLibrary();
+    renderTrainer();
+  }
+  function moveFileBy(id, d){
+    var i = -1;
+    for(var k = 0; k < state.files.length; k++){ if(state.files[k].id === id){ i = k; break; } }
+    var j = i + d;
+    if(i < 0 || j < 0 || j >= state.files.length) return;
+    var t = state.files[i]; state.files[i] = state.files[j]; state.files[j] = t;
+    afterFileOrderChange();
+  }
+  function moveFileTo(id, targetId, after){
+    var from = null;
+    for(var k = 0; k < state.files.length; k++){ if(state.files[k].id === id){ from = state.files.splice(k, 1)[0]; break; } }
+    if(!from) return;
+    var at = state.files.length;
+    for(var m = 0; m < state.files.length; m++){ if(state.files[m].id === targetId){ at = m + (after ? 1 : 0); break; } }
+    state.files.splice(at, 0, from);
+    afterFileOrderChange();
+  }
+  function clearAllFiles(){
+    if(!state.files.length) return;
+    if(!confirm("Delete ALL " + state.files.length + " files with all their words, images and audio? This cannot be undone.")) return;
+    if(!confirm("Are you sure? Everything in every file will be removed.")) return;
+    stopTrainerForFileChange();
+    state.files = []; state.activeFileId = null; state.words = []; state.mastery = {};
+    ensureFile();
+    save();
+    renderLibrary();
+    renderTrainer();
+    fileMsg("All files cleared. A new empty file was created.");
+  }
   function renderFileManager(){
     var box = document.getElementById("fileList");
     if(!box) return;
@@ -4967,6 +5012,37 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       var isOn = f.id === state.activeFileId;
       var n = (isOn ? state.words : f.words).length;
       var row = el("div", "file-row" + (isOn ? " on" : ""));
+
+      var idx = state.files.indexOf(f);
+      var grip = el("span", "file-grip", "\u2630");
+      grip.title = "Drag to reorder"; grip.draggable = true;
+      grip.addEventListener("dragstart", function(e){
+        try{ e.dataTransfer.setData("text/plain", f.id); e.dataTransfer.effectAllowed = "move"; }catch(x){}
+        try{ e.dataTransfer.setDragImage(row, 10, 10); }catch(x){}
+        dragFileId = f.id; row.classList.add("dragging");
+      });
+      grip.addEventListener("dragend", function(){ dragFileId = null; row.classList.remove("dragging"); clearDropMarks(); });
+      row.addEventListener("dragover", function(e){
+        if(!dragFileId || dragFileId === f.id) return;
+        e.preventDefault(); clearDropMarks();
+        var r = row.getBoundingClientRect();
+        row.classList.add(e.clientY < r.top + r.height / 2 ? "drop-before" : "drop-after");
+      });
+      row.addEventListener("drop", function(e){
+        if(!dragFileId || dragFileId === f.id) return;
+        e.preventDefault();
+        var r = row.getBoundingClientRect();
+        moveFileTo(dragFileId, f.id, e.clientY >= r.top + r.height / 2);
+        dragFileId = null;
+      });
+      row.appendChild(grip);
+      var upB = el("button", "btn secondary small mv", "\u25B2"); upB.type = "button"; upB.title = "Move up";
+      upB.disabled = idx === 0; upB.setAttribute("aria-label", "Move " + f.name + " up");
+      upB.addEventListener("click", function(){ moveFileBy(f.id, -1); });
+      var dnB = el("button", "btn secondary small mv", "\u25BC"); dnB.type = "button"; dnB.title = "Move down";
+      dnB.disabled = idx === state.files.length - 1; dnB.setAttribute("aria-label", "Move " + f.name + " down");
+      dnB.addEventListener("click", function(){ moveFileBy(f.id, 1); });
+      row.appendChild(upB); row.appendChild(dnB);
 
       var editBtn = el("button", "btn small" + (isOn ? "" : " secondary"), isOn ? "Editing \u2713" : "Edit");
       editBtn.type = "button";
@@ -5023,6 +5099,8 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     }
   }
   (function(){
+    var ca = document.getElementById("clearAllFilesBtn");
+    if(ca) ca.addEventListener("click", clearAllFiles);
     var nb = document.getElementById("newFileBtn");
     if(nb) nb.addEventListener("click", function(){
       syncActiveWords();
