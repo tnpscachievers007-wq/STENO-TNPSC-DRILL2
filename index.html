@@ -8012,13 +8012,13 @@ function sj(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
 function shuf(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
 function mk(tag,id,cls,html){var e=document.createElement(tag);if(id)e.id=id;if(cls)e.className=cls;if(html!=null)e.innerHTML=html;document.body.appendChild(e);return e}
-var cfg=Object.assign({autoScroll:true,file:null,files:[],dir:"s2w",order:true,target:10000,setSize:0,setRandom:false,rev:2,miss:7,missDef:3,missDefOn:true,knewNeed:3,pace:10,tts:false,missA:5,missB:8,sfx:true,txt:100,img:100,ui:true,clean:false},lj("stenoReelsCfg2",{}));
+var cfg=Object.assign({autoScroll:true,file:null,files:[],dir:"s2w",order:true,target:10000,setSize:0,setRandom:false,rev:2,miss:7,missDef:3,missDefOn:true,r3On:true,miss3:8,knewNeed:3,pace:10,tts:false,missA:5,missB:8,sfx:true,txt:100,img:100,ui:true,clean:false},lj("stenoReelsCfg2",{}));
 var R={open:false,run:false,items:[],idx:0,done:0,knew:0,missed:0,score:0,combo:0,maxCombo:0,ms:0,startDone:0,paused:false,holdP:false,rev:{},jud:{},tr:null,tm:null,fi:0,si:0,mi:0,sets:[],sc:{},fl:[],modes:["s2w"],rKnew:0,rMiss:0,hist:[],kc:{},seed:1,missIds:[],fileName:"",retry:false,target:10000,setSize:0,setRandom:false,modeStart:0,pre:0,all:[],judIds:[],retryIds:[],quiet:false};
 function cleanCfg(){
   if(!cfg.file&&Array.isArray(cfg.files)&&cfg.files.length)cfg.file=cfg.files[0];delete cfg.files;
   cfg.dir=cfg.dir==="w2s"?"w2s":"s2w";cfg.order=!!cfg.order;
   cfg.target=Math.max(1,Math.round(+cfg.target)||10000);cfg.setSize=Math.max(0,Math.round(+cfg.setSize)||0);cfg.setRandom=!!cfg.setRandom;
-  cfg.rev=Math.max(1,Math.round(+cfg.rev)||2);cfg.miss=Math.max(1,Math.round(+cfg.miss)||7);cfg.missDef=Math.min(9999,Math.max(1,Math.round(+cfg.missDef)||3));cfg.missDefOn=cfg.missDefOn!==false;cfg.missA=Math.min(9999,Math.max(1,Math.round(+cfg.missA)||5));cfg.missB=Math.min(9999,Math.max(1,Math.round(+cfg.missB)||8));cfg.knewNeed=Math.min(99,Math.max(1,Math.round(+cfg.knewNeed)||3));cfg.pace=Math.max(1,Math.round(+cfg.pace)||10);
+  cfg.rev=Math.max(1,Math.round(+cfg.rev)||2);cfg.miss=Math.max(1,Math.round(+cfg.miss)||7);cfg.missDef=Math.min(9999,Math.max(1,Math.round(+cfg.missDef)||3));cfg.missDefOn=cfg.missDefOn!==false;cfg.r3On=cfg.r3On!==false;cfg.miss3=Math.min(9999,Math.max(1,Math.round(+cfg.miss3)||8));cfg.missA=Math.min(9999,Math.max(1,Math.round(+cfg.missA)||5));cfg.missB=Math.min(9999,Math.max(1,Math.round(+cfg.missB)||8));cfg.knewNeed=Math.min(99,Math.max(1,Math.round(+cfg.knewNeed)||3));cfg.pace=Math.max(1,Math.round(+cfg.pace)||10);
   cfg.txt=Math.min(250,Math.max(40,Math.round(+cfg.txt)||100));cfg.img=Math.min(250,Math.max(20,Math.round(+cfg.img)||100));
   cfg.autoScroll=cfg.autoScroll!==false;cfg.tts=!!cfg.tts;cfg.sfx=cfg.sfx!==false;cfg.ui=cfg.ui!==false;cfg.clean=!!cfg.clean}
 function T(){return R.run?R.target:cfg.target}
@@ -8154,7 +8154,7 @@ function tone(f,d,t,v,dl){if(!cfg.sfx)return;try{ac=ac||new(window.AudioContext|
 function sfx(k){if(k==="knew"){tone(660,.12,"triangle",.08);tone(990,.18,"triangle",.08,.1)}else if(k==="miss")tone(220,.22,"sawtooth",.05);else if(k==="rev")tone(520,.08,"sine",.05)}
 function vib(n){try{if(navigator.vibrate)navigator.vibrate(n)}catch(e){}}
 
-function saveRun(){var mz=R.missIds||[];sj("stenoGameRun",{date:today(),target:R.target,done:R.done,knew:R.knew,missed:R.missed,score:R.score,maxCombo:R.maxCombo,file:R.fl[R.fi]||cfg.file,mode:R.modes[R.mi]==="w2s"?1:0,rev:cfg.rev,miss:cfg.miss,pace:cfg.pace,order:cfg.order,knewIds:(R.judIds||[]).filter(function(x){return mz.indexOf(x)<0}),missIds:mz,retryIds:R.retryIds||[],setIdx:R.si,setSize:R.setSize,setRandom:R.setRandom,setSeed:R.seed,modeStart:R.modeStart,v:3,d3:1,rk:R.rKnew||0,rm:R.rMiss||0,rh:R.hist||[]})}
+function saveRun(){var mz=R.missIds||[];sj("stenoGameRun",{date:today(),target:R.target,done:R.done,knew:R.knew,missed:R.missed,score:R.score,maxCombo:R.maxCombo,file:R.fl[R.fi]||cfg.file,mode:R.modes[R.mi]==="w2s"?1:0,mi:R.mi,rev:cfg.rev,miss:cfg.miss,pace:cfg.pace,order:cfg.order,knewIds:(R.judIds||[]).filter(function(x){return mz.indexOf(x)<0}),missIds:mz,retryIds:R.retryIds||[],setIdx:R.si,setSize:R.setSize,setRandom:R.setRandom,setSeed:R.seed,modeStart:R.modeStart,v:3,d3:1,rk:R.rKnew||0,rm:R.rMiss||0,rh:R.hist||[]})}
 
 function boot(){
   ["reelsModeBtn","rlRoot","rlStyle"].forEach(function(i){var e=$(i);if(e&&e.parentNode)e.parentNode.removeChild(e)});
@@ -8194,7 +8194,7 @@ function boot(){
   $("rlPause").onclick=togglePause;$("rlRestart").onclick=restartSet;$("rlNext").onclick=nextRound;$("rlPrev").onclick=prevRound;$("rlPaused").onclick=togglePause;
   $("rlOrd").onclick=function(){cfg.order=!cfg.order;saveCfg();toast(cfg.order?"In order (from next round)":"Random (from next round)");hud()};
   (function(){var box=$("rlMissQ"),h="";for(var q=1;q<=8;q++)h+='<button type="button" data-s="'+q+'" title="Auto-miss '+q+' s">'+q+'</button>';box.innerHTML=h;
-    box.onclick=function(e){var b=e.target.closest?e.target.closest("button[data-s]"):null;if(!b)return;cfg.miss=+b.getAttribute("data-s");saveCfg();toast("Auto-miss "+cfg.miss+" s");hud();arm()}})();
+    box.onclick=function(e){var b=e.target.closest?e.target.closest("button[data-s]"):null;if(!b)return;if(isR3())cfg.miss3=+b.getAttribute("data-s");else cfg.miss=+b.getAttribute("data-s");saveCfg();toast("Auto-miss "+missT()+" s");hud();arm()}})();
   $("rlCfg").onclick=function(){openSheet("live")};$("rlFile").onclick=$("rlMode").onclick=$("rlCfg").onclick;
   $("rlAuto").onclick=function(){cfg.autoScroll=!cfg.autoScroll;saveCfg();toast(cfg.autoScroll?"Auto-scroll ON":"Auto-scroll OFF · swipe yourself",1600);hud()};
   $("rlUi").onclick=function(){cfg.ui=!cfg.ui;saveCfg();syncUi()};
@@ -8310,7 +8310,9 @@ function openSheet(mode){
   h+=num("rev","Auto-reveal (s)",1);
   h+='<div class="rl-row"><label>Default auto-miss at the start of every round</label><div class="rl-chips">'+chip("missDefOn","1","ON",cfg.missDefOn)+chip("missDefOn","0","OFF · keep last time",!cfg.missDefOn)+'</div></div>';
   h+=num("missDef","Default auto-miss time (s)",1);
-  h+='<div class="rl-row"><label>Auto-miss time (seconds) · current round</label><div class="rl-chips">'+[1,2,3,4,5,6,7,8].map(function(q){return chip("miss",q,q+" s",cfg.miss===q)}).join("")+'</div></div>';
+  h+='<div class="rl-row"><label>Round 3 per set (Word \u2192 Stroke again, with its own auto-miss)</label><div class="rl-chips">'+chip("r3On","1","ON",cfg.r3On)+chip("r3On","0","OFF",!cfg.r3On)+'</div></div>';
+  h+=num("miss3","Round 3 auto-miss time (s)",1);
+  h+='<div class="rl-row"><label>Auto-miss time (seconds) · current round</label><div class="rl-chips">'+[1,2,3,4,5,6,7,8].map(function(q){return chip("miss",q,q+" s",missT()===q)}).join("")+'</div></div>';
   h+=num("knewNeed","Knew it clicks to finish a card",1)+num("pace","Pace target (s per card)",1);
   h+='<div class="rl-row"><label>Image size <span id="rlImgV">'+cfg.img+'</span>%</label><input type="range" id="rlImg" min="20" max="250" step="10" value="'+cfg.img+'"></div>';
   h+='<div class="rl-row"><label>Text size <span id="rlTxtV">'+cfg.txt+'</span>%</label><input type="range" id="rlTxt" min="40" max="250" step="10" value="'+cfg.txt+'"></div>';
@@ -8331,7 +8333,8 @@ function openSheet(mode){
     else if(g==="tts"||g==="sfx")cfg[g]=!cfg[g];
     else if(g==="auto")cfg.autoScroll=!cfg.autoScroll;
     else if(g==="setRandom")cfg.setRandom=v==="1";
-    else if(g==="miss"){cfg.miss=+v;if(R.run)hud()}
+    else if(g==="miss"){if(isR3())cfg.miss3=+v;else cfg.miss=+v;if(R.run)hud()}
+    else if(g==="r3On")cfg.r3On=v==="1";
     else if(g==="missDefOn")cfg.missDefOn=v==="1";
     else cfg[g]=v;
     saveCfg();again()};
@@ -8347,7 +8350,9 @@ function vars(){var r=$("rlRoot");r.style.setProperty("--rl-txt",cfg.txt);r.styl
 // ---------- game flow ----------
 function playable(f){return (f.s2w||0)>0||(f.w2s||0)>0}
 // Every set is played Stroke/Question -> Word/Answer first, then Word/Answer -> Stroke/Question.
-function modeOrder(){return["s2w","w2s"]}
+function modeOrder(){return cfg.r3On?["s2w","w2s","w2s"]:["s2w","w2s"]}
+function isR3(){return !!(R.modes&&R.modes.length>2&&R.mi===2)}
+function missT(){return isR3()?cfg.miss3:cfg.miss}
 // Like Game mode: the chosen file first, then every next file of the library, round and round.
 function fileOrder(start){var fl=A().files().filter(playable).map(function(f){return f.id}),i=fl.indexOf(start);if(i<0)i=0;return fl.slice(i).concat(fl.slice(0,i))}
 function resetRun(keepKc){R.done=R.knew=R.missed=R.score=R.combo=R.maxCombo=0;R.ms=0;R.startDone=0;R.sc={};R.hist=[];R.rKnew=R.rMiss=0;
@@ -8365,14 +8370,15 @@ function resume(){var r=lj("stenoGameRun",null);if(!r)return;resetRun(true);
   R.fl=fileOrder(fid);
   R.knew=r.knew||0;R.missed=r.missed||0;R.done=R.knew+R.missed;R.startDone=R.done;R.score=r.score||0;R.maxCombo=r.maxCombo||0;
   R.hist=Array.isArray(r.rh)?r.rh.slice():[];
-  var si=Math.max(0,Math.round(+r.setIdx)||0),mi=((r.mode===1?1:0)-R.modeStart+2)%2,ry=Array.isArray(r.retryIds)?r.retryIds:[],kn=Array.isArray(r.knewIds)?r.knewIds:[],mz=Array.isArray(r.missIds)?r.missIds:[],sets=getSets(R.fl[0]);
+  var si=Math.max(0,Math.round(+r.setIdx)||0),mi=(r.mi!=null&&+r.mi>=0&&+r.mi<R.modes.length)?Math.round(+r.mi):((r.mode===1?1:0)-R.modeStart+2)%2,ry=Array.isArray(r.retryIds)?r.retryIds:[],kn=Array.isArray(r.knewIds)?r.knewIds:[],mz=Array.isArray(r.missIds)?r.missIds:[],sets=getSets(R.fl[0]);
   if(si>=sets.length)si=0;
   var only=null;if(ry.length){only=mkItems(R.fl[0],R.modes[mi],sets[si]||[]).filter(function(x){return ry.indexOf(x.id)>=0});if(!only.length)only=null}
   R.run=true;R.quiet=true;vars();syncUi();
   if(!pass(0,si,mi,only,{skip:kn.concat(mz),miss:mz,rk:Math.max(0,Math.round(+r.rk)||0),rm:Math.max(0,Math.round(+r.rm)||0)}))finish()}
 function pass(fi,si,mi,only,st){
   var n=R.fl.length,lim=800;if(!n)return false;
-  if(!st&&!only&&cfg.missDefOn){cfg.miss=cfg.missDef;saveCfg()}   // every new round starts with the default auto-miss time
+  if(mi>=R.modes.length)mi=0;
+  if(!st&&!only&&mi!==2&&cfg.missDefOn){cfg.miss=cfg.missDef;saveCfg()}   // every new round starts with the default auto-miss time
   while(lim-->0){
     fi=fi%n;var fid=R.fl[fi],sets=getSets(fid);if(si>=sets.length)si=0;
     var its=only||mkItems(fid,R.modes[mi],sets[si]||[]);
@@ -8392,7 +8398,7 @@ function pass(fi,si,mi,only,st){
       R.items=its;
       for(var i=0;i<=its.length;i++){var s=document.createElement("section");s.className="rl-s";feed.appendChild(s)}
       feed.scrollTop=0;fillWindow();saveRun();hud();
-      var nm=R.modes[mi]==="s2w"?"Stroke → Word":"Word → Stroke",chg=!prevFile||prevFile!==R.fileName;
+      var nm=(mi===2&&R.modes.length>2)?"Round 3 \u00b7 Word \u2192 Stroke \u00b7 "+cfg.miss3+" s":R.modes[mi]==="s2w"?"Stroke → Word":"Word → Stroke",chg=!prevFile||prevFile!==R.fileName;
       toast(only?"🔁 "+its.length+" missed again":(chg?"📄 "+R.fileName+" · ":"")+(sets.length>1?"Set "+(si+1)+" of "+sets.length+" · ":"")+nm,2200);
       if(!quiet){if(only){tone(330,.12,"triangle",.07);tone(262,.18,"triangle",.07,.12)}else{tone(660,.1,"triangle");tone(990,.15,"triangle",.08,.1)}}
       setTimeout(function(){fitPad();arm();onActive();if(D.on)dictSync()},80);return true}
@@ -8413,7 +8419,7 @@ function endHTML(){
   var again=(R.missIds||[]).length,line;
   if(again)line="🔁 "+again+" missed card"+(again===1?"":"s")+" come next";
   else{var n=nextStep(),f=(A().files().filter(function(x){return x.id===R.fl[n.fi]})[0]||{}).name||"";
-    line="Next: "+(n.fi!==R.fi?"📄 "+esc(f)+" · ":"")+(n.si!==R.si||n.fi!==R.fi?"Set "+(n.si+1)+" · ":"")+(R.modes[n.mi]==="s2w"?"Stroke → Word":"Word → Stroke")}
+    line="Next: "+(n.fi!==R.fi?"📄 "+esc(f)+" · ":"")+(n.si!==R.si||n.fi!==R.fi?"Set "+(n.si+1)+" · ":"")+((n.mi===2&&R.modes.length>2)?"Round 3 \u00b7 Word \u2192 Stroke":R.modes[n.mi]==="s2w"?"Stroke → Word":"Word → Stroke")}
   return '<div class="rl-media"><div class="rl-q">'+(again?"Round done":"✅ Set done")+'</div><div class="rl-q" style="font-size:20px;opacity:.9">'+line+'</div></div>'}
 function slideHTML(i){
   if(i>=R.items.length)return endHTML();
@@ -8608,9 +8614,9 @@ function arm(){
   stopT();
   if(!R.open||!R.run||D.on||ED.on||R.paused||R.holdP||sheetOn()||!R.items[R.idx])return;
   if(R.jud[R.idx]&&!cfg.autoScroll)return;
-  var f=$("rlFill");f.style.transition="none";f.style.width="0";void f.offsetWidth;f.style.transition="width "+cfg.miss+"s linear";f.style.width="100%";
+  var f=$("rlFill");f.style.transition="none";f.style.width="0";void f.offsetWidth;f.style.transition="width "+missT()+"s linear";f.style.width="100%";
   if(!R.rev[R.idx])fire("tr",reveal,cfg.rev*1000);
-  fire("tm",function(){if(R.jud[R.idx])fastGo(1);else judge("missed")},cfg.miss*1000)}
+  fire("tm",function(){if(R.jud[R.idx])fastGo(1);else judge("missed")},missT()*1000)}
 // Read aloud on: when the time ends while a voice is still speaking, let the sentence finish first, then reveal / go to the next card.
 function fire(slot,fn,ms){R[slot]=setTimeout(function(){var a=A();if(cfg.tts&&a&&a.reading&&a.reading()){fire(slot,fn,250);return}fn()},ms)}
 function reveal(){if(!R.run||R.rev[R.idx]||!R.items[R.idx])return;R.rev[R.idx]=1;var s=curSlide();if(s)s.classList.add("rev");sfx("rev");if(cfg.tts){var ri=R.items[R.idx];if(ri&&!ri.c.qa&&ri.dir==="s2w")sayOne(ri.c.text)}}
@@ -8672,8 +8678,8 @@ function hud(){
   $("rlSetPill").textContent="🎯 SET "+(R.si+1)+" / "+Math.max(1,(R.sets||[]).length);
   var sp=$("rlStat");if(sp){sp.classList.toggle("on",!!R.run);sp.innerHTML=(R.retry?"Retry \u00b7 ":"")+"Knew <b>"+R.rKnew+"</b> / "+rt+" \u00b7 Card <b>"+cur+"</b> / "+rt+" \u00b7 Set <b>"+(R.si+1)+"</b> / "+Math.max(1,(R.sets||[]).length)}
   $("rlFile").innerHTML="<small>📄 FILE · tap to change</small><b>"+esc(R.fileName||"-")+"</b>";
-  $("rlMode").innerHTML="<small>🎯 MODE · "+(R.retry?"missed again":"round")+" "+(Object.keys(R.jud).length+R.pre)+" / "+rt+"</small><b>"+(R.modes&&R.modes[R.mi]==="w2s"?"Word/Answer → Stroke/Question":"Stroke/Question → Word/Answer")+"</b>";
-  $("rlOrd").textContent="🔢 Order "+(cfg.order?"ON":"OFF");$("rlOrd").classList.toggle("on",cfg.order);[].forEach.call($("rlMissQ").querySelectorAll("button"),function(b){b.classList.toggle("on",+b.getAttribute("data-s")===cfg.miss)});$("rlAuto").textContent="⏬ Auto "+(cfg.autoScroll?"ON":"OFF");$("rlAuto").classList.toggle("on",cfg.autoScroll);
+  $("rlMode").innerHTML="<small>🎯 MODE · "+(R.retry?"missed again":"round")+" "+(Object.keys(R.jud).length+R.pre)+" / "+rt+"</small><b>"+((R.mi===2&&R.modes&&R.modes.length>2)?"Round 3 \u00b7 Word/Answer \u2192 Stroke/Question \u00b7 "+cfg.miss3+" s":R.modes&&R.modes[R.mi]==="w2s"?"Word/Answer → Stroke/Question":"Stroke/Question → Word/Answer")+"</b>";
+  $("rlOrd").textContent="🔢 Order "+(cfg.order?"ON":"OFF");$("rlOrd").classList.toggle("on",cfg.order);[].forEach.call($("rlMissQ").querySelectorAll("button"),function(b){b.classList.toggle("on",+b.getAttribute("data-s")===missT())});$("rlAuto").textContent="⏬ Auto "+(cfg.autoScroll?"ON":"OFF");$("rlAuto").classList.toggle("on",cfg.autoScroll);
   var hs=R.hist||[],off=Math.max(0,hs.length-6),h="🏆 Rounds · Knew %: ";
   function pc(k,m){return (k+m)?Math.round(100*k/(k+m))+"%":"-"}
   for(var q=off;q<hs.length;q++)h+="<i>R"+(q+1)+" "+pc(hs[q].k,hs[q].m)+"</i>";
