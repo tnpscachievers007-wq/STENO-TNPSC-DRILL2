@@ -1,5 +1,5 @@
 // Steno + TNPSC Drill service worker: offline-first app shell, safe updates.
-var CACHE = "steno-drill-v2";
+var CACHE = "steno-drill-v3";
 var SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", function (e) {
