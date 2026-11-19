@@ -8388,7 +8388,7 @@ function pass(fi,si,mi,only,st){
       R.fileName=(A().files().filter(function(f){return f.id===fid})[0]||{}).name||"";
       var feed=$("rlFeed");feed.innerHTML="";R.items=[];R.idx=0;R.rev={};R.jud={};R.undo=[];
       if(!rest.length){saveRun();hud();advance();return true}   // everything in this round was already judged
-      its=rest.slice();if(!cfg.order)shuf(its);
+      its=rest.slice();if(!cfg.order&&(only||R.modes[mi]!=="s2w"))shuf(its);   // first round (Stroke > Word) is always in order; random only applies to later rounds
       R.items=its;
       for(var i=0;i<=its.length;i++){var s=document.createElement("section");s.className="rl-s";feed.appendChild(s)}
       feed.scrollTop=0;fillWindow();saveRun();hud();
