@@ -8372,7 +8372,7 @@ function resume(){var r=lj("stenoGameRun",null);if(!r)return;resetRun(true);
   if(!pass(0,si,mi,only,{skip:kn.concat(mz),miss:mz,rk:Math.max(0,Math.round(+r.rk)||0),rm:Math.max(0,Math.round(+r.rm)||0)}))finish()}
 function pass(fi,si,mi,only,st){
   var n=R.fl.length,lim=800;if(!n)return false;
-  if(!st&&cfg.missDefOn){cfg.miss=cfg.missDef;saveCfg()}   // every new round starts with the default auto-miss time
+  if(!st&&!only&&cfg.missDefOn){cfg.miss=cfg.missDef;saveCfg()}   // every new round starts with the default auto-miss time
   while(lim-->0){
     fi=fi%n;var fid=R.fl[fi],sets=getSets(fid);if(si>=sets.length)si=0;
     var its=only||mkItems(fid,R.modes[mi],sets[si]||[]);
