@@ -1930,6 +1930,8 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
           <label><button type="button" id="ttsOffTaTest">test offline Tamil</button> <button type="button" id="ttsOffEnTest">test offline English</button></label>
           <p class="hint">Online / Offline is switched with the 🟢 / 📴 button in Reels mode. Online uses only the default online voices. Offline uses only the voices chosen here, which must be installed on this laptop (for Tamil in Windows: Settings → Time &amp; language → Speech → Add voices → Tamil).</p>
           <label>speed <select id="ttsRateSel"><option value="0.6">very slow</option><option value="0.75">slow</option><option value="0.9">normal</option><option value="1">fast</option><option value="1.15">very fast</option></select></label>
+          <label>recorded-audio loudness <select id="ttsBoostSel"><option value="1">normal</option><option value="2">louder (2x)</option><option value="3">very loud (3x)</option><option value="4">maximum (4x)</option></select></label>
+          <p class="hint">The built-in computer voice is already at the browser's maximum (100%) and cannot go higher from a web page. For it to be louder: raise the Windows volume and the Edge tab volume, pick an Online (Natural) voice, and in Windows Sound settings turn on Loudness equalization. The loudness setting above boosts voice files you uploaded or recorded.</p>
           <label><button type="button" id="ttsTestBtn">test voice</button></label>
         </div>
       </details>
@@ -3297,7 +3299,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     });
   }
 
-  var activeAudio = null;
+  var activeAudio = null, boostCtx = null;
   function playAudio(src){
     if(!src) return;
     if(activeAudio){
@@ -3305,6 +3307,22 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       activeAudio = null;
     }
     activeAudio = new Audio(src);
+    activeAudio.volume = 1;
+    try{
+      var boost = parseFloat(state.settings.ttsBoost); if(!(boost >= 1)) boost = 3;
+      if(boost > 1){
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if(AC){
+          boostCtx = boostCtx || new AC();
+          if(boostCtx.state === "suspended") boostCtx.resume();
+          var node = boostCtx.createMediaElementSource(activeAudio);
+          var gain = boostCtx.createGain(); gain.gain.value = boost;
+          var comp = boostCtx.createDynamicsCompressor();   // stops harsh clipping when boosted
+          comp.threshold.value = -12; comp.knee.value = 20; comp.ratio.value = 12; comp.attack.value = 0.003; comp.release.value = 0.25;
+          node.connect(gain); gain.connect(comp); comp.connect(boostCtx.destination);
+        }
+      }
+    }catch(e){ console.warn("Audio boost unavailable:", e); }
     activeAudio.play().catch(function(e){ console.warn("Audio playback failed:", e); });
   }
   function stopAudio(){
@@ -6887,6 +6905,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
         u.lang = v ? v.lang : (g.lang === "ta" ? "ta-IN" : (setLang.slice(0, 2).toLowerCase() === "en" ? setLang : "en-IN"));
         if(v) u.voice = v;
         u.rate = parseFloat(state.settings.ttsRate) || 0.9;
+        u.volume = 1;   // browser maximum (1.0)
         var last = (i === segs.length - 1);
         u.onend = function(){ if(last && tok === speakToken){ speakingNow = false; clearInterval(window.__ttsKeep); } };
         u.onerror = function(){ if(last && tok === speakToken){ speakingNow = false; clearInterval(window.__ttsKeep); } };
@@ -6928,6 +6947,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     document.getElementById("ttsChk").checked = !!state.settings.tts;
     document.getElementById("ttsLangSel").value = state.settings.ttsLang || "en-IN";
     document.getElementById("ttsRateSel").value = String(state.settings.ttsRate || "0.9");
+    document.getElementById("ttsBoostSel").value = String(state.settings.ttsBoost || "3");
     fillVoiceBox();
     fillOffBox();
     applyTextSize();
@@ -6974,6 +6994,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   });
   bindSetting("ttsVoiceSel", "ttsVoice", "str");
   bindSetting("ttsRateSel", "ttsRate", "str");
+  bindSetting("ttsBoostSel", "ttsBoost", "str");
   document.getElementById("ttsTestBtn").addEventListener("click", function(){
     var ta = (state.settings.ttsLang || "").slice(0, 2) === "ta";
     speak(["Hello. This is a test of the voice.", "வணக்கம். இது ஒரு சோதனை குரல்."]);
