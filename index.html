@@ -1737,6 +1737,8 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
         <p class="hint">Every HTML file you import is kept as its own separate file. Tap <strong>Edit</strong> on a file to work on it. Everything in the library tools below (words, images, audio, export, shareable copy) only changes the file you picked. Game mode lets you play any of your files.</p>
         <div class="file-list" id="fileList"></div>
         <div class="lib-row">
+          <button class="btn secondary small" id="dupEachFileBtn" type="button" title="Remove duplicate words inside every file">\u267B Remove duplicates in all files</button>
+          <button class="btn secondary small" id="dupAcrossFilesBtn" type="button" title="Remove words that appear in more than one file, keeping the first (top-most) file's copy">\u267B Remove duplicates across files</button>
           <button class="btn secondary small" id="clearAllFilesBtn" type="button" title="Delete every file at once">\uD83D\uDDD1 Clear all files</button>
           <button class="btn secondary small" id="newFileBtn">➕ New empty file</button>
           <label class="status-text" style="display:inline-flex;align-items:center;gap:6px;">This file holds:
@@ -4990,6 +4992,40 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     state.files.splice(at, 0, from);
     afterFileOrderChange();
   }
+  function dupKey(w){
+    var key = (w.text || "").trim().toLowerCase();
+    if(key && isQA(w)) key += "\u0001" + String(w.answer || "").trim().toLowerCase();
+    return key;
+  }
+  // across=false: duplicates inside each file. across=true: a word already seen in an
+  // earlier file (top of the list) or earlier in the same file is removed.
+  function removeDuplicatesAllFiles(across){
+    syncActiveWords();
+    var seenAll = {}, plan = [], total = 0;
+    state.files.forEach(function(f){
+      var seen = across ? seenAll : {}, keep = [], gone = [];
+      (f.words || []).forEach(function(w){
+        var key = dupKey(w);
+        if(key && seen[key]) gone.push(w.id);
+        else { if(key) seen[key] = true; keep.push(w); }
+      });
+      if(gone.length){ plan.push({ f: f, keep: keep, gone: gone }); total += gone.length; }
+    });
+    if(!total){ fileMsg(across ? "No duplicates found across your files." : "No duplicate words found in any file."); return; }
+    var msg = "Remove " + total + " duplicate word(s) from " + plan.length + " file(s)? " +
+      (across ? "The first copy (in the top-most file) is kept." : "The first copy in each file is kept.");
+    if(!confirm(msg)) return;
+    stopTrainerForFileChange();
+    plan.forEach(function(p){
+      p.f.words = p.keep;
+      p.gone.forEach(function(id){ delete state.mastery[id + "::s2w"]; delete state.mastery[id + "::w2s"]; });
+    });
+    useFile(state.activeFileId);
+    save();
+    renderLibrary();
+    renderTrainer();
+    fileMsg("Removed " + total + " duplicate word(s) from " + plan.length + " file(s).");
+  }
   function clearAllFiles(){
     if(!state.files.length) return;
     if(!confirm("Delete ALL " + state.files.length + " files with all their words, images and audio? This cannot be undone.")) return;
@@ -5099,6 +5135,10 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     }
   }
   (function(){
+    var de = document.getElementById("dupEachFileBtn");
+    if(de) de.addEventListener("click", function(){ removeDuplicatesAllFiles(false); });
+    var da = document.getElementById("dupAcrossFilesBtn");
+    if(da) da.addEventListener("click", function(){ removeDuplicatesAllFiles(true); });
     var ca = document.getElementById("clearAllFilesBtn");
     if(ca) ca.addEventListener("click", clearAllFiles);
     var nb = document.getElementById("newFileBtn");
