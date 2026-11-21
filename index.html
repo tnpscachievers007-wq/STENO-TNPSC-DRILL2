@@ -8231,8 +8231,8 @@ function css2(){return [
 '#rlMore .wide{flex:1 1 100%;text-align:left;height:auto;min-height:34px;padding:4px 12px;line-height:1.25}.wide small{display:block;opacity:.7;font-size:10px}',
 '#rlRounds{font-size:12px;margin-bottom:5px}#rlRounds i{display:inline-block;margin:0 5px 3px 0;padding:2px 8px;border-radius:10px;background:#ffffff1f;font-style:normal}',
 '#rlSched{font-size:12px;padding:5px 10px;border-radius:12px;background:#0007;margin-bottom:4px}#rlSched u{display:block;height:4px;border-radius:2px;background:#1fbf75;margin-top:3px}',
-'body.rl-ui-off #rlMore{display:none}',
-'body.rl-clean #rlMore,body.rl-clean #rlOrd,body.rl-clean #rlMissQ,body.rl-clean #rlDone,body.rl-clean #rlUi,body.rl-clean #rlFs,body.rl-clean #rlCfg{display:none!important}',
+'body.rl-ui-off #rlMore>*,body.rl-clean #rlMore>*{display:none}body.rl-ui-off #rlMore>.rl-keep,body.rl-clean #rlMore>.rl-keep{display:flex}',
+'body.rl-clean #rlOrd,body.rl-clean #rlMissQ,body.rl-clean #rlDone,body.rl-clean #rlUi{display:none!important}body.rl-clean #rlRot,body.rl-clean #rlCfg,body.rl-clean #rlFs{display:inline-block!important}',
 '#rlPaused{display:none;position:absolute;inset:0;z-index:5;background:transparent}#rlPaused.on{display:flex}',
 '.rl-pop{position:absolute;left:50%;top:42%;transform:translateX(-50%);font-size:42px;font-weight:900;color:#3dffa0;z-index:8;pointer-events:none;animation:rlUp .9s ease-out forwards}.rl-pop.bad{color:#ff5470}',
 '@keyframes rlUp{to{opacity:0;transform:translate(-50%,-70px)}}',
@@ -8296,30 +8296,39 @@ function vib(n){try{if(navigator.vibrate)navigator.vibrate(n)}catch(e){}}
 function saveRun(){var mz=R.missIds||[];sj("stenoGameRun",{date:today(),target:R.target,done:R.done,knew:R.knew,missed:R.missed,score:R.score,maxCombo:R.maxCombo,file:R.fl[R.fi]||cfg.file,mode:R.modes[R.mi]==="w2s"?1:0,mi:R.mi,rev:cfg.rev,miss:cfg.miss,pace:cfg.pace,order:cfg.order,knewIds:(R.judIds||[]).filter(function(x){return mz.indexOf(x)<0}),missIds:mz,retryIds:R.retryIds||[],setIdx:R.si,setSize:R.setSize,setRandom:R.setRandom,setSeed:R.seed,modeStart:R.modeStart,v:3,d3:1,rk:R.rKnew||0,rm:R.rMiss||0,rh:R.hist||[]})}
 
 function rotCss(){return[
-"#rlRoot.col{left:50%;right:auto;width:min(100vw,56.25vh);transform:translateX(-50%);box-shadow:0 0 0 100vmax #000}",
-"#rlRoot.rot{inset:auto;top:0;left:100%;width:100vh;height:100vw;transform-origin:0 0;transform:rotate(90deg)}",
-"#rlRoot.rot .rl-s{height:100vw}",
-"#rlRoot.rot .rl-img img{height:calc(var(--rl-img,100)*.46vw)}",
-"#rlRoot.rot .rl-a.ph img{height:calc(var(--rl-img,100)*.4vw)}",
-"#rlRoot.rot .rl-card{max-height:92vw}"].join("")}
+"#rlRoot .rl-s{height:var(--Hf,100dvh)}",
+"#rlRoot.col{left:50%;right:auto;width:var(--Wf,min(100vw,56.25vh));transform:translateX(-50%);box-shadow:0 0 0 100vmax #000}",
+"#rlRoot.rot{inset:auto;top:0;left:var(--Ww,100vw);width:var(--Wf,100vh);height:var(--Hf,100vw);transform-origin:0 0;transform:rotate(90deg)}",
+"#rlRoot.land .rl-s{overflow-y:auto;padding-left:18px;padding-right:18px}",
+"#rlRoot.land .rl-media{flex-direction:row;flex-wrap:wrap;justify-content:center;align-content:center;gap:12px 18px}",
+"#rlRoot.land .rl-img{width:auto;max-width:56%}",
+"#rlRoot.land .rl-img img{width:auto;max-width:100%;height:calc(var(--rl-img,100)*.0052*var(--Hn,360)*1px)}",
+"#rlRoot.land .rl-a.ph{width:auto;max-width:44%}",
+"#rlRoot.land .rl-a.ph img{width:auto;height:calc(var(--rl-img,100)*.0044*var(--Hn,360)*1px)}",
+"#rlRoot.land .rl-q,#rlRoot.land .rl-a{max-width:44%}",
+"#rlRoot.land .rl-card{max-height:calc(var(--Hf,100dvh)*.92)}"].join("")}
 function vpWide(){return window.innerWidth>window.innerHeight}
 function effLand(){var w=vpWide();return cfg.orient==="landscape"?true:cfg.orient==="portrait"?false:w}
-function applyOrient(){var r=$("rlRoot"),b=$("rlRot");if(!r)return;var w=vpWide();
-  r.classList.toggle("rot",cfg.orient==="landscape"&&!w);r.classList.toggle("col",cfg.orient==="portrait"&&w);
+function applyOrient(){var r=$("rlRoot"),b=$("rlRot");if(!r)return;var vv=window.visualViewport,w=Math.round(window.innerWidth||(vv&&vv.width)||360),h=Math.round(window.innerHeight||(vv&&vv.height)||640),wide=w>h;
+  var rot=cfg.orient==="landscape"&&!wide,col=cfg.orient==="portrait"&&wide;
+  var Wf=rot?h:(col?Math.min(w,Math.round(h*.5625)):w),Hf=rot?w:h;
+  r.classList.toggle("rot",rot);r.classList.toggle("col",col);r.classList.toggle("land",Wf>Hf);
+  r.style.setProperty("--Ww",w+"px");r.style.setProperty("--Wf",Wf+"px");r.style.setProperty("--Hf",Hf+"px");r.style.setProperty("--Hn",Hf);
   if(b)b.textContent=effLand()?"\u27F3 Portrait":"\u27F3 Landscape";
-  try{var f=$("rlFeed");if(f){var i=Math.round(f.scrollTop/Math.max(1,f.clientHeight));setTimeout(function(){var h=f.clientHeight;if(h)f.scrollTop=i*h},60)}}catch(x){}}
-window.addEventListener("resize",function(){applyOrient()});window.addEventListener("orientationchange",function(){setTimeout(applyOrient,150)});
+  try{fitPad()}catch(x){}
+  try{var f=$("rlFeed");if(f){var i=Math.round(f.scrollTop/Math.max(1,f.clientHeight));setTimeout(function(){var hh=f.clientHeight;if(hh)f.scrollTop=i*hh},60)}}catch(x){}}
+window.addEventListener("resize",function(){applyOrient()});window.addEventListener("orientationchange",function(){setTimeout(applyOrient,150);setTimeout(applyOrient,500)});if(window.visualViewport)window.visualViewport.addEventListener("resize",function(){applyOrient()});
 function boot(){
   ["reelsModeBtn","rlRoot","rlStyle"].forEach(function(i){var e=$(i);if(e&&e.parentNode)e.parentNode.removeChild(e)});
   var st=document.createElement("style");st.id="rlStyle";st.textContent=css()+css2()+rotCss();document.head.appendChild(st);
   mk("button","reelsModeBtn","",'<span>🎞️ REELS MODE</span><small>SWIPE · LEARN · REPEAT</small>').addEventListener("click",quickStart);
   mk("div","rlRoot","",'<div id="rlFeed"></div><div id="rlDict"></div><div id="rlSV"></div><button type="button" id="rlUndo">↶ Undo</button><div id="rlEd"></div><div id="rlFl"></div><div id="rlPaused"></div><div id="rlTop"><div id="rlBar"><div id="rlFill"></div></div><div id="rlStat"></div>'+
-  '<div class="rl-row"><button id="rlPause">⏸ Pause</button><button id="rlRestart">↻ Restart</button><button id="rlPrev">⏮ Previous round</button><button id="rlNext">⏭ Next round</button><button id="rlOrd"></button><span id="rlMissQ" class="rl-secs"></span><button id="rlAuto"></button><span class="rl-pill" id="rlDone"></span><span class="rl-sp"></span><button id="rlCfg">⚙</button><button id="rlUi">☰</button><button id="rlClean">🙈</button><button id="rlFs">⛶</button><button id="rlQuit">✖ Exit</button></div>'+
-  '<div class="rl-row" id="rlDictRow"><span class="rl-pill">🎙 Dictation · words/min · v18</span><button type="button" id="rlImgM" title="Smaller strokes">🖼 −</button><button type="button" id="rlImgP" title="Bigger strokes">🖼 +</button><button type="button" id="rlRot" title="Rotate between portrait and landscape"></button><button type="button" id="rlSet" title="See every stroke and word of this set (V)">🗂 Set</button><button type="button" id="rlEdit" title="Edit this card (or double-click / double-tap its picture or text) · E">✎ Edit</button><button type="button" id="rlNet" title="Voice: Online / Offline (the offline voice is chosen in Settings)">🟢 Online</button><span id="rlWpm"></span></div>'+
-  '<div id="rlMore"><div class="rl-row"><span id="rlCards"></span><span id="rlToday"></span><span id="rlScore"></span><span id="rlCombo"></span><button id="rlMute">🔊</button></div>'+
+  '<div class="rl-row"><button id="rlPause">⏸ Pause</button><button id="rlRestart">↻ Restart</button><button id="rlPrev">⏮ Previous round</button><button id="rlNext">⏭ Next round</button><button id="rlOrd"></button><span id="rlMissQ" class="rl-secs"></span><button id="rlAuto"></button><span class="rl-pill" id="rlDone"></span><span class="rl-sp"></span><button type="button" id="rlRot" title="Rotate between portrait and landscape"></button><button id="rlCfg">⚙</button><button id="rlUi">☰</button><button id="rlClean">🙈</button><button id="rlFs">⛶</button><button id="rlQuit">✖ Exit</button></div>'+
+  '<div class="rl-row" id="rlDictRow"><span class="rl-pill">🎙 Dictation · words/min · v18</span><button type="button" id="rlImgM" title="Smaller strokes">🖼 −</button><button type="button" id="rlImgP" title="Bigger strokes">🖼 +</button><button type="button" id="rlSet" title="See every stroke and word of this set (V)">🗂 Set</button><button type="button" id="rlEdit" title="Edit this card (or double-click / double-tap its picture or text) · E">✎ Edit</button><button type="button" id="rlNet" title="Voice: Online / Offline (the offline voice is chosen in Settings)">🟢 Online</button><span id="rlWpm"></span></div>'+
+  '<div id="rlMore"><div class="rl-row rl-keep"><span id="rlCards"></span><span id="rlToday"></span><span id="rlScore"></span><span id="rlCombo"></span><button id="rlMute">🔊</button></div>'+
   '<div class="rl-track"><div id="rlTf"></div><span id="rlGhost">👻</span><span id="rlRocket">🚀</span><span id="rlFlag">🏁</span></div>'+
   '<div class="rl-row"><span id="rlClock"></span><span id="rlBatt"></span><span id="rlPace"></span></div>'+
-  '<div class="rl-row"><span class="rl-pill" id="rlKnewPill"></span><span class="rl-pill" id="rlCardPill"></span><span class="rl-pill" id="rlSetPill"></span></div>'+
+  '<div class="rl-row rl-keep"><span class="rl-pill" id="rlKnewPill"></span><span class="rl-pill" id="rlCardPill"></span><span class="rl-pill" id="rlSetPill"></span></div>'+
   '<div class="rl-row"><button class="wide" id="rlFile"></button><button class="wide" id="rlMode"></button></div><div id="rlRounds"></div><div id="rlSched"></div></div></div><div id="rlToast"></div><div id="rlSheet"></div>');
   var tb=document.getElementById("topReelsBtn");if(tb)tb.addEventListener("click",quickStart);
   $("rlQuit").onclick=quit;
