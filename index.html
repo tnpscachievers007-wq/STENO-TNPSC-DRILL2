@@ -144,6 +144,10 @@
     padding:16px 14px calc(28px + var(--tabbar-h) + var(--safe-bottom));
   }
   .panel{display:none;}
+  #studyFrame{display:block;width:100%;height:calc(100vh - 150px);height:calc(100dvh - 150px);min-height:520px;border:0;border-radius:14px;background:#12161d}
+  #studyChip{display:none;position:fixed;top:calc(6px + env(safe-area-inset-top,0px));right:8px;z-index:2147483646;pointer-events:none;background:rgba(18,22,29,.82);color:#98a2b3;border:1px solid #2b3442;border-radius:999px;padding:3px 10px;font:700 12px/1.3 system-ui,sans-serif;font-variant-numeric:tabular-nums}
+  #studyChip.on{color:#34d27b;border-color:#34d27b}
+  body.reels-open #studyChip{display:block}
   .panel.active{
     display:block;
     animation:panelIn .28s cubic-bezier(.22,.61,.36,1);
@@ -1978,6 +1982,8 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
 
     </div>
 
+    <div class="panel" id="panel-study"><iframe id="studyFrame" title="Study Tracker"></iframe></div>
+
     <div class="panel" id="panel-progress"><div id="studyPlanTop"></div><div id="progressBody"></div></div>
 
   </main>
@@ -1986,6 +1992,7 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
     <button class="tab-btn active" data-tab="library"><span class="ico">📚</span>Library</button>
     <button class="tab-btn" data-tab="trainer"><span class="ico">🎯</span>Trainer</button>
     <button class="tab-btn" data-tab="progress"><span class="ico">📊</span>Progress</button>
+    <button class="tab-btn" data-tab="study"><span class="ico">⏱️</span>Study</button>
   </nav>
 
   <button id="focusModeBtn" type="button" onclick="document.querySelector('.tab-btn[data-tab=trainer]') &amp;&amp; document.querySelector('.tab-btn[data-tab=trainer]').click(); document.documentElement.classList.add('focus-mode'); document.body.classList.add('focus-mode');">🎬 Focus mode</button>
@@ -8161,6 +8168,7 @@ function cleanCfg(){
   cfg.txt=Math.min(250,Math.max(40,Math.round(+cfg.txt)||100));cfg.img=Math.min(250,Math.max(20,Math.round(+cfg.img)||100));
   cfg.autoScroll=cfg.autoScroll!==false;cfg.tts=!!cfg.tts;cfg.sfx=cfg.sfx!==false;cfg.ui=cfg.ui!==false;cfg.clean=!!cfg.clean}
 function T(){return R.run?R.target:cfg.target}
+window.stenoReelsState=function(){return {open:R.open,run:R.run,paused:R.paused,sheet:sheetOn()}};
 // Knew-it counts are the same object Game mode uses
 function KC(){if(!window.stenoKnewCounts||typeof window.stenoKnewCounts!=="object")window.stenoKnewCounts={};return window.stenoKnewCounts}
 function saveKC(){sj("stenoGameKnew",KC())}
@@ -8995,6 +9003,1045 @@ render();
   var d=$("topDupBtn"); if(d) d.addEventListener("click",function(){ press("removeDupBtn","removeDupStatus"); });
   var e=$("topEditorBtn"); if(e) e.addEventListener("click",function(){ press("openEditorBtn"); });
   var h=$("topShareBtn"); if(h) h.addEventListener("click",function(){ say("Preparing your shareable copy…"); press("downloadSharedBtn","downloadSharedStatus"); });
+})();
+</script>
+<script type="text/plain" id="studyTrackerSrc"><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Study Tracker</title>
+<style>
+:root{--bg:#12161d;--panel:#1a2029;--panel2:#212935;--line:#2b3442;--tx:#f1ece2;--mut:#98a2b3;--g:#34d27b;--r:#ff5a4f;--idle:#5b6575;--amber:#f5c542;--blue:#6ea8ff}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--tx);font:16px/1.5 "Segoe UI",system-ui,sans-serif;padding:26px 18px 120px}
+main{max-width:1000px;margin:0 auto}
+h1{font-size:19px;font-weight:600;margin:0 0 18px;color:var(--mut)}
+h3{font-size:15px;font-weight:600;margin:0}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+button{font:inherit;color:var(--tx);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 18px;cursor:pointer}
+button:hover{border-color:var(--mut)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #7b8cff;outline-offset:2px}
+button.main{background:var(--g);border-color:var(--g);color:#06210f;font-weight:600}
+button.main.pause{background:var(--r);border-color:var(--r);color:#2a0805}
+/* stopwatch */
+.watch{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:20px 26px;margin-bottom:14px;transition:border-color .2s,opacity .2s;opacity:.75}
+.watch.on{opacity:1;border-color:var(--g)}
+.watch .k{color:var(--mut);font-size:15px;display:flex;justify-content:space-between}
+.watch .big{font-size:clamp(44px,10vw,88px);font-weight:700;line-height:1.1;letter-spacing:-.02em;margin:6px 0;color:var(--g)}
+.watch .sub{color:var(--mut);font-size:15px}
+.bar{height:10px;background:var(--line);border-radius:5px;overflow:hidden;margin:12px 0 8px}
+.bar i{display:block;height:100%;width:0;background:var(--g)}
+.status{color:var(--mut);margin:0 0 14px;font-size:16px}
+.status b{color:var(--tx)}
+.btns{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:26px}
+/* tabs */
+.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);margin-bottom:16px}
+.tabs button{background:none;border:0;border-bottom:2px solid transparent;border-radius:0;color:var(--mut);padding:10px 16px;white-space:nowrap}
+.tabs button:hover{color:var(--tx)}
+.tabs button.on{color:var(--tx);border-bottom-color:var(--g)}
+.chips{display:flex;align-items:center;gap:8px;margin-bottom:16px;color:var(--mut);font-size:14px;flex-wrap:wrap}
+.chips button{padding:5px 14px;border-radius:999px;font-size:14px}
+.chips button.on{background:var(--g);border-color:var(--g);color:#06210f;font-weight:600}
+.panel{display:none}
+.panel.on{display:block}
+/* cards */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px}
+.ch{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.ch span{color:var(--mut);font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.two{grid-template-columns:1fr}}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.stat .k{color:var(--mut);font-size:12.5px}
+.stat .v{font-size:21px;font-weight:600}
+.stat .v.sm{font-size:15px;line-height:1.45;padding-top:3px}
+.empty{color:var(--mut);padding:18px;text-align:center}
+.hint{color:var(--mut);font-size:13px;margin:8px 0 0}
+/* insight tiles */
+.ins{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.ins .it{color:var(--mut);font-size:12.5px;text-transform:uppercase;letter-spacing:.05em}
+.ins .iv{font-size:19px;font-weight:600;margin:2px 0}
+.ins .is{color:var(--mut);font-size:13px;line-height:1.35}
+/* hero */
+.hero{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
+.hero .k{color:var(--mut);font-size:14px}
+.hero .big2{font-size:clamp(28px,6vw,44px);font-weight:700;color:var(--amber);line-height:1.15}
+.hero .sub{color:var(--mut);font-size:14px}
+.top3 div{padding:3px 0;font-size:15px}
+.top3 b{color:var(--amber);margin-right:6px}
+.top3 span{color:var(--mut);margin-left:8px}
+/* column chart */
+.cols{display:flex;align-items:flex-end;gap:4px}
+.col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;min-width:0;cursor:default}
+.col .val{font-size:11px;color:var(--mut);margin-bottom:3px;white-space:nowrap;height:14px}
+.col .b{width:100%;max-width:46px;background:var(--g);border-radius:4px 4px 0 0;min-height:2px;opacity:.8;transition:opacity .1s}
+.col:hover .b{opacity:1}
+.col.hl .b{background:var(--amber);opacity:1}
+.col.now .b{box-shadow:0 0 0 2px rgba(52,210,123,.4);opacity:1}
+.col .lab{font-size:11px;color:var(--mut);margin-top:6px;white-space:nowrap;height:16px}
+/* horizontal bars */
+.hb{display:grid;grid-template-columns:120px 1fr 90px;gap:10px;align-items:center;padding:4px 0;font-size:14px}
+.hb .hl{color:var(--mut)}
+.hb .ht{height:12px;background:var(--panel2);border-radius:6px;overflow:hidden}
+.hb .ht i{display:block;height:100%;background:var(--g);border-radius:6px}
+.hb.hl2 .ht i{background:var(--amber)}
+.hb .hv{text-align:right;color:var(--tx)}
+/* heatmap hour x weekday */
+.hm{display:grid;grid-template-columns:34px repeat(24,minmax(0,1fr));gap:3px;align-items:center}
+.hm .hh{font-size:10.5px;color:var(--mut);text-align:center;white-space:nowrap;overflow:visible}
+.hm .rl{font-size:12px;color:var(--mut)}
+.hm .hc{height:24px;border-radius:4px}
+/* calendar */
+.calwrap{overflow-x:auto;padding-bottom:6px}
+.cal{display:grid;gap:3px;width:max-content}
+.cal .cm{font-size:11px;color:var(--mut);white-space:nowrap}
+.cal .cl{font-size:11px;color:var(--mut);line-height:20px}
+.cal .cd{width:20px;height:20px;border-radius:4px;cursor:pointer}
+.cal .cd.sel{outline:2px solid var(--amber);outline-offset:1px}
+.cal .cd.fut{opacity:.25;cursor:default}
+.legend{display:flex;align-items:center;gap:5px;color:var(--mut);font-size:12px;margin-top:10px}
+.legend i{width:14px;height:14px;border-radius:3px;display:inline-block}
+/* svg charts */
+svg{width:100%;height:auto;display:block}
+svg text{fill:var(--mut);font-size:11px;font-family:inherit}
+/* table */
+.tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px;color:var(--mut);font-size:14px}
+select,input[type=range]{font:inherit;color:var(--tx);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+input[type=range]{padding:0;width:min(420px,100%);accent-color:var(--g)}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px 12px;text-align:left;font-size:14.5px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--mut);font-weight:600;font-size:12.5px;user-select:none}
+th[data-sort]{cursor:pointer}
+th[data-sort]:hover{color:var(--tx)}
+tr:last-child td{border-bottom:0}
+.del{padding:3px 10px;font-size:13px;color:var(--r);border-color:var(--line);background:none}
+.del:hover{background:var(--r);color:#2a0805;border-color:var(--r)}
+.live{color:var(--mut);font-size:13px}
+td .mb{display:inline-block;height:8px;background:var(--g);border-radius:4px;vertical-align:middle;opacity:.85}
+.keys{color:var(--mut);font-size:14px;border-top:1px solid var(--line);padding-top:16px;margin-top:30px}
+.keys p{margin:4px 0}
+kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:1px 7px;font:inherit;font-size:13px;color:var(--tx)}
+#tip{position:fixed;z-index:40;pointer-events:none;display:none;background:#0b0e13;border:1px solid var(--line);border-radius:8px;padding:7px 11px;font-size:13px;line-height:1.45;white-space:pre-line;max-width:280px;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+/* corner dot (also used inside the pop-out window) */
+.corner{position:fixed;right:16px;bottom:16px;display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:12px 22px 12px 16px;z-index:5;box-shadow:0 6px 24px rgba(0,0,0,.45);color:var(--tx);font-family:"Segoe UI",system-ui,sans-serif;cursor:pointer;user-select:none}
+.corner .dot{width:30px;height:30px;border-radius:50%;background:var(--idle);flex:none;box-shadow:0 0 0 4px rgba(255,255,255,.06)}
+.corner .rows{display:flex;flex-direction:column;gap:2px}
+.corner .row{display:flex;align-items:baseline;gap:10px}
+.corner .row .n{font-size:12px;color:var(--mut);width:42px}
+.corner .row .t{font-size:26px;font-weight:700;line-height:1.15;color:var(--g)}
+.corner.pip{position:static;width:100vw;height:100vh;border:0;border-radius:0;box-shadow:none;justify-content:center}
+/* result */
+#result{position:fixed;inset:0;background:rgba(10,12,16,.92);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+#result.show{display:flex}
+#result .box{max-width:460px;text-align:center}
+#result h2{font-size:clamp(40px,9vw,64px);margin:0 0 8px;line-height:1.05;color:var(--g)}
+#result p{color:var(--mut);margin:6px 0}
+#result button{margin-top:18px}
+.strip{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 8px}
+.chipx{flex:1 1 120px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:13px;color:var(--mut)}
+.chipx b{display:block;color:var(--tx);font-size:18px;font-weight:600}
+.now{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:0 0 8px}
+.now span{flex:1}
+.nxt{color:var(--amber);font-size:14px;margin:0 0 16px}
+.fbar{height:8px;background:var(--panel2);border-radius:99px;overflow:hidden}
+.fbar i{display:block;height:100%;background:var(--g);transition:width .4s}
+.fq{margin:12px 0}.fq div.r{display:flex;justify-content:space-between;margin-bottom:5px;font-size:14px}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.bdg{border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;font-size:12px;color:var(--idle)}
+.bdg b{display:block;font-size:14px;margin-bottom:2px}
+.bdg.on{color:var(--tx);border-color:var(--amber);background:rgba(245,197,66,.09)}
+.task{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.task span{flex:1}.task.done span{text-decoration:line-through;color:var(--mut)}
+.frow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.fin{background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--tx);padding:10px;font:inherit;flex:1 1 160px;min-width:0}
+#toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,30px);background:var(--amber);color:#2a2000;font-weight:600;padding:12px 20px;border-radius:12px;opacity:0;pointer-events:none;transition:.3s;z-index:60;max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+.cf{position:fixed;top:-12px;width:9px;height:14px;z-index:59;pointer-events:none;animation:cf 2.2s ease-in forwards}
+@keyframes cf{to{transform:translateY(105vh) rotate(720deg);opacity:.8}}
+</style>
+</head>
+<body>
+<main>
+  <h1>100 hours of study</h1>
+
+  <section class="watch" id="watch">
+    <div class="k"><span>Study stopwatch</span><span id="pct">0%</span></div>
+    <div class="big num" id="study">00:00:00</div>
+    <div class="bar"><i id="bar"></i></div>
+    <div class="sub num" id="left">100:00:00 to go</div>
+  </section>
+  <p class="status" id="status">Starts by itself when you play Reels mode. It pauses when you pause Reels and resumes when you resume.</p>
+  <div class="btns">
+    <button class="main" id="btnMain">Start</button>
+    <button id="btnPip">Pop out dot</button>
+    <button id="btnAp">Auto pause: Off</button>
+    <button id="btnApRe" style="display:none">Retake empty picture</button>
+    <button id="btnReset">Reset</button>
+    <div class="hint" id="apInfo" style="flex-basis:100%;margin:0;display:none"></div>
+  </div>
+
+  <div class="strip">
+    <div class="chipx">Current stretch<b class="num" id="sCur">00:00:00</b></div>
+    <div class="chipx">Best stretch<b class="num" id="sBest">00:00:00</b></div>
+    <div class="chipx">Today<b id="sToday">0m</b></div>
+    <div class="chipx">Day streak<b id="sStreak">0</b></div>
+    <div class="chipx">Level today<b id="sLvl">1</b></div>
+    <div class="chipx">XP today<b id="sXp">0</b></div>
+  </div>
+  <div class="now"><span id="nowTxt"></span></div>
+  <div class="now" id="qLineBox" style="cursor:pointer;border-color:var(--amber)"><span id="qLine"></span></div>
+  <p class="nxt" id="sNext"></p>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="quests">Quests</button>
+    <button data-tab="focus">Focus</button>
+    <button data-tab="overview">Overview</button>
+    <button data-tab="hours">Hours of the day</button>
+    <button data-tab="days">Days and weeks</button>
+    <button data-tab="cal">Calendar</button>
+    <button data-tab="trend">Trend and forecast</button>
+    <button data-tab="sessions">Sessions</button>
+  </nav>
+  <div class="chips" id="chips">Show:
+    <button data-range="7">7 days</button><button data-range="30">30 days</button><button data-range="90">90 days</button><button data-range="0">All time</button>
+  </div>
+
+  <section class="panel" id="p-quests">
+    <div class="card"><div class="ch"><h3>Your quest</h3><span id="qXp"></span></div>
+      <div id="qTxt" style="font-size:20px;margin:8px 0 14px"></div>
+      <div class="fbar"><i id="qBar" style="width:0"></i></div>
+      <div class="hint num" id="qNum"></div>
+      <div class="frow" style="margin:14px 0 0"><button id="qSkip">Skip quest</button></div></div>
+    <div id="qDyn"></div>
+  </section>
+  <section class="panel" id="p-focus">
+        <div class="card"><div class="ch"><h3>Tasks for this sitting</h3><span>A task finishes by itself when you have sat for its minutes. 15 XP each.</span></div>
+      <div class="frow"><input class="fin" id="tIn" type="text" maxlength="120" placeholder="Task. Example: Tamil grammar unit 3"><input class="fin" id="tM" type="number" min="1" max="600" step="5" value="30" title="Minutes of sitting" style="flex:0 1 90px"><button class="main" id="tAdd">Add task</button></div>
+      <div id="fTasks"></div><div class="frow" style="margin:10px 0 0"><button id="tClr">Clear done tasks</button></div></div>
+    <div class="card"><div class="ch"><h3>Rewards I promised myself</h3><span>Unlocks by total study hours</span></div>
+      <div class="frow"><input class="fin" id="rH" type="number" min="0.5" max="100" step="0.5" placeholder="At hours" style="flex:0 1 110px"><input class="fin" id="rT" type="text" maxlength="80" placeholder="Reward. Example: Watch a movie"><button class="main" id="rAdd">Add reward</button></div>
+      <div id="fRew"></div></div>
+    <div class="card"><div class="ch"><h3>Daily goal</h3></div>
+      <div class="frow" style="align-items:center">Sit for <select id="gSel" class="fin" style="flex:0 1 110px"></select> hours every day</div></div>
+    <div id="fBadges"></div>
+  </section>
+  <section class="panel" id="p-overview"><div id="d-overview"></div></section>
+  <section class="panel" id="p-hours"><div id="d-hours"></div></section>
+  <section class="panel" id="p-days"><div id="d-days"></div></section>
+  <section class="panel" id="p-cal"><div id="d-cal"></div></section>
+  <section class="panel" id="p-trend">
+    <div class="card">
+      <div class="ch"><h3>What if I study X hours every day?</h3><span>Drag the slider</span></div>
+      <input type="range" id="whatIf" min="0.5" max="16" step="0.5" value="4" aria-label="Hours per day">
+      <p class="num" id="whatOut" style="font-size:17px;margin:12px 0 0"></p>
+    </div>
+    <div id="d-trend"></div>
+  </section>
+  <section class="panel" id="p-sessions">
+    <div class="tools">
+      <label>Minimum length
+        <select id="minLen"><option value="0">All sessions</option><option value="15">15 min or more</option><option value="30">30 min or more</option><option value="60">1 hour or more</option><option value="120">2 hours or more</option></select>
+      </label>
+      <button id="btnAll">Show all rows</button>
+    </div>
+    <div id="d-sessions"></div>
+  </section>
+
+  <div class="keys">
+    <p>Rule: study for 100:00:00 in total and you win. Pause whenever you stop; only the time the stopwatch is running counts.</p>
+    <p>Auto pause: press <b>Auto pause</b> and allow the camera. Step out of the camera view for 5 seconds so it can take a picture of the empty room, then come back. After that it pauses when you leave and resumes when you return. Only the top half of the camera picture is watched, so your body can be half visible and looking down is fine. The camera picture never leaves this page.</p>
+    <p><kbd>Space</kbd> start, then pause / resume &nbsp; <kbd>P</kbd> pop out dot &nbsp; <kbd>Shift</kbd>+<kbd>R</kbd> reset</p>
+    <p>Click the dot (corner or pop-out) to pause / resume. With another app in front, press your keyboard's <kbd>Play/Pause</kbd> media key to pause / resume. This works after you press Start in this tab.</p>
+    <p>If you close the page while the stopwatch is running, it keeps counting until you open it again and pause. Everything is saved in this browser. Hover or tap any bar, cell or point in the statistics to see details.</p>
+  </div>
+</main>
+
+<div class="corner" id="corner" title="Click to pause / resume">
+  <span class="dot" id="dot"></span>
+  <div class="rows"><div class="row"><span class="n">Study</span><span class="t num" id="cStudy">00:00:00</span></div></div>
+</div>
+<div id="tip"></div>
+<div id="toast"></div>
+<div id="result"><div class="box"><h2>You won</h2><p id="resP"></p><p id="resS"></p><button class="main" id="btnAgain">Start a new 100 hours</button></div></div>
+
+<script>
+const H=3600000, DAY=86400000, GOAL=100*H, KEY='studyTracker.v3', UIKEY='studyTracker.ui';
+const _c={};const $=id=>_c[id]||(_c[id]=document.getElementById(id));
+['corner','dot','cStudy'].forEach($);
+/* mode: idle | study | paused | won.  sessions: [[startMs,endMs], ...] */
+const fresh=()=>({mode:'idle',start:0,last:0,study:0,end:0,sessions:[]});
+let S=(()=>{try{return Object.assign(fresh(),JSON.parse(localStorage.getItem(KEY)))}catch(e){return fresh()}})();
+if(S.mode==='study')S.mode='paused';
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+let ui=(()=>{const d={tab:'quests',range:30,sort:'date',dir:-1,minLen:0,all:false,sel:null,perDay:4};try{return Object.assign(d,JSON.parse(localStorage.getItem(UIKEY)))}catch(e){return d}})();
+const saveUi=()=>{try{localStorage.setItem(UIKEY,JSON.stringify(ui))}catch(e){}};
+const FKEY='studyTracker.focus';
+let F=(()=>{const d={tasks:[],done:0,added:0,rewards:[],goal:4,seen:null,v:0,nid:1,bx:{},qd:{},qt:0,q:null,qlog:[],rec:{},rf:{}};try{return Object.assign(d,JSON.parse(localStorage.getItem(FKEY)))}catch(e){return d}})();
+const saveF=()=>{F.v++;try{localStorage.setItem(FKEY,JSON.stringify(F))}catch(e){}};
+const running=()=>S.mode==='study';
+const pad=n=>String(n).padStart(2,'0');
+function fmt(ms){ms=Math.max(0,Math.floor(ms/1000));return pad(Math.floor(ms/3600))+':'+pad(Math.floor(ms%3600/60))+':'+pad(ms%60)}
+function fmtHM(ms){const s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?h+'h '+pad(m)+'m':(m?m+'m':s+'s')}
+const hrs=ms=>(ms/H).toFixed(1)+'h';
+const dStr=t=>new Date(t).toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+const dShort=t=>{const d=new Date(t);return d.getDate()+'/'+(d.getMonth()+1)};
+const tStr=t=>new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+const minStr=mn=>new Date(2000,0,1,0,Math.round(mn)).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+const hLab=h=>(h%12||12)+' '+(h<12?'AM':'PM');
+const hLabS=h=>(h%12||12)+(h<12?'a':'p');
+const hRange=h=>hLab(h)+' - '+hLab((h+1)%24);
+const WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], WDF=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const WDORDER=[1,2,3,4,5,6,0];
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+const tipA=s=>' data-tip="'+esc(s)+'"';
+const dayStart=t=>{const d=new Date(t);return new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime()};
+const addDays=(t,n)=>{const d=new Date(t);return new Date(d.getFullYear(),d.getMonth(),d.getDate()+n).getTime()};
+const argmax=a=>a.reduce((bi,v,i)=>v>a[bi]?i:bi,0);
+
+/* ---------- stopwatch core ---------- */
+function accrue(now){
+  if(!running())return;
+  const dt=Math.max(0,now-S.last), room=GOAL-S.study, ses=S.sessions[S.sessions.length-1];
+  if(dt>=room){S.study=GOAL;S.last=S.last+room;if(ses)ses[1]=S.last;finish(S.last);return}
+  S.study+=dt; S.last=now; if(ses)ses[1]=now;
+}
+function tick(){ if(running()){accrue(Date.now());save()} apStep(); render(); }
+function finish(end){S.mode='won';S.end=end;save();showResult()}
+function resume(){const now=Date.now();S.mode='study';S.last=now;S.sessions.push([now,now]);save();render();audio&&audio.play().catch(()=>{})}
+function pause(){accrue(Date.now());if(!running())return;S.mode='paused';save();render();audio&&audio.play().catch(()=>{})}
+function toggleStudy(){
+  if(S.mode==='idle'||S.mode==='won')return start();
+  if(S.mode==='study'){const n=nextMile();if(n&&n.gap<=20*60000&&!confirm('You are only '+fmtHM(n.gap)+' away from: '+n.label+'.\n\nPause anyway?'))return;pause()} else if(S.mode==='paused')resume();
+}
+function start(){const now=Date.now();S=fresh();S.mode='study';S.start=S.last=now;S.sessions=[[now,now]];save();$('result').classList.remove('show');startAudio();sig='';render()}
+function delSession(idx){
+  const s=S.sessions[idx]; if(!s)return;
+  if(running()&&idx===S.sessions.length-1)return;
+  if(running())accrue(Date.now());
+  const len=s[1]-s[0];
+  if(!confirm('Delete this session?\n\n'+dStr(s[0])+'\n'+tStr(s[0])+' - '+tStr(s[1])+'  ('+fmt(len)+')\n\nThis time will be taken off your total.'))return;
+  S.sessions.splice(idx,1);
+  S.study=Math.max(0,S.study-len);
+  if(!S.sessions.length){S=fresh()}
+  else{
+    S.start=S.sessions[0][0];
+    if(S.mode==='won'&&S.study<GOAL){S.mode='paused';S.end=0;S.last=Date.now();$('result').classList.remove('show')}
+  }
+  save();sig='';render();
+}
+function reset(){if(confirm('Reset everything and delete all study history?')){S=fresh();save();$('result').classList.remove('show');sig='';render()}}
+
+/* media keys */
+let audio=null;
+function silentWav(){
+  const n=8000,b=new ArrayBuffer(44+n),v=new DataView(b),w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+  w(0,'RIFF');v.setUint32(4,36+n,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,8000,true);v.setUint32(28,8000,true);v.setUint16(32,1,true);v.setUint16(34,8,true);w(36,'data');v.setUint32(40,n,true);
+  new Uint8Array(b,44).fill(128);
+  return URL.createObjectURL(new Blob([b],{type:'audio/wav'}));
+}
+function startAudio(){return;
+  try{
+    if(!audio){audio=new Audio(silentWav());audio.loop=true}
+    audio.play().catch(()=>{});
+    if('mediaSession' in navigator){
+      navigator.mediaSession.metadata=new MediaMetadata({title:'Study Tracker',artist:'Play/Pause = pause or resume study'});
+      const tg=()=>{if(running()||S.mode==='paused')toggleStudy();audio.play().catch(()=>{})};
+      navigator.mediaSession.setActionHandler('play',tg);
+      navigator.mediaSession.setActionHandler('pause',tg);
+      navigator.mediaSession.playbackState='playing';
+    }
+  }catch(e){}
+}
+document.addEventListener('click',()=>{if(running()&&!audio)startAudio()});
+
+/* pop-out dot */
+let pip=null, pipTimer=null;
+async function popOut(){
+  if(pip){pip.close();return}
+  let w=null, why='';
+  if('documentPictureInPicture' in window){
+    try{w=await documentPictureInPicture.requestWindow({width:340,height:110})}catch(e){why=e&&e.message||String(e)}
+  }
+  if(!w){try{w=window.open('','studyDot','popup,width=340,height=110')}catch(e){}}
+  if(!w){alert('Could not open the pop-out.'+(why?' Reason: '+why:'')+' Allow pop-ups for this page and try again.');return}
+  pip=w;
+  const d=w.document;
+  d.title='Study dot';
+  document.querySelectorAll('style').forEach(st=>d.head.appendChild(st.cloneNode(true)));
+  d.body.style.cssText='margin:0;padding:0;overflow:hidden;background:#1a2029';
+  const c=$('corner'); c.classList.add('pip'); d.body.appendChild(c);
+  w.addEventListener('keydown',keyHandler);
+  pipTimer=w.setInterval(tick,250);
+  const back=()=>{if(!pip)return;try{w.clearInterval(pipTimer)}catch(e){}c.classList.remove('pip');document.body.appendChild(c);pip=null};
+  w.addEventListener('pagehide',back);
+  w.addEventListener('unload',back);
+  tick();
+}
+$('corner').addEventListener('click',()=>{ if(S.mode==='idle'||S.mode==='won')start(); else toggleStudy() });
+
+/* ---------- statistics engine ---------- */
+const segsFrom=from=>S.sessions.map(s=>[Math.max(s[0],from),s[1]]).filter(s=>s[1]>s[0]);
+function perDayOf(segs){
+  const m={};
+  for(const [a,b] of segs){let t=a;while(t<b){const ds=dayStart(t),nd=Math.min(addDays(ds,1),b);m[ds]=(m[ds]||0)+(nd-t);t=nd}}
+  return m;
+}
+function eachHour(segs,fn){
+  for(const [a,b] of segs){
+    let t=a;
+    while(t<b){
+      const d=new Date(t), y=d.getFullYear(), mo=d.getMonth(), dd=d.getDate(), h=d.getHours();
+      const he=new Date(y,mo,dd,h+1).getTime(), e=Math.min(Math.max(he,t+1),b);
+      fn(t,e,h,d.getDay(),new Date(y,mo,dd).getTime());
+      t=e;
+    }
+  }
+}
+function streaks(m,today){
+  const days=Object.keys(m).map(Number).filter(k=>m[k]>=1000).sort((a,b)=>a-b);
+  let best=0,run=0,prev=null;
+  for(const d of days){run=(prev!==null&&addDays(prev,1)===d)?run+1:1;if(run>best)best=run;prev=d}
+  let cur=0,t=today; if(!(m[t]>=1000))t=addDays(today,-1);
+  while(m[t]>=1000){cur++;t=addDays(t,-1)}
+  return [cur,best];
+}
+function compute(now,range){
+  const today=dayStart(now), has=S.sessions.length>0;
+  const from=range?addDays(today,-(range-1)):0;
+  const segs=segsFrom(from), m=perDayOf(segs), mAll=perDayOf(S.sessions);
+  const hours=Array(24).fill(0), hourDays=Array.from({length:24},()=>new Set()), hw=Array.from({length:7},()=>Array(24).fill(0));
+  eachHour(segs,(a,b,h,wd,ds)=>{hours[h]+=b-a;hourDays[h].add(ds);hw[wd][h]+=b-a});
+  const startDay=has?dayStart(S.start):today, rs=Math.max(from,startDay);
+  const wdTot=Array(7).fill(0), wdAct=Array(7).fill(0), wdOcc=Array(7).fill(0);
+  for(const k in m){const w=new Date(+k).getDay();wdTot[w]+=m[k];if(m[k]>=1000)wdAct[w]++}
+  for(let d=rs;d<=today;d=addDays(d,1))wdOcc[new Date(d).getDay()]++;
+  const total=segs.reduce((a,s)=>a+(s[1]-s[0]),0);
+  const studyDays=Object.keys(m).filter(k=>m[k]>=1000).length;
+  const calDays=Math.max(1,Math.round((today-rs)/DAY)+1);
+  return {now,today,has,from,range,segs,m,mAll,hours,hourDays,hw,wdTot,wdAct,wdOcc,total,studyDays,calDays,startDay};
+}
+
+/* ---------- UI helpers ---------- */
+const card=(title,body,sub)=>'<div class="card"><div class="ch"><h3>'+title+'</h3>'+(sub?'<span>'+sub+'</span>':'')+'</div>'+body+'</div>';
+const kpi=(k,v,sm)=>'<div class="stat"><div class="k">'+k+'</div><div class="v num'+(sm?' sm':'')+'">'+v+'</div></div>';
+const insT=(t,v,s)=>'<div class="ins"><div class="it">'+t+'</div><div class="iv">'+v+'</div><div class="is">'+s+'</div></div>';
+const empty=t=>'<div class="card"><div class="empty">'+t+'</div></div>';
+function cols(items,height){
+  const mx=Math.max(1,...items.map(i=>i.v));
+  return '<div class="cols">'+items.map(i=>'<div class="col'+(i.hl?' hl':'')+(i.now?' now':'')+'"'+tipA(i.tip)+'><div class="val num">'+(i.val||'')+'</div><div class="b" style="height:'+(i.v/mx*height)+'px"></div><div class="lab">'+(i.label||'')+'</div></div>').join('')+'</div>';
+}
+function hbars(items){
+  const mx=Math.max(1,...items.map(i=>i.v));
+  return items.map(i=>'<div class="hb'+(i.hl?' hl2':'')+'"'+tipA(i.tip||'')+'><span class="hl">'+i.label+'</span><div class="ht"><i style="width:'+(i.v/mx*100)+'%"></i></div><span class="hv num">'+i.text+'</span></div>').join('');
+}
+function heatColor(r){return r<=0?'rgba(255,255,255,.05)':'rgba(52,210,123,'+(0.18+0.82*r).toFixed(2)+')'}
+const rangeName=r=>r===0?'all time':'the last '+r+' days';
+
+/* ---------- panels ---------- */
+function rOverview(D){
+  if(!D.has)return empty('No study yet. Press Start and your statistics will appear here.');
+  const {now,today,m,mAll,total,studyDays,calDays}=D;
+  const left=GOAL-S.study, sess=S.sessions, lens=sess.map(s=>s[1]-s[0]);
+  const [sCur,sBest]=streaks(mAll,today);
+  const pk=argmax(D.hours);
+  const part=partOfDay(D.hours), bestPart=argmax(part.map(p=>p.v));
+  const wdAvg=D.wdTot.map((t,i)=>D.wdOcc[i]?t/D.wdOcc[i]:0), bw=argmax(wdAvg);
+  let bd=null;for(const k in mAll){if(bd===null||mAll[k]>mAll[bd])bd=k}
+  const l7=sumDays(mAll,addDays(today,-6),today), p7=sumDays(mAll,addDays(today,-13),addDays(today,-7));
+  const mins=sess.map(s=>{const d=new Date(s[0]);return d.getHours()*60+d.getMinutes()}).sort((a,b)=>a-b);
+  const medStart=mins[Math.floor(mins.length/2)];
+  let l14=0;for(let i=0;i<14;i++)if(mAll[addDays(today,-i)]>=1000)l14++;
+  const avg=total/calDays;
+  const tiles=[
+    insT('Peak hour',hRange(pk),fmtHM(D.hours[pk])+' studied in this hour ('+(D.hours[pk]/total*100).toFixed(0)+'% of all study)'),
+    insT('Favourite time of day',part[bestPart].name,(part[bestPart].v/total*100).toFixed(0)+'% of your study happens '+part[bestPart].range),
+    insT('Best weekday',WDF[bw],'Averages '+fmtHM(wdAvg[bw])+' on a '+WDF[bw]),
+    insT('You usually start around',minStr(medStart),'Median start time over '+sess.length+' session'+(sess.length===1?'':'s')),
+    insT('Best day',bd!==null?fmtHM(mAll[bd]):'-',bd!==null?dStr(+bd):''),
+    insT('This week vs last week',p7>0?((l7-p7)/p7*100>=0?'+':'')+((l7-p7)/p7*100).toFixed(0)+'%':(l7>0?'New':'-'),'Last 7 days '+fmtHM(l7)+', the 7 days before '+fmtHM(p7)),
+    insT('Consistency',l14+' of last 14 days','You studied on '+l14+' of the last 14 days'),
+    insT('Pace',S.mode==='won'?'Finished':fmtHM(avg)+' per day',S.mode==='won'?'You studied 100 hours':'About '+Math.ceil(left/Math.max(avg,1))+' more days at this pace')
+  ].join('');
+  let eta='-';
+  if(S.mode==='won')eta='Done'; else if(total>0){const dl=Math.ceil(left/avg);eta=dStr(addDays(today,dl))+' (about '+dl+' day'+(dl===1?'':'s')+')'}
+  const lastS=sess[sess.length-1];
+  const k=[
+    kpi('Total studied',fmt(S.study)),kpi('Hours left to win',fmt(left)),kpi('Progress',(S.study/GOAL*100).toFixed(2)+'%'),
+    kpi('Estimated finish date',eta,1),kpi('Started on',dStr(S.start)+', '+tStr(S.start),1),kpi('Last studied',dStr(lastS[1])+', '+tStr(lastS[1]),1),
+    kpi('Today',fmt(mAll[today]||0)),kpi('Yesterday',fmt(mAll[addDays(today,-1)]||0)),kpi('Last 7 days',fmt(l7)),kpi('Last 30 days',fmt(sumDays(mAll,addDays(today,-29),today))),
+    kpi('Days studied',studyDays),kpi('Average per study day',fmt(studyDays?total/studyDays:0)),kpi('Average per calendar day',fmt(avg)),
+    kpi('Current streak (days)',sCur),kpi('Longest streak (days)',sBest),
+    kpi('Number of sessions',sess.length),kpi('Current session',running()?fmt(now-lastS[0]):'00:00:00'),kpi('Average session',fmt(lens.reduce((a,b)=>a+b,0)/lens.length)),
+    kpi('Longest session',fmt(Math.max(...lens))),kpi('Shortest session',fmt(Math.min(...lens))),
+    kpi('Time since you started',fmt((S.mode==='won'?S.end:now)-S.start)),kpi('Time not studying',fmt(Math.max(0,(S.mode==='won'?S.end:now)-S.start-S.study))),
+    kpi('Study share of that time',(S.study/Math.max(1,(S.mode==='won'?S.end:now)-S.start)*100).toFixed(1)+'%'),
+    kpi('Needed per day to finish in 30 days',S.mode==='won'?'-':fmt(left/30))
+  ].join('');
+  /* milestones */
+  const ms=[10,25,50,75,100].map(h=>{
+    const t=reachTime(h*H), done=S.study>=h*H-1;
+    return '<div class="stat"'+tipA(done&&t?dStr(t)+', '+tStr(t):(h*H-S.study>0?fmtHM(h*H-S.study)+' to go':''))+'><div class="k">'+h+' hours</div><div class="v sm">'+(done&&t?dStr(t):'In '+fmtHM(Math.max(0,h*H-S.study)))+'</div></div>';
+  }).join('');
+  /* records */
+  const lenIdx=lens.indexOf(Math.max(...lens));
+  let bwk=0,bwkStart=null;
+  for(let ws=addDays(D.startDay,-new Date(D.startDay).getDay());ws<=today;ws=addDays(ws,7)){const v=sumDays(mAll,ws,addDays(ws,6));if(v>bwk){bwk=v;bwkStart=ws}}
+  const perDayCount={};sess.forEach(s=>{const k=dayStart(s[0]);perDayCount[k]=(perDayCount[k]||0)+1});
+  let md=null;for(const k in perDayCount){if(md===null||perDayCount[k]>perDayCount[md])md=k}
+  const earliest=Math.min(...mins), latestEnd=Math.max(...sess.map(s=>{const d=new Date(s[1]);return d.getHours()*60+d.getMinutes()}));
+  const rec=[
+    kpi('Longest session',fmtHM(lens[lenIdx]),1),kpi('Longest session on',dStr(sess[lenIdx][0]),1),
+    kpi('Best day',bd!==null?fmtHM(mAll[bd]):'-',1),kpi('Best week',bwkStart?fmtHM(bwk)+' (from '+dShort(bwkStart)+')':'-',1),
+    kpi('Most sessions in a day',md!==null?perDayCount[md]+' on '+dShort(+md):'-',1),kpi('Longest streak',sBest+' day'+(sBest===1?'':'s'),1),
+    kpi('Earliest start of the day',minStr(earliest),1),kpi('Latest finish of the day',minStr(latestEnd),1)
+  ].join('');
+  return card('Insights','<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(230px,1fr))">'+tiles+'</div>','Based on all your study')
+    +card('Milestones','<div class="grid">'+ms+'</div>')
+    +card('All numbers','<div class="grid">'+k+'</div>')
+    +card('Personal records','<div class="grid">'+rec+'</div>');
+}
+function sumDays(m,a,b){let s=0;for(const k in m){const t=+k;if(t>=a&&t<=b)s+=m[k]}return s}
+function reachTime(target){
+  let cum=0;
+  for(const [a,b] of S.sessions){const len=b-a;if(cum+len>=target)return a+(target-cum);cum+=len}
+  return null;
+}
+function partOfDay(hours){
+  const P=[{name:'Early morning',range:'between 4 AM and 8 AM',v:0},{name:'Morning',range:'between 8 AM and 12 PM',v:0},{name:'Afternoon',range:'between 12 PM and 5 PM',v:0},{name:'Evening',range:'between 5 PM and 9 PM',v:0},{name:'Night',range:'between 9 PM and 4 AM',v:0}];
+  hours.forEach((v,h)=>{P[h>=4&&h<8?0:h>=8&&h<12?1:h>=12&&h<17?2:h>=17&&h<21?3:4].v+=v});
+  return P;
+}
+function rHours(D){
+  if(!D.total)return empty('No study in '+rangeName(D.range)+' yet.');
+  const {hours,total}=D, pk=argmax(hours);
+  const top=[...hours.keys()].sort((a,b)=>hours[b]-hours[a]).filter(h=>hours[h]>0).slice(0,3);
+  const hero='<div class="hero"><div><div class="k">You study most between</div><div class="big2">'+hRange(pk)+'</div><div class="sub">'+fmtHM(hours[pk])+' in this hour, '+(hours[pk]/total*100).toFixed(0)+'% of your study in '+rangeName(D.range)+'</div></div><div class="top3">'
+    +top.map((h,i)=>'<div><b>#'+(i+1)+'</b>'+hRange(h)+'<span class="num">'+fmtHM(hours[h])+'</span></div>').join('')+'</div></div>';
+  const hc=cols(hours.map((v,h)=>({v,hl:h===pk,label:h%3===0?hLabS(h):'',val:h===pk?hrs(v):'',
+    tip:hRange(h)+'\n'+fmtHM(v)+' ('+(v/total*100).toFixed(1)+'% of study)\nStudied in this hour on '+D.hourDays[h].size+' day'+(D.hourDays[h].size===1?'':'s')})),150);
+  const part=partOfDay(hours), bp=argmax(part.map(p=>p.v));
+  const pb=hbars(part.map((p,i)=>({label:p.name,v:p.v,text:(p.v/total*100).toFixed(0)+'%',hl:i===bp,tip:p.name+' '+p.range+'\n'+fmtHM(p.v)})));
+  const mx=Math.max(1,...D.hw.flat());
+  let hm='<div class="hm"><div></div>';
+  for(let h=0;h<24;h++)hm+='<div class="hh">'+(h%3===0?hLabS(h):'')+'</div>';
+  for(const w of WDORDER){
+    hm+='<div class="rl">'+WD[w]+'</div>';
+    for(let h=0;h<24;h++){const v=D.hw[w][h];hm+='<div class="hc" style="background:'+heatColor(v/mx)+'"'+tipA(WDF[w]+', '+hRange(h)+'\n'+(v?fmtHM(v):'No study'))+'></div>'}
+  }
+  hm+='</div>';
+  const mins=D.segs.map(s=>{const d=new Date(s[0]);return d.getHours()*60+d.getMinutes()}).sort((a,b)=>a-b);
+  const ends=D.segs.map(s=>{const d=new Date(s[1]);return d.getHours()*60+d.getMinutes()});
+  const kp=[kpi('Typical start time',minStr(mins[Math.floor(mins.length/2)]),1),kpi('Earliest start',minStr(mins[0]),1),kpi('Latest finish',minStr(Math.max(...ends)),1),
+    kpi('Hours with some study',hours.filter(v=>v>0).length+' of 24',1)].join('');
+  return card('Peak study hour',hero)
+    +card('Study by hour of the day','<div>'+hc+'</div><p class="hint">Gold bar is your strongest hour. Hover or tap a bar for details.</p>',rangeName(D.range))
+    +'<div class="two">'+card('Part of the day',pb)+card('At a glance','<div class="grid" style="grid-template-columns:1fr 1fr">'+kp+'</div>')+'</div>'
+    +card('Weekday and hour pattern',hm+'<div class="legend">Less <i style="background:'+heatColor(0)+'"></i><i style="background:'+heatColor(.25)+'"></i><i style="background:'+heatColor(.5)+'"></i><i style="background:'+heatColor(.75)+'"></i><i style="background:'+heatColor(1)+'"></i> More</div>',rangeName(D.range));
+}
+function rDays(D){
+  if(!D.has)return empty('No study yet.');
+  const {today,mAll}=D;
+  let out='';
+  if(D.total){
+    const avg=D.wdTot.map((t,i)=>D.wdOcc[i]?t/D.wdOcc[i]:0), bw=argmax(avg);
+    out+=card('Average study per weekday',cols(WDORDER.map(w=>({v:avg[w],hl:w===bw,label:WD[w],val:avg[w]?hrs(avg[w]):'',
+      tip:WDF[w]+'\nAverage '+fmtHM(avg[w])+' per '+WDF[w]+'\nTotal '+fmtHM(D.wdTot[w])+'\nStudied on '+D.wdAct[w]+' of '+D.wdOcc[w]+' '+WDF[w]+'s'})),150)+'<p class="hint">Gold is your best weekday.</p>',rangeName(D.range));
+  } else out+=empty('No study in '+rangeName(D.range)+' yet.');
+  /* last 30 days with 7 day average */
+  const N=30, days=[];for(let i=N-1;i>=0;i--)days.push(addDays(today,-i));
+  const vals=days.map(d=>(mAll[d]||0)/H), ma=vals.map((_,i)=>{let s=0,c=0;for(let j=Math.max(0,i-6);j<=i;j++){s+=vals[j];c++}return s/c});
+  const mx=Math.max(1,...vals), W=800, Ht=210, pl=34, pr=8, pt=10, pb=24, iw=W-pl-pr, ih=Ht-pt-pb, bw=iw/N;
+  let svg='<svg viewBox="0 0 '+W+' '+Ht+'">';
+  for(let g=0;g<=4;g++){const y=pt+ih-ih*g/4;svg+='<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y+'" y2="'+y+'" stroke="#2b3442"/><text x="'+(pl-6)+'" y="'+(y+4)+'" text-anchor="end">'+(mx*g/4).toFixed(1)+'</text>'}
+  days.forEach((d,i)=>{const h=vals[i]/mx*ih;svg+='<rect x="'+(pl+i*bw+2)+'" y="'+(pt+ih-h)+'" width="'+(bw-4)+'" height="'+Math.max(h,1)+'" rx="3" fill="'+(d===today?'#34d27b':'rgba(52,210,123,.7)')+'"/>'
+    +'<rect x="'+(pl+i*bw)+'" y="'+pt+'" width="'+bw+'" height="'+ih+'" fill="transparent"'+tipA(dStr(d)+'\nStudied '+fmtHM(mAll[d]||0)+'\n7-day average '+ma[i].toFixed(1)+'h')+'/>';
+    if(i%5===0||i===N-1)svg+='<text x="'+(pl+i*bw+bw/2)+'" y="'+(Ht-6)+'" text-anchor="middle">'+dShort(d)+'</text>'});
+  svg+='<polyline fill="none" stroke="#f5c542" stroke-width="2.5" stroke-linejoin="round" points="'+ma.map((v,i)=>(pl+i*bw+bw/2)+','+(pt+ih-v/mx*ih)).join(' ')+'"/></svg>';
+  out+=card('Last 30 days','<div>'+svg+'</div><div class="legend"><i style="background:#34d27b"></i> Hours per day &nbsp; <i style="background:#f5c542"></i> 7-day average</div>');
+  /* weeks */
+  const wk0=addDays(today,-new Date(today).getDay()), weeks=[];
+  for(let i=9;i>=0;i--){const ws=addDays(wk0,-7*i);weeks.push({ws,v:sumDays(mAll,ws,addDays(ws,6)),now:i===0})}
+  out+=card('Last 10 weeks (weeks start on Sunday)',cols(weeks.map(w=>({v:w.v,now:w.now,label:dShort(w.ws),val:w.v?hrs(w.v):'',tip:'Week of '+dStr(w.ws)+'\n'+fmtHM(w.v)+(w.now?' (this week so far)':'')})),150));
+  /* day extremes */
+  const [sc,sb]=streaks(mAll,today);
+  const active=Object.keys(mAll).filter(k=>mAll[k]>=1000).length;
+  const miss=Math.max(0,D.calDays-active);
+  let bd=null,wd=null;for(const k in mAll){if(mAll[k]<1000)continue;if(bd===null||mAll[k]>mAll[bd])bd=k;if(wd===null||mAll[k]<mAll[wd])wd=k}
+  out+=card('Consistency','<div class="grid">'+kpi('Current streak',sc+' day'+(sc===1?'':'s'))+kpi('Longest streak',sb+' day'+(sb===1?'':'s'))+kpi('Days studied',active)+kpi('Days missed since start',miss)
+    +kpi('Strongest day',bd?fmtHM(mAll[bd])+' on '+dShort(+bd):'-',1)+kpi('Lightest study day',wd?fmtHM(mAll[wd])+' on '+dShort(+wd):'-',1)+'</div>');
+  return out;
+}
+function rCal(D){
+  if(!D.has)return empty('No study yet.');
+  const {today,mAll}=D, W=30, wk0=addDays(addDays(today,-new Date(today).getDay()),-(W-1)*7);
+  const mx=Math.max(1,...Object.values(mAll));
+  let g='<div class="cal" style="grid-template-columns:30px repeat('+W+',20px)">';
+  let lastMonth=-1;
+  for(let c=0;c<W;c++){const d=new Date(addDays(wk0,c*7));if(d.getMonth()!==lastMonth){g+='<div class="cm" style="grid-row:1;grid-column:'+(c+2)+'">'+d.toLocaleDateString(undefined,{month:'short'})+'</div>';lastMonth=d.getMonth()}}
+  [1,3,5].forEach(w=>{g+='<div class="cl" style="grid-row:'+(w+2)+';grid-column:1">'+WD[w]+'</div>'});
+  for(let c=0;c<W;c++)for(let r=0;r<7;r++){
+    const d=addDays(wk0,c*7+r), v=mAll[d]||0, fut=d>today;
+    const lvl=v<1000?0:Math.min(1,v/mx), col=v<1000?'rgba(255,255,255,.05)':'rgba(52,210,123,'+(0.25+0.75*lvl).toFixed(2)+')';
+    g+='<div class="cd'+(fut?' fut':'')+(ui.sel===d?' sel':'')+'" data-day="'+d+'" style="grid-row:'+(r+2)+';grid-column:'+(c+2)+';background:'+col+'"'+tipA(dStr(d)+'\n'+(v>=1000?fmtHM(v):'No study'))+'></div>';
+  }
+  g+='</div>';
+  const legend='<div class="legend">Less <i style="background:rgba(255,255,255,.05)"></i><i style="background:rgba(52,210,123,.35)"></i><i style="background:rgba(52,210,123,.6)"></i><i style="background:rgba(52,210,123,.85)"></i><i style="background:rgba(52,210,123,1)"></i> More</div>';
+  let detail='<div class="empty">Click a day to see what you studied.</div>';
+  if(ui.sel!==null){
+    const ds=ui.sel, de=addDays(ds,1);
+    const segs=S.sessions.map(s=>[Math.max(s[0],ds),Math.min(s[1],de)]).filter(s=>s[1]>s[0]);
+    const tot=segs.reduce((a,s)=>a+s[1]-s[0],0);
+    if(!segs.length)detail='<div class="empty">'+dStr(ds)+': no study that day.</div>';
+    else{
+      const hh=Array(24).fill(0);eachHour(segs,(a,b,h)=>{hh[h]+=b-a});
+      const studyDays=Object.keys(mAll).filter(k=>mAll[k]>=1000);
+      const avgDay=studyDays.length?studyDays.reduce((a,k)=>a+mAll[k],0)/studyDays.length:0;
+      detail='<div class="grid" style="margin-bottom:14px">'+kpi('Date',dStr(ds),1)+kpi('Studied',fmtHM(tot))+kpi('Sessions',segs.length)+kpi('Compared with your average study day',avgDay?((tot-avgDay)/avgDay*100>=0?'+':'')+((tot-avgDay)/avgDay*100).toFixed(0)+'%':'-')+'</div>'
+        +cols(hh.map((v,h)=>({v,label:h%3===0?hLabS(h):'',tip:hRange(h)+'\n'+fmtHM(v)})),80)
+        +'<div class="tw" style="margin-top:10px"><table><tr><th>From</th><th>To</th><th>Length</th></tr>'+segs.map(s=>'<tr><td class="num">'+tStr(s[0])+'</td><td class="num">'+tStr(s[1])+'</td><td class="num">'+fmt(s[1]-s[0])+'</td></tr>').join('')+'</table></div>';
+    }
+  }
+  return card('Study calendar','<div class="calwrap">'+g+'</div>'+legend,'Last '+W+' weeks, click a day')+card('Day details',detail);
+}
+function rTrend(D){
+  if(!D.has)return empty('No study yet.');
+  const {today,mAll,startDay}=D, left=GOAL-S.study;
+  const N=Math.round((today-startDay)/DAY)+1, calDays=D.calDays, avg=S.study/calDays;
+  const cum=[];let c=0;
+  for(let i=0;i<N;i++){const d=addDays(startDay,i);c+=mAll[d]||0;cum.push(c/H)}
+  const dl=S.mode==='won'||avg<=0?0:Math.min(730,Math.ceil(left/avg));
+  const T=Math.max(1,N-1+dl), W=800, Ht=290, pl=40, pr=14, pt=12, pb=26, iw=W-pl-pr, ih=Ht-pt-pb;
+  const X=i=>pl+i/T*iw, Y=v=>pt+ih-v/100*ih;
+  let svg='<svg viewBox="0 0 '+W+' '+Ht+'">';
+  [0,25,50,75,100].forEach(v=>{svg+='<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="'+(v===100?'#f5c542':'#2b3442')+'" '+(v===100?'stroke-dasharray="5 4"':'')+'/><text x="'+(pl-6)+'" y="'+(Y(v)+4)+'" text-anchor="end">'+v+'h</text>'});
+  svg+='<polygon fill="rgba(52,210,123,.14)" points="'+X(0)+','+Y(0)+' '+cum.map((v,i)=>X(i)+','+Y(v)).join(' ')+' '+X(N-1)+','+Y(0)+'"/>';
+  svg+='<polyline fill="none" stroke="#34d27b" stroke-width="3" stroke-linejoin="round" points="'+cum.map((v,i)=>X(i)+','+Y(v)).join(' ')+'"/>';
+  if(dl>0)svg+='<line x1="'+X(N-1)+'" y1="'+Y(cum[N-1])+'" x2="'+X(T)+'" y2="'+Y(100)+'" stroke="#6ea8ff" stroke-width="2.5" stroke-dasharray="6 5"/><circle cx="'+X(T)+'" cy="'+Y(100)+'" r="5" fill="#6ea8ff"/>';
+  const cw=iw/(T+1);
+  cum.forEach((v,i)=>{const d=addDays(startDay,i);svg+='<rect x="'+(X(i)-cw/2)+'" y="'+pt+'" width="'+cw+'" height="'+ih+'" fill="transparent"'+tipA('Day '+(i+1)+', '+dStr(d)+'\nTotal so far '+v.toFixed(1)+'h\nThat day '+fmtHM(mAll[d]||0))+'/>'});
+  const ticks=[0,Math.round((N-1)/2),N-1];if(dl>0)ticks.push(T);
+  [...new Set(ticks)].forEach(i=>{svg+='<text x="'+X(i)+'" y="'+(Ht-6)+'" text-anchor="'+(i===0?'start':i===T?'end':'middle')+'">'+dShort(addDays(startDay,i))+'</text>'});
+  svg+='</svg>';
+  const eta=S.mode==='won'?'Done':(avg>0?dStr(addDays(today,dl)):'-');
+  const need=(d)=>S.mode==='won'?'-':fmtHM(left/d)+' per day';
+  const k=kpi('Your average pace',fmtHM(avg)+' per day')+kpi('Estimated finish',eta,1)+kpi('Days to go at this pace',S.mode==='won'?0:dl)+kpi('To finish in 14 days',need(14))+kpi('To finish in 30 days',need(30))+kpi('To finish in 60 days',need(60));
+  return card('Progress toward 100 hours','<div>'+svg+'</div><div class="legend"><i style="background:#34d27b"></i> Your total &nbsp; <i style="background:#6ea8ff"></i> Forecast at your average pace &nbsp; <i style="background:#f5c542"></i> Goal</div>')
+    +card('Forecast','<div class="grid">'+k+'</div>');
+}
+function rSessions(D){
+  if(!D.has)return empty('No sessions yet.');
+  let rows=S.sessions.map((s,i)=>({i:i+1,a:s[0],b:s[1],len:s[1]-s[0]})).filter(x=>x.b>D.from&&x.len>=ui.minLen*60000);
+  if(!rows.length)return empty('No sessions match this filter in '+rangeName(D.range)+'.');
+  const lens=rows.map(r=>r.len), tot=lens.reduce((a,b)=>a+b,0);
+  /* length buckets */
+  const E=[[0,15,'Under 15 min'],[15,30,'15 to 30 min'],[30,60,'30 to 60 min'],[60,120,'1 to 2 hours'],[120,180,'2 to 3 hours'],[180,1e9,'3 hours or more']];
+  const bk=E.map(e=>{const r=rows.filter(x=>x.len>=e[0]*60000&&x.len<e[1]*60000);return {n:r.length,t:r.reduce((a,x)=>a+x.len,0),label:e[2]}});
+  const bb=hbars(bk.map(b=>({label:b.label,v:b.n,text:b.n+' session'+(b.n===1?'':'s'),tip:b.label+'\n'+b.n+' sessions\n'+fmtHM(b.t)+' in total'})));
+  const kp='<div class="grid">'+kpi('Sessions',rows.length)+kpi('Total time',fmt(tot))+kpi('Average',fmt(tot/rows.length))+kpi('Longest',fmt(Math.max(...lens)))+kpi('Shortest',fmt(Math.min(...lens)))
+    +kpi('Median',fmt(lens.slice().sort((a,b)=>a-b)[Math.floor(lens.length/2)]))+'</div>';
+  const key={date:x=>x.a,len:x=>x.len,n:x=>x.i};
+  rows.sort((x,y)=>(key[ui.sort](x)-key[ui.sort](y))*ui.dir);
+  const shown=ui.all?rows:rows.slice(0,25), mx=Math.max(...lens);
+  const arrow=k=>ui.sort===k?(ui.dir>0?' ▲':' ▼'):'';
+  const tbl='<div class="tw"><table><tr><th data-sort="n">#'+arrow('n')+'</th><th data-sort="date">Date'+arrow('date')+'</th><th>From - to</th><th data-sort="len">Length'+arrow('len')+'</th><th></th><th></th></tr>'
+    +shown.map(x=>'<tr><td class="num">'+x.i+'</td><td>'+dStr(x.a)+'</td><td class="num">'+tStr(x.a)+' - '+tStr(x.b)+'</td><td class="num">'+fmt(x.len)+'</td><td><span class="mb" style="width:'+Math.max(3,x.len/mx*140)+'px"></span></td><td>'+(running()&&x.i===S.sessions.length?'<span class="live">Running now</span>':'<button class="del" data-del="'+(x.i-1)+'">Delete</button>')+'</td></tr>').join('')+'</table></div>'
+    +(rows.length>shown.length?'<p class="hint">Showing 25 of '+rows.length+' sessions.</p>':'');
+  $('btnAll').textContent=ui.all?'Show only 25 rows':'Show all rows';
+  return card('Session summary',kp,rangeName(D.range))+card('How long are your sessions?',bb)+card('All sessions','<p class="hint" style="margin:0 0 8px">Click a column heading to sort.</p>'+tbl);
+}
+
+/* ---------- render ---------- */
+let sig='';
+function renderPanels(now){
+  const t=ui.tab;
+  const s=[S.mode,S.sessions.length,Math.floor(S.study/10000),t,ui.range,ui.sort,ui.dir,ui.minLen,ui.all,ui.sel,dayStart(now)].join('|');
+  if(s===sig)return; sig=s;
+  $('tip').style.display='none';
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+  document.querySelectorAll('#chips [data-range]').forEach(b=>b.classList.toggle('on',+b.dataset.range===ui.range));
+  $('chips').style.display=(t==='hours'||t==='days'||t==='sessions')?'flex':'none';
+  ['quests','focus','overview','hours','days','cal','trend','sessions'].forEach(n=>$('p-'+n).classList.toggle('on',n===t));
+  const rangeTabs=t==='hours'||t==='days'||t==='sessions';
+  const D=compute(now,rangeTabs?ui.range:0);
+  const fn={overview:rOverview,hours:rHours,days:rDays,cal:rCal,trend:rTrend,sessions:rSessions}[t];
+  if(fn)$('d-'+t).innerHTML=fn(D);
+  if(t==='trend')whatIf();
+}
+function whatIf(){
+  const v=+$('whatIf').value, left=GOAL-S.study;
+  if(S.mode==='won'){$('whatOut').textContent='You have already finished the 100 hours.';return}
+  const days=Math.ceil(left/(v*H)), d=addDays(dayStart(Date.now()),days);
+  $('whatOut').innerHTML='At <b>'+v+' hours</b> a day you finish in <b>'+days+' day'+(days===1?'':'s')+'</b>, on <b>'+dStr(d)+'</b>.';
+}
+const COL={study:'--g',paused:'--r',idle:'--idle',won:'--g'};
+function render(){
+  const m=S.mode, col=getComputedStyle(document.documentElement).getPropertyValue(COL[m]).trim();
+  $('study').textContent=fmt(S.study);
+  $('left').textContent=fmt(GOAL-S.study)+' to go';
+  $('bar').style.width=Math.min(100,S.study/GOAL*100)+'%';
+  $('pct').textContent=(S.study/GOAL*100).toFixed(1)+'%';
+  $('watch').classList.toggle('on',m==='study'||m==='won');
+  $('status').innerHTML={idle:'Press Start. The stopwatch begins from zero.',study:'<b>Studying.</b> The stopwatch is running.',paused:'<b>Paused.</b> Press Resume when you start studying again.',won:'<b>You won.</b> 100 hours of study finished.'}[m];
+  const b=$('btnMain'); b.classList.toggle('pause',m==='study');
+  b.textContent=m==='idle'||m==='won'?'Start':(m==='study'?'Pause':'Resume studying');
+  $('dot').style.background=col;
+  $('cStudy').textContent=fmt(S.study);
+  document.title={study:'🟢',paused:'🔴',won:'🟢',idle:'⚪'}[m]+' '+fmt(S.study)+' · Study Tracker';
+  setFavicon(col);
+  renderPanels(Date.now());focusTick();
+}
+let lastFav='';
+function setFavicon(c){
+  if(c===lastFav)return; lastFav=c;
+  let l=document.querySelector('link[rel=icon]'); if(!l){l=document.createElement('link');l.rel='icon';document.head.appendChild(l)}
+  l.href='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="'+c+'"/></svg>');
+}
+function showResult(){
+  $('result').className='show';
+  $('resP').textContent='You studied 100:00:00 in '+S.sessions.length+' session'+(S.sessions.length===1?'':'s')+'.';
+  $('resS').textContent='From start to finish: '+fmt(S.end-S.start)+'.';
+}
+
+/* ---------- interaction ---------- */
+function keyHandler(e){
+  if(e.ctrlKey||e.altKey||e.metaKey)return;
+  const t=e.target&&e.target.tagName;
+  if(t==='SELECT'||t==='INPUT')return;
+  const k=e.key.toLowerCase();
+  if(e.code==='Space'){e.preventDefault();if(S.mode!=='won')toggleStudy()}
+  else if(k==='p'){popOut()}
+  else if(k==='r'&&e.shiftKey){reset()}
+}
+document.addEventListener('keydown',keyHandler);
+$('btnMain').onclick=e=>{e.currentTarget.blur();toggleStudy()};
+$('btnPip').onclick=popOut;
+$('btnReset').onclick=reset;
+$('btnAgain').onclick=start;
+
+/* ---------- quests, records, xp, tasks, rewards, badges ---------- */
+const STRETCH=[30,60,120,180,240], BIGH=[1,5,10,25,50,75,100], STREAK_MIN=30*60000, REC_XP=25;
+const LN=['Beginner','Warming up','Steady','Focused','Deep sitter','Iron seat','Marathon','Master','Legend','Unstoppable'];
+const MAN=['Drink a glass of water, then come back to your seat','Sit straight and relax your shoulders','Take five slow deep breaths','Look far away for 20 seconds, then look back at your book','Say out loud what you will finish next','Write one thing you just learned'];
+const stName=m=>m<60?m+' minute':(m/60)+' hour';
+let fSig='', lastW=0;
+const saveQ=()=>{lastW=Date.now();try{localStorage.setItem(FKEY,JSON.stringify(F))}catch(e){}};
+const addXp=(n,t)=>{const k=dayStart(t||Date.now());F.bx[k]=Math.max(0,(F.bx[k]||0)+n)};
+const xpOf=st=>Math.floor(st.today/60000)+(F.bx[st.t0]||0);
+const lvlOf=x=>Math.floor(Math.sqrt(x/20))+1;
+const lvlName=L=>LN[Math.min(L-1,9)];
+const lastStart=()=>S.sessions.length?S.sessions[S.sessions.length-1][0]:Date.now();
+const maxQd=()=>Math.max(0,...Object.values(F.qd));
+function fStats(now){
+  const t0=dayStart(now), days={}; let best=0,cur=0,tb=0,mx=0;
+  S.sessions.forEach(([a,b],i)=>{
+    best=Math.max(best,b-a); if(running()&&i===S.sessions.length-1)cur=b-a;
+    for(let d=dayStart(a);d<b;d=addDays(d,1)){const o=Math.min(b,addDays(d,1))-Math.max(a,d);if(o>0){days[d]=(days[d]||0)+o;if(d===t0)tb=Math.max(tb,o)}}
+  });
+  for(const k in days)mx=Math.max(mx,days[k]);
+  let streak=0,d=t0; if((days[d]||0)<STREAK_MIN)d=addDays(d,-1);
+  while((days[d]||0)>=STREAK_MIN){streak++;d=addDays(d,-1)}
+  const tpd={};F.tasks.forEach(x=>{if(x.done&&x.dt){const k=dayStart(x.dt);tpd[k]=(tpd[k]||0)+1}});
+  let tmx=0;for(const k in tpd)tmx=Math.max(tmx,tpd[k]);
+  return {today:days[t0]||0,best,cur,streak,tb,t0,mx,tt:tpd[t0]||0,tmx};
+}
+const RECS=[
+  {k:'stretch',n:'Longest stretch',v:st=>st.best,w:st=>st.cur,f:fmtHM},
+  {k:'day',n:'Most study in one day',v:st=>st.mx,w:st=>st.today,f:fmtHM},
+  {k:'streak',n:'Longest day streak',v:st=>st.streak,w:st=>st.streak,f:v=>v+(v===1?' day':' days')},
+  {k:'tasks',n:'Most tasks in one day',v:st=>st.tmx,w:st=>st.tt,f:v=>String(v)},
+  {k:'quests',n:'Most quests in one day',v:()=>maxQd(),w:st=>F.qd[st.t0]||0,f:v=>String(v)},
+  {k:'xp',n:'Highest XP in one day',v:st=>xpOf(st),w:st=>xpOf(st),f:v=>v+' XP'},
+  {k:'lvl',n:'Highest level in one day',v:st=>lvlOf(xpOf(st)),w:st=>lvlOf(xpOf(st)),f:v=>'Level '+v}
+];
+const rd=n=>Math.floor(Math.random()*n);
+const QT={
+  sit:{pool:[2,3,5,8,10,12,15,20,25,30,40,45],txt:q=>'Study for '+q.n+' minutes',need:q=>q.n*6e4,xp:q=>5+q.n,prog:q=>S.study-q.sb,t:1},
+  str:{pool:[5,10,15,20,25,30,40,45,60,90],txt:q=>'Sit for '+q.n+' minutes in one stretch, without pausing',need:q=>q.n*6e4,xp:q=>10+q.n,prog:(q,c)=>running()?c.now-Math.max(q.at,lastStart()):0,t:1},
+  tk:{pool:[0],txt:q=>'Sit until your task is finished: '+q.nm,need:q=>q.tg,xp:q=>10+Math.min(30,Math.round(q.tg/12e4)),prog:q=>S.study-q.sb,t:1},
+  rec:{pool:[0],txt:q=>'Beat your longest stretch of '+fmtHM(q.tg),need:q=>q.tg,xp:()=>40,prog:(q,c)=>running()?c.now-lastStart():0,t:1}
+};
+function newQuest(prev){
+  const act=F.tasks.find(x=>!x.done), left=act?(act.min||30)*6e4-(act.spent||0):0;
+  const ty=['sit','str'].concat(left>=6e4?['tk']:[],(F.rec.stretch>0&&F.rec.stretch<4*H)?['rec']:[]).filter(t=>!prev||t!==prev.y);
+  const y=ty[rd(ty.length)], pl=QT[y].pool;
+  return {y,n:pl[rd(pl.length)],at:Date.now(),sb:S.study,nm:y==='tk'?act.t:'',m:0,tg:y==='rec'?F.rec.stretch+1000:(y==='tk'?left:0)};
+}
+function nextMile(st){
+  st=st||fStats(Date.now()); const c=[], now=Date.now();
+  if(running()){
+    STRETCH.forEach(m=>{if(st.cur<m*6e4)c.push({gap:m*6e4-st.cur,label:'your '+stName(m)+' stretch badge'})});
+    if(F.rec.stretch>st.cur)c.push({gap:F.rec.stretch-st.cur+1000,label:'a new longest stretch record'});
+    if(F.rec.day>st.today)c.push({gap:F.rec.day-st.today+1000,label:'a new record for study in one day'});
+    if(F.q&&QT[F.q.y]){const T=QT[F.q.y];if(T.t)c.push({gap:T.need(F.q)-T.prog(F.q,{now}),label:'your quest'})}
+    const at=F.tasks.find(x=>!x.done);if(at)c.push({gap:(at.min||30)*6e4-(at.spent||0),label:'finishing your task'});
+  }
+  if(F.goal&&st.today<F.goal*H)c.push({gap:F.goal*H-st.today,label:'your daily goal of '+F.goal+' hours'});
+  F.rewards.forEach(r=>{if(S.study<r.h*H)c.push({gap:r.h*H-S.study,label:'your reward: '+r.t})});
+  BIGH.forEach(h=>{if(S.study<h*H)c.push({gap:h*H-S.study,label:'the '+h+' hour badge'})});
+  c.sort((a,b)=>a.gap-b.gap); return c[0]||null;
+}
+function badgeList(st){
+  const b=[];
+  BIGH.forEach(h=>b.push({id:'h'+h,t:h+(h===1?' hour':' hours'),s:'total study',ok:S.study>=h*H}));
+  STRETCH.forEach(m=>b.push({id:'s'+m,t:stName(m)+' stretch',s:'without pausing',ok:st.best>=m*6e4}));
+  [3,7,14,30].forEach(n=>b.push({id:'d'+n,t:n+' day streak',s:'30+ minutes a day',ok:st.streak>=n}));
+  [5,25,100].forEach(n=>b.push({id:'t'+n,t:n+' tasks',s:'finished',ok:F.done>=n}));
+  [10,50,200].forEach(n=>b.push({id:'q'+n,t:n+' quests',s:'finished',ok:F.qt>=n}));
+  return b;
+}
+function toast(m){const e=$('toast');e.textContent=m;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('show'),4500)}
+function beep(){try{const c=beep.c||(beep.c=new(window.AudioContext||window.webkitAudioContext)());[660,880,1100].forEach((f,i)=>{const o=c.createOscillator(),g=c.createGain(),t=c.currentTime+i*.16;o.frequency.value=f;o.connect(g);g.connect(c.destination);g.gain.setValueAtTime(.15,t);g.gain.exponentialRampToValueAtTime(.001,t+.3);o.start(t);o.stop(t+.3)})}catch(e){}}
+function celebrate(m){
+  toast(m);beep();
+  const cl=['#34d27b','#f5c542','#6ea8ff','#ff5a4f','#f1ece2'];
+  for(let i=0;i<40;i++){const d=document.createElement('div');d.className='cf';d.style.left=Math.random()*100+'vw';d.style.background=cl[i%5];d.style.animationDelay=Math.random()*.6+'s';document.body.appendChild(d);setTimeout(()=>d.remove(),3200)}
+}
+function addTask(){const v=$('tIn').value.trim();if(!v)return;const m=Math.max(1,Math.min(600,parseInt($('tM').value)||30));F.tasks.push({id:F.nid++,t:v,min:m,spent:0,done:false,dt:0});F.added++;$('tIn').value='';saveF();focusTick(true)}
+function addReward(){const h=parseFloat($('rH').value),t=$('rT').value.trim();if(!(h>0)||!t)return;F.rewards.push({id:F.nid++,h,t});$('rH').value='';$('rT').value='';saveF();focusTick(true)}
+function focusTick(force){
+  const now=Date.now(), st=fStats(now); let ch=false, full=false;
+  if(!focusTick.p){focusTick.p=1;for(const k in F.bx)if(+k<st.t0-60*DAY)delete F.bx[k]}
+  const first=F.seen===null; if(first){F.seen={};full=true}
+  // badges and rewards
+  const mark=(id,msg)=>{if(!F.seen[id]){F.seen[id]=1;full=true;if(!first)celebrate(msg)}};
+  badgeList(st).forEach(b=>{if(b.ok)mark(b.id,'Badge unlocked: '+b.t+' '+b.s)});
+  F.rewards.forEach(r=>{if(S.study>=r.h*H)mark('r'+r.id,'Reward unlocked: '+r.t)});
+  if(F.goal&&st.today>=F.goal*H)mark('g'+st.t0,'Daily goal done. '+F.goal+' hours today');
+  // task time: only sitting time counts
+  if(typeof F.ls!=='number'||S.study<F.ls)F.ls=S.study;
+  let rest=S.study-F.ls; F.ls=S.study; const fin=[];
+  if(rest>0)ch=true;
+  while(rest>0){
+    const at=F.tasks.find(x=>!x.done); if(!at)break;
+    const nd=(at.min||30)*6e4, room=nd-(at.spent||0);
+    if(rest>=room){at.spent=nd;at.done=true;at.dt=now;F.done++;addXp(15);full=true;fin.push(at.t);rest-=room}
+    else{at.spent=(at.spent||0)+rest;rest=0}
+  }
+  if(fin.length)celebrate('Task finished: '+fin.join(', ')+'. +'+15*fin.length+' XP');
+  // quest
+  if(!F.q||!QT[F.q.y]){F.q=newQuest(null);full=true}
+  let q=F.q, T=QT[q.y];
+  if(S.study<q.sb)q.sb=S.study;
+  let need=T.need(q), pr=Math.max(0,Math.min(need,T.prog(q,{now})));
+  if(pr>=need){
+    const xq=T.xp(q);
+    addXp(xq);F.qd[st.t0]=(F.qd[st.t0]||0)+1;F.qt++;
+    F.qlog.unshift({t:T.txt(q),xp:xq,at:now});F.qlog.length=Math.min(F.qlog.length,8);
+    celebrate('Quest done: '+T.txt(q)+'. +'+xq+' XP');
+    F.q=newQuest(q);q=F.q;T=QT[q.y];need=T.need(q);pr=0;full=true;
+  }
+  // records
+  const msgs=[];
+  RECS.forEach(r=>{
+    const v=r.v(st),old=F.rec[r.k]||0;
+    if(v>old){F.rec[r.k]=v;ch=true;
+      if(!first&&old>0&&F.rf[r.k]!==st.t0){F.rf[r.k]=st.t0;addXp(REC_XP);full=true;msgs.push(r.n+' is now '+r.f(v))}}
+  });
+  if(msgs.length)celebrate('New record: '+msgs.join('. ')+'. +'+REC_XP*msgs.length+' XP');
+  const xp=xpOf(st), L=lvlOf(xp);
+  // strip
+  $('sCur').textContent=fmt(running()?st.cur:0);
+  $('sBest').textContent=fmt(st.best);
+  $('sToday').textContent=fmtHM(st.today)+(F.goal?' / '+F.goal+'h':'');
+  $('sStreak').textContent=st.streak+(st.streak===1?' day':' days');
+  $('sLvl').textContent=L+' '+lvlName(L);
+  $('sXp').textContent=xp;
+  const n=nextMile(st);
+  $('sNext').textContent=n?'Next: '+n.label+' in '+fmtHM(n.gap):(running()?'Keep going.':'Press Start to begin a stretch.');
+  const t=F.tasks.find(x=>!x.done);
+  $('nowTxt').textContent=t?'Now working on: '+t.t+' ('+fmt(t.spent||0)+' of '+fmt((t.min||30)*6e4)+')':'No task set. Open the Focus tab and add one.';
+  // quest display
+  const prTxt=T.man?(running()?'Do it, then press the button.':'Start the stopwatch first, then press the button.'):(T.t?fmt(pr)+' of '+fmt(need):pr+' of '+need);
+  $('qTxt').textContent=T.txt(q);
+  $('qBar').style.width=(pr/need*100)+'%';
+  $('qXp').textContent='+'+T.xp(q)+' XP';
+  $('qNum').textContent=prTxt;
+  $('qLine').textContent='Quest: '+T.txt(q)+(T.man?'':'  ('+prTxt+')')+'  +'+T.xp(q)+' XP';
+  if(full)saveF(); else if(ch&&now-lastW>5000)saveQ();
+  const tb=ui.tab;
+  if(tb==='focus'||tb==='quests'){
+    const g=[F.v,tb,Math.floor(now/(tb==='quests'?5000:60000)),S.mode,S.sessions.length].join('|');
+    if(force||g!==fSig){fSig=g;tb==='focus'?renderFocus(st):renderQuests(st,xp,L)}
+  }
+}
+function renderQuests(st,xp,L){
+  const bar=p=>'<div class="fbar"><i style="width:'+Math.min(100,Math.max(0,p))+'%"></i></div>';
+  const lo=20*(L-1)*(L-1), hi=20*L*L, qd=F.qd[st.t0]||0;
+  let h=card('Level '+L+': '+lvlName(L),bar((xp-lo)/(hi-lo)*100)+'<div class="hint">'+xp+' XP today. Next level at '+hi+' XP. Your level starts again from 1 every morning.</div><div class="hint">Today you finished '+qd+(qd===1?' quest':' quests')+' and '+st.tt+(st.tt===1?' task':' tasks')+'. You get 1 XP for every minute of study, 15 XP when you finish the sitting time of a task, and extra XP for every quest.</div>');
+  h+=card('Records',RECS.map(r=>{const rv=F.rec[r.k]||0,nv=r.w(st);return '<div class="fq"><div class="r"><span>'+r.n+'</span><span>Record '+r.f(rv)+'. Now '+r.f(nv)+'</span></div>'+bar(rv?nv/rv*100:0)+'</div>'}).join('')+'<div class="hint">Break a record and you get +'+REC_XP+' XP. Each record can pay once a day.</div>');
+  h+=card('Recent quests',F.qlog.length?F.qlog.map(x=>'<div class="task"><span>'+esc(x.t)+'</span><small style="color:var(--mut)">+'+x.xp+' XP at '+tStr(x.at)+'</small></div>').join(''):'<div class="hint">No quest finished yet. Your first quest is waiting above.</div>',F.qt+' finished in total');
+  $('qDyn').innerHTML=h;
+}
+function renderFocus(st){
+  const ts=F.tasks.slice().sort((a,b)=>a.done-b.done);
+  const act=F.tasks.find(x=>!x.done);
+  $('fTasks').innerHTML=ts.map(x=>{const nd=(x.min||30)*6e4,sp=x.done?nd:Math.min(nd,x.spent||0);return '<div class="task'+(x.done?' done':'')+'"><span>'+esc(x.t)+'<div class="fbar" style="margin-top:6px"><i style="width:'+(sp/nd*100)+'%"></i></div></span><small style="color:var(--mut)">'+(x.done?'Done':(x===act?'Now: ':'')+fmtHM(nd-sp)+' left')+'</small><button class="del" data-tdel="'+x.id+'">Remove</button></div>'}).join('')||'<div class="hint">No tasks yet. Add a task and the minutes you will sit for it.</div>';
+  $('fRew').innerHTML=F.rewards.slice().sort((a,b)=>a.h-b.h).map(r=>{const ok=S.study>=r.h*H;return '<div class="task"><span>'+(ok?'Unlocked. ':'')+'At '+r.h+' hours: '+esc(r.t)+(ok?'':' <small style="color:var(--mut)">('+fmtHM(r.h*H-S.study)+' to go)</small>')+'</span><button class="del" data-rdel="'+r.id+'">Remove</button></div>'}).join('')||'<div class="hint">Promise yourself something nice at an hour mark. Seeing it locked helps you stay.</div>';
+  const bl=badgeList(st), on=b=>b.ok||(F.seen&&F.seen[b.id]), got=bl.filter(on).length;
+  $('fBadges').innerHTML=card('Badges','<div class="fgrid">'+bl.map(b=>'<div class="bdg'+(on(b)?' on':'')+'"><b>'+b.t+'</b>'+b.s+'</div>').join('')+'</div>',got+' of '+bl.length);
+}
+$('gSel').innerHTML=[1,2,3,4,5,6,8,10,12].map(h=>'<option value="'+h+'">'+h+'</option>').join('');
+$('gSel').value=F.goal;
+$('gSel').onchange=e=>{F.goal=+e.target.value;saveF();focusTick(true)};
+$('tIn').onkeydown=e=>{if(e.key==='Enter')addTask()};
+$('rT').onkeydown=e=>{if(e.key==='Enter')addReward()};
+document.addEventListener('click',e=>{
+  const g=a=>e.target.closest&&e.target.closest('['+a+']'); let b;
+  if(e.target.tagName==='BUTTON')e.target.blur();
+  if(b=g('data-tdel')){F.tasks=F.tasks.filter(x=>x.id!==+b.dataset.tdel);saveF();focusTick(true)}
+  else if(b=g('data-rdel')){F.rewards=F.rewards.filter(x=>x.id!==+b.dataset.rdel);saveF();focusTick(true)}
+  else if(e.target.id==='tAdd')addTask();
+  else if(e.target.id==='rAdd')addReward();
+  else if(e.target.id==='tClr'){F.tasks=F.tasks.filter(x=>!x.done);saveF();focusTick(true)}
+  else if(e.target.id==='qSkip'){F.q=newQuest(F.q);saveF();focusTick(true)}
+  else if(e.target.closest&&e.target.closest('#qLineBox')){ui.tab='quests';saveUi();sig='';render()}
+});
+window.addEventListener('beforeunload',e=>{if(running()){e.preventDefault();e.returnValue=''}});
+$('tabs').onclick=e=>{const b=e.target.closest('[data-tab]');if(b){ui.tab=b.dataset.tab;saveUi();sig='';render()}};
+$('chips').onclick=e=>{const b=e.target.closest('[data-range]');if(b){ui.range=+b.dataset.range;saveUi();sig='';render()}};
+$('minLen').onchange=e=>{ui.minLen=+e.target.value;saveUi();sig='';render()};
+$('btnAll').onclick=()=>{ui.all=!ui.all;saveUi();sig='';render()};
+$('whatIf').value=ui.perDay;
+$('whatIf').oninput=e=>{ui.perDay=+e.target.value;saveUi();whatIf()};
+$('minLen').value=String(ui.minLen);
+document.addEventListener('click',e=>{
+  const d=e.target.closest&&e.target.closest('[data-day]');
+  if(d&&!d.classList.contains('fut')){ui.sel=+d.dataset.day;saveUi();sig='';render();return}
+  const del=e.target.closest&&e.target.closest('[data-del]');
+  if(del){delSession(+del.dataset.del);return}
+  const th=e.target.closest&&e.target.closest('th[data-sort]');
+  if(th){const k=th.dataset.sort;if(ui.sort===k)ui.dir*=-1;else{ui.sort=k;ui.dir=-1}saveUi();sig='';render()}
+});
+/* tooltips (hover on desktop, tap on phone) */
+function showTip(e){
+  const tip=$('tip'), t=e.target.closest&&e.target.closest('[data-tip]');
+  if(!t||!t.dataset.tip){tip.style.display='none';return}
+  tip.textContent=t.dataset.tip; tip.style.display='block';
+  const w=tip.offsetWidth, h=tip.offsetHeight;
+  let x=e.clientX+14, y=e.clientY+14;
+  if(x+w>innerWidth-8)x=e.clientX-w-14;
+  if(y+h>innerHeight-8)y=e.clientY-h-14;
+  tip.style.left=Math.max(4,x)+'px'; tip.style.top=Math.max(4,y)+'px';
+}
+document.addEventListener('pointermove',showTip);
+document.addEventListener('pointerdown',showTip);
+document.addEventListener('pointerleave',()=>{$('tip').style.display='none'});
+
+/* ---------- camera auto pause ---------- */
+/* Watches the TOP part of the camera picture. It learns the empty room first.
+   When something big (your body) is in view the stopwatch runs. When you leave, it pauses. */
+const AP_GRACE=2000;   /* ms you may be out of view before it pauses */
+const AP_MIN=6;        /* percent of the watched area that must change to count as "you are here" */
+const AP_THR=35;       /* how different a pixel must be from the empty picture */
+const AP_TOP=0.5;      /* watch only this top part of the picture (0.5 = top half) */
+const AP_SETUP=5000;   /* ms you get to step out of view at the start */
+const AP_W=80, AP_H=45;
+const AP={on:false,stream:null,video:null,ctx:null,state:'off',end:0,frames:[],bg:null,seen:0,pct:0,auto:false};
+
+function apInfo(t){const e=$('apInfo');e.textContent=t;e.style.display=t?'block':'none'}
+function apGray(){
+  const v=AP.video; if(!v||v.readyState<2||!v.videoWidth)return null;
+  AP.ctx.drawImage(v,0,0,AP_W,AP_H);
+  const rows=Math.max(1,Math.floor(AP_H*AP_TOP)), d=AP.ctx.getImageData(0,0,AP_W,rows).data, g=new Float32Array(AP_W*rows);
+  for(let i=0,j=0;j<g.length;i+=4,j++)g[j]=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+  return g;
+}
+function apSetup(){
+  AP.state='countdown'; AP.end=Date.now()+AP_SETUP; AP.frames=[]; AP.seen=0; AP.bg=null;
+  if(running()){pause(); if(S.mode==='paused')AP.auto=true}   /* no counting while you step out; it resumes when you return */
+}
+function apStep(){
+  if(!AP.on)return;
+  const now=Date.now(), g=apGray(); if(!g)return;
+  if(AP.state==='countdown'){
+    apInfo('Camera: step OUT of the camera view now... '+Math.max(1,Math.ceil((AP.end-now)/1000)));
+    if(now>=AP.end){AP.state='capturing';AP.end=now+1500;AP.frames=[]}
+  }else if(AP.state==='capturing'){
+    apInfo('Camera: taking the empty picture. Stay out of view...');
+    AP.frames.push(g);
+    if(now>=AP.end&&AP.frames.length){
+      const n=AP.frames.length, bg=new Float32Array(g.length);
+      for(const f of AP.frames)for(let i=0;i<bg.length;i++)bg[i]+=f[i]/n;
+      AP.bg=bg; AP.frames=[]; AP.state='watching'; AP.seen=0;
+    }
+  }else if(AP.state==='watching'){
+    let c=0; for(let i=0;i<g.length;i++)if(Math.abs(g[i]-AP.bg[i])>AP_THR)c++;
+    AP.pct=100*c/g.length;
+    if(AP.pct>=AP_MIN)AP.seen=now;
+    const present=AP.seen>0&&now-AP.seen<=AP_GRACE;
+    if(S.mode!=='paused')AP.auto=false;
+    if(S.mode==='study'&&!present){pause(); if(S.mode==='paused')AP.auto=true}
+    else if(S.mode==='paused'&&present&&AP.auto){AP.auto=false;resume()}
+    apInfo('Camera: '+(present?'you are in view.':'you are out of view.')+'  Picture change '+AP.pct.toFixed(1)+'%');
+  }
+}
+async function apOn(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){apInfo('This browser cannot use the camera for this page.');return}
+  let stream;
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:320},height:{ideal:180}},audio:false})}
+  catch(e){apInfo('Could not open the camera: '+(e&&e.message||e)+'. Allow the camera and try again.');return}
+  const v=document.createElement('video');
+  v.muted=true; v.playsInline=true; v.srcObject=stream;
+  v.style.cssText='position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
+  document.body.appendChild(v);
+  try{await v.play()}catch(e){}
+  const cv=document.createElement('canvas'); cv.width=AP_W; cv.height=AP_H;
+  AP.ctx=cv.getContext('2d',{willReadFrequently:true});
+  AP.stream=stream; AP.video=v; AP.on=true; AP.auto=false;
+  $('btnAp').textContent='Auto pause: On'; $('btnApRe').style.display='';
+  apSetup();
+}
+function apOff(){
+  if(AP.stream)AP.stream.getTracks().forEach(t=>t.stop());
+  if(AP.video)AP.video.remove();
+  AP.on=false; AP.stream=null; AP.video=null; AP.state='off'; AP.auto=false;
+  $('btnAp').textContent='Auto pause: Off'; $('btnApRe').style.display='none'; apInfo('');
+}
+$('btnAp').onclick=e=>{e.currentTarget.blur(); AP.on?apOff():apOn()};
+$('btnApRe').onclick=e=>{e.currentTarget.blur(); if(AP.on)apSetup()};
+
+if(S.mode==='won')showResult();
+setInterval(tick,250); tick();
+<\/script>
+</body>
+</html>
+</script>
+<div id="studyChip">⏱ 00:00:00</div>
+<script>
+/* Study Tracker bridge: the tracker lives in #studyFrame; Reels mode drives it. */
+(function(){
+  var fr=document.getElementById("studyFrame"), chip=document.getElementById("studyChip");
+  if(!fr) return;
+  var src=document.getElementById("studyTrackerSrc").textContent.replace(/<\\\/script/g,"</script").replace(/<\\!--/g,"<!--");
+  fr.srcdoc=src;
+  function W(){try{return fr.contentWindow}catch(e){return null}}
+  function mode(w){try{return w.eval("S.mode")}catch(e){return null}}
+  function playing(){
+    var f=window.stenoReelsState; if(!f) return false;
+    var s; try{s=f()}catch(e){return false}
+    return !!(s.open && s.run && !s.paused && !s.sheet && !document.hidden);
+  }
+  function sync(){
+    var w=W(); if(!w||!w.eval) return;
+    var m=mode(w); if(!m) return;
+    var p=playing();
+    try{
+      if(p && m==="idle") w.start();
+      else if(p && m==="paused") w.resume();
+      else if(!p && m==="study") w.pause();
+      if(chip && document.body.classList.contains("reels-open")){
+        var st=w.eval("S.study"); chip.textContent="⏱ "+w.fmt(st);
+        chip.classList.toggle("on", mode(w)==="study");
+      }
+    }catch(e){}
+  }
+  setInterval(sync,250);
+  document.addEventListener("visibilitychange",sync);
+  window.addEventListener("pagehide",function(){var w=W();if(w&&mode(w)==="study"){try{w.pause()}catch(e){}}});
 })();
 </script>
 <script>

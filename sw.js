@@ -1,49 +1,48 @@
-// Steno + TNPSC Drill service worker: offline-first app shell, safe updates.
-var CACHE = "steno-drill-v14";
-var SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
+/* Service worker for Steno + TNPSC Drill (with Study Tracker). Upload next to index.html. */
+const CACHE = "steno-drill-v2-study-tracker";
+const CORE = ["./", "./index.html"];
 
-self.addEventListener("install", function (e) {
-  self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then(function (c) {
-    return Promise.all(SHELL.map(function (u) { return c.add(u).catch(function () {}); }));
-  }));
+self.addEventListener("install", (e) => {
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));
 });
 
-self.addEventListener("activate", function (e) {
+self.addEventListener("activate", (e) => {
   e.waitUntil(
-    caches.keys().then(function (keys) {
-      return Promise.all(keys.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); }));
-    }).then(function () { return self.clients.claim(); })
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
-self.addEventListener("fetch", function (e) {
-  var req = e.request;
+self.addEventListener("fetch", (e) => {
+  const req = e.request;
   if (req.method !== "GET") return;
-  var url = new URL(req.url);
-  if (url.origin !== location.origin) return;          // never touch other sites (audio, fonts, etc.)
-  if (req.headers.has("range")) return;                // let the browser handle audio/video ranges
+  const url = new URL(req.url);
+  if (url.origin !== location.origin) return;
 
-  var isPage = req.mode === "navigate" || (req.headers.get("accept") || "").indexOf("text/html") > -1;
-  if (isPage) {
-    // network first so updates arrive, cache fallback so it works offline
+  // Pages: network first so a new upload shows up, cache as the offline fallback.
+  if (req.mode === "navigate") {
     e.respondWith(
-      fetch(req).then(function (res) {
-        if (res && res.ok) { var copy = res.clone(); caches.open(CACHE).then(function (c) { c.put("./index.html", copy); }); }
-        return res;
-      }).catch(function () {
-        return caches.match("./index.html").then(function (r) { return r || caches.match("./"); });
-      })
+      fetch(req)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put("./index.html", copy));
+          return res;
+        })
+        .catch(() => caches.match("./index.html").then((r) => r || caches.match("./")))
     );
     return;
   }
-  // other files: cache first, refresh in background
+
+  // Everything else on this site: cache first, refresh in the background.
   e.respondWith(
-    caches.match(req).then(function (hit) {
-      var net = fetch(req).then(function (res) {
-        if (res && res.ok) { var copy = res.clone(); caches.open(CACHE).then(function (c) { c.put(req, copy); }); }
-        return res;
-      }).catch(function () { return hit; });
+    caches.match(req).then((hit) => {
+      const net = fetch(req)
+        .then((res) => {
+          if (res && res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
+          return res;
+        })
+        .catch(() => hit);
       return hit || net;
     })
   );
