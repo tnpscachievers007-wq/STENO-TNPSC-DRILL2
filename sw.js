@@ -1,6 +1,6 @@
 /* Steno Drill service worker - works offline on GitHub Pages.
    Change CACHE_VERSION every time you upload a new index.html so phones pick up the update. */
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const CACHE = "steno-drill-" + CACHE_VERSION;
 
 // Files cached on install. Missing files are skipped, so this never fails.
