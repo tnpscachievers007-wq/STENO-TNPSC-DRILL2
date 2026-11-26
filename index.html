@@ -8164,7 +8164,7 @@ function cleanCfg(){
   if(!cfg.file&&Array.isArray(cfg.files)&&cfg.files.length)cfg.file=cfg.files[0];delete cfg.files;
   cfg.dir=cfg.dir==="w2s"?"w2s":"s2w";cfg.order=!!cfg.order;
   cfg.target=Math.max(1,Math.round(+cfg.target)||10000);cfg.setSize=Math.max(0,Math.round(+cfg.setSize)||0);cfg.setRandom=!!cfg.setRandom;
-  cfg.rev=Math.max(1,Math.round(+cfg.rev)||2);cfg.miss=Math.max(1,Math.round(+cfg.miss)||7);cfg.missDef=Math.min(9999,Math.max(1,Math.round(+cfg.missDef)||3));cfg.missDefOn=cfg.missDefOn!==false;if(cfg.orient!=="portrait"&&cfg.orient!=="landscape")cfg.orient="auto";cfg.r3On=cfg.r3On!==false;cfg.miss3=Math.min(9999,Math.max(1,Math.round(+cfg.miss3)||8));cfg.missA=Math.min(9999,Math.max(1,Math.round(+cfg.missA)||5));cfg.missB=Math.min(9999,Math.max(1,Math.round(+cfg.missB)||8));cfg.knewNeed=Math.min(99,Math.max(1,Math.round(+cfg.knewNeed)||3));cfg.pace=Math.max(1,Math.round(+cfg.pace)||10);
+  cfg.rev=Math.max(1,Math.round(+cfg.rev)||2);cfg.miss=Math.max(1,Math.round(+cfg.miss)||7);cfg.missDef=Math.min(9999,Math.max(1,Math.round(+cfg.missDef)||3));cfg.missDefOn=cfg.missDefOn!==false;if(cfg.orient!=="portrait"&&cfg.orient!=="landscape")cfg.orient="auto";cfg.r3On=cfg.r3On!==false;cfg.miss3=Math.min(9999,Math.max(1,Math.round(+cfg.miss3)||8));cfg.missW=Math.min(9999,Math.max(1,Math.round(+cfg.missW)||cfg.miss));cfg.missA=Math.min(9999,Math.max(1,Math.round(+cfg.missA)||5));cfg.missB=Math.min(9999,Math.max(1,Math.round(+cfg.missB)||8));cfg.knewNeed=Math.min(99,Math.max(1,Math.round(+cfg.knewNeed)||3));cfg.pace=Math.max(1,Math.round(+cfg.pace)||10);
   cfg.txt=Math.min(250,Math.max(40,Math.round(+cfg.txt)||100));cfg.img=Math.min(250,Math.max(20,Math.round(+cfg.img)||100));
   cfg.autoScroll=cfg.autoScroll!==false;cfg.tts=!!cfg.tts;cfg.sfx=cfg.sfx!==false;cfg.ui=cfg.ui!==false;cfg.clean=!!cfg.clean}
 function T(){return R.run?R.target:cfg.target}
@@ -8366,7 +8366,7 @@ function boot(){
   $("rlPause").onclick=togglePause;$("rlRestart").onclick=restartSet;$("rlNext").onclick=nextRound;$("rlPrev").onclick=prevRound;$("rlPaused").onclick=togglePause;
   $("rlOrd").onclick=function(){cfg.order=!cfg.order;saveCfg();toast(cfg.order?"In order (from next round)":"Random (from next round)");hud()};
   (function(){var box=$("rlMissQ"),h="";for(var q=1;q<=8;q++)h+='<button type="button" data-s="'+q+'" title="Auto-miss '+q+' s">'+q+'</button>';box.innerHTML=h;
-    box.onclick=function(e){var b=e.target.closest?e.target.closest("button[data-s]"):null;if(!b)return;if(isR3())cfg.miss3=+b.getAttribute("data-s");else cfg.miss=+b.getAttribute("data-s");saveCfg();toast("Auto-miss "+missT()+" s");hud();arm()}})();
+    box.onclick=function(e){var b=e.target.closest?e.target.closest("button[data-s]"):null;if(!b)return;cfg[missKey()]=+b.getAttribute("data-s");saveCfg();toast("Auto-miss "+missT()+" s");hud();arm()}})();
   $("rlCfg").onclick=function(){openSheet("live")};$("rlFile").onclick=$("rlMode").onclick=$("rlCfg").onclick;
   $("rlAuto").onclick=function(){cfg.autoScroll=!cfg.autoScroll;saveCfg();toast(cfg.autoScroll?"Auto-scroll ON":"Auto-scroll OFF · swipe yourself",1600);hud()};
   $("rlUi").onclick=function(){cfg.ui=!cfg.ui;saveCfg();syncUi()};
@@ -8480,10 +8480,10 @@ function openSheet(mode){
   else if(!live&&lens.length>1)h+='<div class="rl-row"><label>Start from set</label><div class="rl-chips">'+lens.map(function(L,i){return chip("sset",i,"Set "+(i+1)+" · "+L,(cfg.startSet|0)===i)}).join("")+'</div></div>';
   h+='<p>'+(n?n+' cards → '+lens.length+' set'+(lens.length===1?'':'s')+': '+lens.slice(0,8).join(' + ')+(lens.length>8?' + …':''):'No cards.')+' A set moves on only when every card is Knew; missed cards come back in a short round.</p>';
   h+=num("rev","Auto-reveal (s)",1);
-  h+='<div class="rl-row"><label>Default auto-miss at the start of every round</label><div class="rl-chips">'+chip("missDefOn","1","ON",cfg.missDefOn)+chip("missDefOn","0","OFF · keep last time",!cfg.missDefOn)+'</div></div>';
-  h+=num("missDef","Default auto-miss time (s)",1);
+  h+=num("miss","Round 1 \u00b7 Stroke \u2192 Word auto-miss time (s)",1);
+  h+=num("missW","Round 2 \u00b7 Word \u2192 Stroke auto-miss time (s)",1);
   h+='<div class="rl-row"><label>Round 3 per set (Word \u2192 Stroke again, with its own auto-miss)</label><div class="rl-chips">'+chip("r3On","1","ON",cfg.r3On)+chip("r3On","0","OFF",!cfg.r3On)+'</div></div>';
-  h+=num("miss3","Round 3 auto-miss time (s)",1);
+  h+=num("miss3","Round 3 \u00b7 Word \u2192 Stroke auto-miss time (s)",1);
   h+='<div class="rl-row"><label>Auto-miss time (seconds) · current round</label><div class="rl-chips">'+[1,2,3,4,5,6,7,8].map(function(q){return chip("miss",q,q+" s",missT()===q)}).join("")+'</div></div>';
   h+=num("knewNeed","Knew it clicks to finish a card",1)+num("pace","Pace target (s per card)",1);
   h+='<div class="rl-row"><label>Image size <span id="rlImgV">'+cfg.img+'</span>%</label><input type="range" id="rlImg" min="20" max="250" step="10" value="'+cfg.img+'"></div>';
@@ -8505,12 +8505,12 @@ function openSheet(mode){
     else if(g==="tts"||g==="sfx")cfg[g]=!cfg[g];
     else if(g==="auto")cfg.autoScroll=!cfg.autoScroll;
     else if(g==="setRandom")cfg.setRandom=v==="1";
-    else if(g==="miss"){if(isR3())cfg.miss3=+v;else cfg.miss=+v;if(R.run)hud()}
+    else if(g==="miss"){cfg[missKey()]=+v;if(R.run)hud()}
     else if(g==="r3On")cfg.r3On=v==="1";
     else if(g==="missDefOn")cfg.missDefOn=v==="1";
     else cfg[g]=v;
     saveCfg();again()};
-  [].forEach.call(sh.querySelectorAll("[data-n]"),function(i){i.onchange=function(){var v=Math.round(parseFloat(i.value));cfg[i.dataset.n]=v>0?v:(i.dataset.n==="setSize"?0:1);saveCfg();if(i.dataset.n==="target"&&R.run){R.target=cfg.target;saveRun();hud()}if(i.dataset.n==="setSize")again();if(i.dataset.n==="missA"||i.dataset.n==="missB")hud()}});
+  [].forEach.call(sh.querySelectorAll("[data-n]"),function(i){i.onchange=function(){var v=Math.round(parseFloat(i.value));cfg[i.dataset.n]=v>0?v:(i.dataset.n==="setSize"?0:1);saveCfg();if(i.dataset.n==="target"&&R.run){R.target=cfg.target;saveRun();hud()}if(i.dataset.n==="setSize")again();if(i.dataset.n==="missA"||i.dataset.n==="missB"||i.dataset.n==="miss"||i.dataset.n==="missW"||i.dataset.n==="miss3")hud()}});
   $("rlImg").oninput=function(){cfg.img=+this.value;$("rlImgV").textContent=this.value;saveCfg();vars()};
   $("rlTxt").oninput=function(){cfg.txt=+this.value;$("rlTxtV").textContent=this.value;saveCfg();vars()};
   if(live){$("rlOk").onclick=closeSheet;$("rlNew").onclick=function(){if(!cfg.file)return;closeSheet(true);startNew()};$("rlApply").onclick=function(){if(!cfg.file)return;closeSheet(true);R.setSize=cfg.setSize;R.setRandom=cfg.setRandom;R.target=cfg.target;R.sc={};R.modeStart=0;R.modes=modeOrder();R.fl=fileOrder(cfg.file);if(!pass(0,0,0,null))finish()}}
@@ -8524,7 +8524,8 @@ function playable(f){return (f.s2w||0)>0||(f.w2s||0)>0}
 // Every set is played Stroke/Question -> Word/Answer first, then Word/Answer -> Stroke/Question.
 function modeOrder(){return cfg.r3On?["s2w","w2s","w2s"]:["s2w","w2s"]}
 function isR3(){return !!(R.modes&&R.modes.length>2&&R.mi===2)}
-function missT(){return isR3()?cfg.miss3:cfg.miss}
+function missKey(){return isR3()?"miss3":(R.modes&&R.modes[R.mi]==="w2s"?"missW":"miss")}
+function missT(){return cfg[missKey()]}
 // Like Game mode: the chosen file first, then every next file of the library, round and round.
 function fileOrder(start){var fl=A().files().filter(playable).map(function(f){return f.id}),i=fl.indexOf(start);if(i<0)i=0;return fl.slice(i).concat(fl.slice(0,i))}
 function resetRun(keepKc){R.done=R.knew=R.missed=R.score=R.combo=R.maxCombo=0;R.ms=0;R.startDone=0;R.sc={};R.hist=[];R.rKnew=R.rMiss=0;
@@ -8550,7 +8551,7 @@ function resume(){var r=lj("stenoGameRun",null);if(!r)return;resetRun(true);
 function pass(fi,si,mi,only,st){
   var n=R.fl.length,lim=800;if(!n)return false;
   if(mi>=R.modes.length)mi=0;
-  if(!st&&!only&&mi!==2&&cfg.missDefOn){cfg.miss=cfg.missDef;saveCfg()}   // every new round starts with the default auto-miss time
+  /* each mode keeps its own remembered auto-miss time, so nothing is reset here */   // every new round starts with the default auto-miss time
   while(lim-->0){
     fi=fi%n;var fid=R.fl[fi],sets=getSets(fid);if(si>=sets.length)si=0;
     var its=only||mkItems(fid,R.modes[mi],sets[si]||[]);
