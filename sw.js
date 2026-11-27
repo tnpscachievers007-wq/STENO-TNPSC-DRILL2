@@ -1,36 +1,75 @@
-// Steno Drill service worker: works offline, always tries the network first for the app itself.
-var CACHE = "steno-drill-sync-v1";
-self.addEventListener("install", function (e) {
-  self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then(function (c) {
-    return Promise.all(["./", "./index.html"].map(function (u) { return c.add(u).catch(function () {}); }));
-  }));
+/* Steno Drill service worker - works offline on GitHub Pages.
+   Change CACHE_VERSION every time you upload a new index.html so phones pick up the update. */
+const CACHE_VERSION = "v7";
+const CACHE = "steno-drill-" + CACHE_VERSION;
+
+// Files cached on install. Missing files are skipped, so this never fails.
+const PRECACHE = [
+  "./",
+  "./index.html",
+  "./manifest.webmanifest",
+  "./icon-192.png",
+  "./apple-touch-icon.png",
+  "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE).then((cache) =>
+      Promise.all(
+        PRECACHE.map((url) =>
+          fetch(url, { cache: "reload" })
+            .then((res) => (res && (res.ok || res.type === "opaque") ? cache.put(url, res) : null))
+            .catch(() => null)
+        )
+      )
+    ).then(() => self.skipWaiting())
+  );
 });
-self.addEventListener("activate", function (e) {
-  e.waitUntil(caches.keys().then(function (ks) {
-    return Promise.all(ks.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); }));
-  }).then(function () { return self.clients.claim(); }));
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith("steno-drill-") && k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
 });
-self.addEventListener("fetch", function (e) {
-  var req = e.request;
+
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
   if (req.method !== "GET") return;
-  var url = new URL(req.url);
-  var sdk = url.hostname === "www.gstatic.com" && url.pathname.indexOf("/firebasejs/") === 0;
-  if (url.origin !== location.origin && !sdk) return;   // Google sign-in and database traffic are never touched
-  if (sdk) {                                            // Firebase code: cache first (versioned files never change)
-    e.respondWith(caches.match(req).then(function (hit) {
-      return hit || fetch(req).then(function (res) {
-        var copy = res.clone();
-        caches.open(CACHE).then(function (c) { c.put(req, copy); });
-        return res;
-      });
-    }));
+  const url = new URL(req.url);
+  if (url.protocol !== "http:" && url.protocol !== "https:") return;
+  // Never touch the live-sync connection (Firebase) or any other outside site, only our own files and the JSZip CDN.
+  if (url.origin !== self.location.origin && url.hostname !== "cdnjs.cloudflare.com") return;
+
+  // Page loads: network first (so updates show), cached copy when offline.
+  if (req.mode === "navigate") {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put("./index.html", copy));
+          return res;
+        })
+        .catch(() => caches.match("./index.html").then((r) => r || caches.match("./")))
+    );
     return;
   }
-  e.respondWith(fetch(req).then(function (res) {        // the app: network first, cached copy when offline
-    if (res && res.ok) { var copy = res.clone(); caches.open(CACHE).then(function (c) { c.put(req, copy); }); }
-    return res;
-  }).catch(function () {
-    return caches.match(req).then(function (hit) { return hit || caches.match("./index.html"); });
-  }));
+
+  // Everything else: cached copy first, refreshed in the background.
+  event.respondWith(
+    caches.match(req).then((cached) => {
+      const refresh = fetch(req)
+        .then((res) => {
+          if (res && (res.ok || res.type === "opaque")) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(req, copy));
+          }
+          return res;
+        })
+        .catch(() => cached);
+      return cached || refresh;
+    })
+  );
 });

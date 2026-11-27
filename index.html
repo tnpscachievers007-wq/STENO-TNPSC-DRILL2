@@ -2024,10 +2024,12 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
   function idb(fn){ if(!db)return; try{fn(db.transaction("kv","readwrite").objectStore("kv"))}catch(e){} }
   SP.getItem=function(k){ if(this===ls&&started){k=String(k);return Object.prototype.hasOwnProperty.call(mem,k)?mem[k]:null} return gs.call(this,k) };
   SP.setItem=function(k,v){
+    if(this===ls&&window.__stenoFreeze)return;
     if(this===ls&&started){k=String(k);v=String(v);mem[k]=v;try{ss.call(this,k,v)}catch(e){}idb(function(s){s.put(v,k)});return}
     return ss.call(this,k,v);
   };
   SP.removeItem=function(k){
+    if(this===ls&&window.__stenoFreeze)return;
     if(this===ls&&started){k=String(k);delete mem[k];try{rs.call(this,k)}catch(e){}idb(function(s){s["delete"](k)});return}
     return rs.call(this,k);
   };
@@ -2053,215 +2055,6 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
       }catch(e){clearTimeout(timer);go()}
     };
   }catch(e){clearTimeout(timer);go()}
-})();
-</script>
-<script>
-/* ===== Files-only cloud sync (Firebase): only your card files are shared between devices. ===== */
-(function(){
-"use strict";
-var FB_CONFIG={apiKey:"AIzaSyAZPjit4ZV0DCAdpkCBpdfkLQPtrNJWnPM",authDomain:"steno-drill.firebaseapp.com",projectId:"steno-drill",storageBucket:"steno-drill.firebasestorage.app",messagingSenderId:"759097853258",appId:"1:759097853258:web:23189f73d76ec608a52db3"};
-if(location.protocol.indexOf("http")!==0) return;
-var SDK="https://www.gstatic.com/firebasejs/10.12.2/";
-var ls=null; try{ls=window.localStorage}catch(e){} if(!ls) return;
-var SP=Storage.prototype, prevSet=SP.setItem;
-var LIB="stenoDrillState_v1";               // the app's library; only its "files" part is synced
-
-function hash(s){var h=5381,i=s.length;while(i)h=(h*33)^s.charCodeAt(--i);return (h>>>0).toString(36)+":"+s.length}
-function jget(k,d){try{var v=ls.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
-function ssj(k,d){try{return JSON.parse(sessionStorage.getItem(k)||"null")||d}catch(e){return d}}
-function ssset(k,v){try{sessionStorage.setItem(k,JSON.stringify(v))}catch(e){}}
-var DEV=(function(){var d=ls.getItem("__fsDev");if(!d){d="d"+Math.random().toString(36).slice(2,10);ls.setItem("__fsDev",d)}return d})();
-var M=jget("__fsMeta",{});                   // {t: version last synced, h: hash of files at that time, dt: unsynced change time}
-function saveM(){try{ls.setItem("__fsMeta",JSON.stringify(M))}catch(e){}}
-var fb=null, db=null, uid=null, user=null, remote=null, pending=null, timer=null, applying=false, pausedUntil=0, unsub=null, lastOk=0, status="Starting\u2026", state="busy", ui={};
-
-/* ---- the files part of the library ---- */
-function filesText(){
-  var raw=ls.getItem(LIB); if(!raw) return null;
-  try{var o=JSON.parse(raw); if(!o||!o.files||!o.files.length) return null; return JSON.stringify(o.files)}catch(e){return null}
-}
-function curHash(){var t=filesText();return t===null?null:hash(t)}
-
-/* ---- reload safety ---- */
-function canReload(){var now=Date.now(),a=ssj("__fsReloads",[]).filter(function(t){return now-t<600000});return a.length<3}
-function doReload(){
-  if(!canReload()){setState("off","Auto-refresh paused \u2013 reopen the app");return}
-  var now=Date.now(),a=ssj("__fsReloads",[]).filter(function(t){return now-t<600000});a.push(now);ssset("__fsReloads",a);
-  setTimeout(function(){location.reload()},1500);
-}
-
-/* ---- small UI ---- */
-function css(){
-  var st=document.createElement("style");
-  st.textContent="#syncBtn{position:fixed;left:10px;bottom:10px;z-index:99998;width:40px;height:40px;border-radius:50%;border:1px solid rgba(128,128,128,.5);background:#1b1d2b;color:#fff;font-size:18px;cursor:pointer;opacity:.85;display:flex;align-items:center;justify-content:center;padding:0}"+
-  "#syncBtn.ok{box-shadow:0 0 0 2px #2ecc71}#syncBtn.busy{box-shadow:0 0 0 2px #f5b301}#syncBtn.off{box-shadow:0 0 0 2px #e74c3c}"+
-  "#syncPanel{position:fixed;left:10px;bottom:58px;z-index:99999;width:min(310px,calc(100vw - 20px));background:#1b1d2b;color:#fff;border:1px solid #555;border-radius:14px;padding:14px;font:14px/1.4 system-ui,sans-serif;display:none;box-shadow:0 8px 30px rgba(0,0,0,.5)}"+
-  "#syncPanel.open{display:block}#syncPanel button{font:inherit;padding:8px 12px;border-radius:10px;border:1px solid #666;background:#2c2f45;color:#fff;cursor:pointer;margin:6px 4px 0 0}#syncPanel small{color:#aab}"+
-  "#syncToast{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:99999;background:#1b1d2b;color:#fff;border:1px solid #3dffa0;border-radius:12px;padding:10px 14px;font:14px system-ui,sans-serif;display:none;max-width:92vw}"+
-  "#syncToast button{margin-left:10px;padding:6px 10px;border-radius:8px;border:0;background:#3dffa0;color:#000;font:inherit;font-weight:700;cursor:pointer}";
-  document.head.appendChild(st);
-  var b=document.createElement("button");b.id="syncBtn";b.type="button";b.textContent="\u2601";b.title="Sync your files between devices";document.body.appendChild(b);
-  var p=document.createElement("div");p.id="syncPanel";document.body.appendChild(p);
-  var t=document.createElement("div");t.id="syncToast";document.body.appendChild(t);
-  ui.btn=b;ui.panel=p;ui.toast=t;
-  b.onclick=function(){p.classList.toggle("open");draw()};
-}
-function setState(s,msg){state=s;status=msg;if(ui.btn)ui.btn.className=s;draw()}
-function draw(){
-  if(!ui.panel||!ui.panel.classList.contains("open"))return;
-  var h="<b>File sync</b><br><small>Only your files (cards and strokes) are synced.</small><br><small>"+status+(lastOk?" \u00b7 last sync "+new Date(lastOk).toLocaleTimeString():"")+"</small><br>";
-  if(!user)h+='<button id="syncIn">Sign in with Google</button>';
-  else h+='<small>Signed in: '+(user.email||"")+'</small><br><button id="syncNow">Sync now</button><button id="syncOut">Sign out</button>';
-  ui.panel.innerHTML=h;
-  var q=function(i){return document.getElementById(i)};
-  if(q("syncIn"))q("syncIn").onclick=signIn;
-  if(q("syncOut"))q("syncOut").onclick=function(){fb.signOut(fb.auth)};
-  if(q("syncNow"))q("syncNow").onclick=function(){setState("busy","Syncing\u2026");if(timer){clearTimeout(timer);timer=null}push();if(pending)applyPending(true)};
-}
-function toast(msg,btn,fn){
-  if(!ui.toast)return;ui.toast.textContent=msg+" ";
-  if(btn){var b=document.createElement("button");b.textContent=btn;b.onclick=fn;ui.toast.appendChild(b)}
-  ui.toast.style.display="block";
-}
-
-/* ---- notice when the library is saved ---- */
-SP.setItem=function(k,v){
-  prevSet.call(this,k,v);
-  if(this===ls&&!applying&&String(k)===LIB)localChanged();
-};
-function localChanged(){
-  var h=curHash(); if(h===null)return;
-  if(h===M.h){delete M.dt;return}
-  if(!M.dt){M.dt=Date.now();saveM()}
-  schedule();
-}
-function schedule(){          // send 45 s after the LAST change, so an import is one upload
-  if(!uid)return;
-  if(timer)clearTimeout(timer);
-  timer=setTimeout(function(){timer=null;push()},Math.max(45000,Date.now()<pausedUntil?pausedUntil-Date.now():0));
-}
-
-/* ---- cloud paths ---- */
-function mref(){return fb.doc(db,"users",uid,"filesync","meta")}
-function cref(i){return fb.doc(db,"users",uid,"filesyncc","c"+i)}
-
-async function push(){
-  if(!uid||!db)return;
-  var text=filesText(); if(text===null)return;              // never send an empty library
-  var h=hash(text); if(h===M.h){delete M.dt;return}
-  var t=Math.max(Date.now(),(remote&&remote.t||0)+1);
-  try{
-    setState("busy","Saving\u2026");
-    var old=(remote&&remote.n)||0, meta={t:t,dev:DEV,len:text.length};
-    if(text.length<=200000){meta.n=0;meta.d=text}
-    else{
-      var enc=new TextEncoder(),parts=[];
-      (function cut(str){if(!str.length)return;if(str.length<=900000&&enc.encode(str).length<=1000000){parts.push(str);return}var m=Math.ceil(str.length/2);cut(str.slice(0,m));cut(str.slice(m))})(text);
-      for(var s=0;s<parts.length;s+=4){
-        var b=fb.writeBatch(db);
-        for(var i=s;i<Math.min(s+4,parts.length);i++)b.set(cref(i),{i:i,t:t,d:parts[i]});
-        await b.commit();
-      }
-      meta.n=parts.length;
-    }
-    await fb.setDoc(mref(),meta);
-    for(var j=meta.n;j<old;j++){try{await fb.deleteDoc(cref(j))}catch(e){}}
-    remote=meta;M.t=t;M.h=h;delete M.dt;saveM();lastOk=Date.now();setState("ok","Synced");
-    if(curHash()!==h)schedule();
-  }catch(e){
-    console.warn("file sync push failed",e);
-    if(e&&e.code==="resource-exhausted"){pausedUntil=Date.now()+3600000;setState("off","Free daily limit reached \u2013 sync paused")}
-    else setState("off","Offline or blocked \u2013 will retry");
-    setTimeout(schedule,e&&e.code==="resource-exhausted"?3600000:60000);
-  }
-}
-async function fetchText(r){
-  if(!r.n)return r.d||"";
-  var snaps=await Promise.all(Array.apply(null,Array(r.n)).map(function(_,i){return fb.getDoc(cref(i))}));
-  var out=[];
-  for(var i=0;i<snaps.length;i++){if(!snaps[i].exists()||snaps[i].data().t!==r.t)throw new Error("chunks not ready");out.push(snaps[i].data().d)}
-  return out.join("");
-}
-
-/* ---- incoming files ---- */
-function consider(r,initial){
-  if(!r||r.dev===DEV)return;
-  if((ssj("__fsApplied",{}).t||0)>=r.t)return;
-  var h=curHash(), dirty=(h!==null&&h!==M.h);
-  if(r.t<=(M.t||0)&&!dirty)return;
-  if(dirty&&((M.t||0)>=r.t||(M.dt||0)>r.t)){schedule();return}   // our change is newer: send it
-  pending=r;
-}
-async function applyPending(force){
-  var r=pending; if(!r)return false;
-  try{
-    var files=JSON.parse(await fetchText(r));
-    if(!files||!files.length)return false;                       // never apply an empty list
-    var lib=jget(LIB,{})||{};
-    lib.files=files;
-    if(!lib.activeFileId||!files.some(function(f){return f&&f.id===lib.activeFileId}))lib.activeFileId=files[0].id;
-    applying=true;
-    try{ls.setItem(LIB,JSON.stringify(lib))}finally{applying=false}
-    M.t=r.t;M.h=curHash();delete M.dt;saveM();
-    ssset("__fsApplied",{t:r.t});pending=null;lastOk=Date.now();
-    return true;
-  }catch(e){console.warn("file sync pull failed",e);return false}
-}
-
-function whenAppReady(fn){var n=0;(function w(){if(window.stenoGameApi||n++>60)fn();else setTimeout(w,200)})()}
-
-function listen(){
-  if(unsub){try{unsub()}catch(e){}unsub=null}
-  var first=true, neverSynced=!M.t&&!M.h, decided=!neverSynced;
-  unsub=fb.onSnapshot(mref(),async function(snap){
-    if(neverSynced&&!decided){
-      if(snap.metadata.fromCache)return;                         // wait for the real cloud answer
-      decided=true;
-      var has=snap.exists()&&!(snap.data().n===0&&!snap.data().d);
-      if(has&&filesText()!==null){
-        var useCloud=confirm("This device already has its own files, and your cloud account also has files from another device.\n\nOK = use the CLOUD files (replaces the files on this device)\nCancel = keep THIS device's files (replaces the cloud copy)");
-        if(useCloud){M.h=curHash();M.t=0}else{M.h=null;M.dt=Date.now()+1e9}
-        saveM();
-      }
-    }
-    var initial=first;first=false;
-    if(snap.exists()){remote=snap.data();consider(remote,initial)}
-    if(curHash()!==null&&curHash()!==M.h)schedule();             // first upload / offline edits
-    if(initial){
-      if(pending&&await applyPending()){doReload();return}
-      lastOk=Date.now();setState("ok","Synced");
-    }else if(pending){
-      toast("Your files changed on your other device.","Refresh",function(){applyPending(true).then(function(ok){if(ok)doReload()})});
-    }
-  },function(e){console.warn("file sync listen failed",e);if(e&&e.code==="resource-exhausted")pausedUntil=Date.now()+3600000;setState("off","Sync error: "+(e&&e.code||e))});
-}
-
-async function signIn(){
-  try{await fb.signInWithPopup(fb.auth,new fb.GoogleAuthProvider())}
-  catch(e){
-    if(e&&(e.code==="auth/popup-blocked"||e.code==="auth/operation-not-supported-in-this-environment"))fb.signInWithRedirect(fb.auth,new fb.GoogleAuthProvider());
-    else setState("off","Sign-in failed: "+(e&&e.code||e));
-  }
-}
-
-function boot(){
-  css();setState("busy","Connecting\u2026");
-  Promise.all([import(SDK+"firebase-app.js"),import(SDK+"firebase-auth.js"),import(SDK+"firebase-firestore.js")]).then(function(mods){
-    var A=mods[0],Au=mods[1],F=mods[2];
-    var app=A.initializeApp(FB_CONFIG), auth=Au.getAuth(app);
-    try{db=F.initializeFirestore(app,{localCache:F.persistentLocalCache({tabManager:F.persistentMultipleTabManager()})})}catch(e){db=F.getFirestore(app)}
-    fb={auth:auth,signOut:Au.signOut,GoogleAuthProvider:Au.GoogleAuthProvider,signInWithPopup:Au.signInWithPopup,signInWithRedirect:Au.signInWithRedirect,
-        doc:F.doc,getDoc:F.getDoc,setDoc:F.setDoc,deleteDoc:F.deleteDoc,writeBatch:F.writeBatch,onSnapshot:F.onSnapshot};
-    Au.getRedirectResult(auth).catch(function(){});
-    Au.onAuthStateChanged(auth,function(u){
-      user=u;
-      if(u){uid=u.uid;setState("busy","Connecting\u2026");whenAppReady(listen)}
-      else{uid=null;if(unsub){try{unsub()}catch(e){}unsub=null}setState("off","Not signed in \u2013 tap \u2601 to sign in")}
-      draw();
-    });
-  }).catch(function(e){console.warn("sync unavailable",e);setState("off","Sync unavailable (offline?)")});
-}
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();
 })();
 </script>
 <script type="text/plain" data-app="1">
@@ -9109,6 +8902,167 @@ function closeReels(){
   try{if(document.fullscreenElement)document.exitFullscreen()}catch(e){}
   try{A().refresh()}catch(e){}}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();
+/* ================= Live sync + handoff (Firebase Realtime Database, plain REST, no library) =================
+   Whoever is playing Reels is the "host": it pushes the live card, its progress and the card library.
+   The other device watches (and can control). If the host goes quiet, the watcher continues from the same card. */
+var SY=Object.assign({url:"",room:"",on:false},lj("stenoSyncCfg",{}));
+if(SY.role&&SY.role!=="off")SY.on=true;delete SY.role;
+var SYM=Object.assign({id:Math.random().toString(36).slice(2,10),ts:0,lt:0,lh:""},lj("stenoSyncMeta",{}));
+function sySave(){sj("stenoSyncCfg",SY)}function syMeta(){sj("stenoSyncMeta",SYM)}syMeta();
+var syMe=SYM.id;
+function syBase(){var u=(SY.url||"").trim().replace(/\/+$/,"");if(u&&!/^https?:\/\//i.test(u))u="https://"+u;return u}
+function syPath(p){return syBase()+"/steno/"+encodeURIComponent(SY.room)+(p?"/"+p:"")+".json"}
+function syLive(){return !!(SY.on&&SY.room&&syBase())}
+function syPlaying(){return !!(R.open&&R.run&&!document.body.classList.contains("rl-watch"))}
+function syPut(p,o){return fetch(syPath(p),{method:"PUT",body:JSON.stringify(o)})}
+function syNow(){return fetch(syPath("ping"),{method:"PUT",body:'{".sv":"timestamp"}'}).then(function(r){return r.json()})}
+function syHash(s){var h=5381,n=s.length;for(var i=0;i<n;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return n+"-"+(h>>>0)}
+var SYDEN=/^(stenoSyncCfg|stenoSyncMeta|stenoReelsCfg2|stenoGameClean|stenoGameImgSize|stenoGameTxtSize|stenoTapSwap|stenoGameSchedOpen|stenoProgSchedOpen|stenoQuoteBag|stenoDrillState_v1)$/;
+function syBundle(){var o={};for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf("steno")===0&&!SYDEN.test(k)){var v=localStorage.getItem(k);if(v!=null)o[k]=v}}return o}
+var SYH=["rlDone","rlCards","rlToday","rlScore","rlCombo","rlKnewPill","rlCardPill","rlSetPill","rlStat","rlMode"];
+var syLastSig="",syLastK="",syWasP=false,syBLast="",syLChk=0,syBypass=false,syShown=false,syHidden=false;
+// ---- host: push live card + status ----
+function syTick(){
+  if(!syLive())return;var P=syPlaying();
+  if(P&&!syCmdES&&!syStarting)syStartSend();if(!P&&syCmdES)syStopSender();
+  if(!P&&!syWasP)return;
+  if(!P&&syWasP){syPushSnap(true);syPushLib(true)}syWasP=P;
+  var s=P?curSlide():null,it=P&&R.items?R.items[R.idx]:null,k=P?[R.fi,R.mi,R.si,R.idx,it&&it.c?it.c.id:""].join("."):"";
+  var st={open:P,run:P,paused:!!R.paused,rev:!!(s&&s.classList.contains("rev")),k:k,miss:P?missT():0,cl:!!cfg.clean,ui:!!cfg.ui,ord:!!cfg.order,au:!!cfg.autoScroll,h:{}};
+  SYH.forEach(function(id){var e=$(id);st.h[id]=e?e.innerHTML:""});
+  if(P&&s&&s.innerHTML&&k!==syLastK){syLastK=k;syPut("slide",{k:k,html:s.innerHTML}).catch(function(){})}
+  var sig=JSON.stringify(st);if(sig===syLastSig)return;syLastSig=sig;syPut("st",st).catch(function(){})}
+setInterval(syTick,350);
+function syPushSnap(force,keep){var b=syBundle(),j=JSON.stringify(b);if(!force&&j===syBLast)return;syBLast=j;
+  var body=JSON.stringify({id:syMe,t:{".sv":"timestamp"},k:b});
+  fetch(syPath("snap"),{method:"PUT",body:body,keepalive:!!keep&&body.length<60000}).then(function(r){return r.json()}).then(function(o){if(o&&o.t){SYM.ts=o.t;syMeta()}}).catch(function(){})}
+function syPushLib(force){if(!force&&Date.now()-syLChk<20000)return;syLChk=Date.now();var v=localStorage.getItem("stenoDrillState_v1");if(!v)return;var h=syHash(v);if(h===SYM.lh)return;
+  syPut("libv",v).then(function(){return fetch(syPath("libm"),{method:"PUT",body:JSON.stringify({id:syMe,h:h,t:{".sv":"timestamp"}})})}).then(function(r){return r.json()}).then(function(o){SYM.lh=h;if(o&&o.t)SYM.lt=o.t;syMeta()}).catch(function(){})}
+function syBeat(){fetch(syPath("own"),{method:"PUT",body:JSON.stringify({id:syMe,t:{".sv":"timestamp"}})}).catch(function(){})}
+function syLost(){toast("The other device took over \u2014 now watching",3500);try{$("rlQuit").click()}catch(e){}}
+function syBeatTick(){if(!syLive()||!syPlaying())return;
+  fetch(syPath("own")).then(function(r){return r.json()}).then(function(o){
+    if(o&&o.id!==syMe&&o.t)return syNow().then(function(n){if(n-o.t<10000)syLost();else syBeat()});syBeat()}).catch(function(){});
+  syPushSnap(false);syPushLib(false)}
+setInterval(syBeatTick,4000);
+document.addEventListener("visibilitychange",function(){
+  if(!syLive())return;
+  if(document.hidden&&syPlaying()){syPushSnap(true,true);syPushLib(true)}
+  else if(!document.hidden&&syPlaying())syBeatTick()});
+// ---- pull the other device's progress (and library) so this device continues from the same place ----
+function syPull(resume){
+  var ch=false,go=function(){syBypass=true;var b=$("reelsModeBtn");if(b)b.click();syBypass=false};
+  return fetch(syPath("snap")).then(function(r){return r.json()}).then(function(sn){
+    if(sn&&sn.k&&sn.t>SYM.ts&&sn.id!==syMe){var cur=syBundle();Object.keys(cur).forEach(function(k){if(!(k in sn.k))localStorage.removeItem(k)});Object.keys(sn.k).forEach(function(k){localStorage.setItem(k,sn.k[k])});SYM.ts=sn.t;ch=true}
+    return fetch(syPath("libm")).then(function(r){return r.json()})
+  }).then(function(m){
+    if(m&&m.id!==syMe&&m.t>SYM.lt&&m.h!==SYM.lh)return fetch(syPath("libv")).then(function(r){return r.json()}).then(function(v){if(typeof v==="string"&&v){localStorage.setItem("stenoDrillState_v1",v);SYM.lh=m.h;SYM.lt=m.t;ch=true}})
+  }).then(function(){syMeta();
+    if(ch){window.__stenoFreeze=true;if(resume)try{sessionStorage.setItem("stenoSyncResume","1")}catch(e){}location.reload()}else if(resume)go()
+  }).catch(function(){if(resume)go()})}
+window.addEventListener("click",function(e){var b=e.target&&e.target.closest&&e.target.closest("#reelsModeBtn");if(!b||syBypass||!syLive()||syPlaying())return;
+  e.preventDefault();e.stopPropagation();toast("Syncing\u2026",3000);syPull(true)},true);
+// ---- watcher: stream the host, show it, take over if the host goes quiet ----
+var syES=null,syV={},syVK="",syOwnT="",syOwnSeen=0;
+function syApply(ev,merge){var m;try{m=JSON.parse(ev.data)}catch(e){return}
+  var p=(m.path||"/").split("/").filter(Boolean),d=m.data;
+  if(!p.length){syV=merge?Object.assign(syV||{},d||{}):(d||{})}
+  else{var o=syV=syV||{};for(var i=0;i<p.length-1;i++)o=o[p[i]]=o[p[i]]||{};var l=p[p.length-1];
+    if(d===null)delete o[l];else if(merge&&typeof d==="object")o[l]=Object.assign(o[l]||{},d);else o[l]=d}
+  var ow=syV.own;if(ow){var tk=JSON.stringify(ow.t);if(tk!==syOwnT){var first=!syOwnT;syOwnT=tk;syOwnSeen=Date.now();
+    if(first&&ow.t)syNow().then(function(n){if(n-ow.t>14000)syOwnSeen=0}).catch(function(){})}}
+  syCfgV();syRender()}
+function syOpen(){if(syES)return;syV={};syOwnT="";syOwnSeen=0;syCfgLast="";
+  try{syES=new EventSource(syPath(""));syES.addEventListener("put",function(e){syApply(e,false)});syES.addEventListener("patch",function(e){syApply(e,true)})}catch(e){}}
+function syClose(){if(syES){try{syES.close()}catch(e){}syES=null}syHide()}
+function syShow(){if(syShown)return;syShown=true;document.body.classList.add("rl-watch","reels-open");$("rlRoot").classList.add("on");try{vars()}catch(e){}}
+function syHide(){if(!syShown)return;syShown=false;document.body.classList.remove("rl-watch");if(!R.open){document.body.classList.remove("reels-open");$("rlRoot").classList.remove("on");$("rlFeed").innerHTML=""}syVK=""}
+function syRender(){
+  var st=syV&&syV.st,sl=syV&&syV.slide,feed=$("rlFeed");if(!syShown||!st)return;
+  document.body.classList.toggle("rl-clean",!!st.cl);document.body.classList.toggle("rl-ui-off",!st.ui);
+  SYH.forEach(function(id){var e=$(id);if(e&&st.h&&st.h[id]!=null)e.innerHTML=st.h[id]});
+  var sp=$("rlStat");if(sp)sp.classList.add("on");
+  $("rlPaused").classList.toggle("on",!!st.paused);
+  var o1=$("rlOrd"),o2=$("rlAuto");o1.textContent="\ud83d\udd22 Order "+(st.ord?"ON":"OFF");o1.classList.toggle("on",!!st.ord);o2.textContent="\u23ec Auto "+(st.au?"ON":"OFF");o2.classList.toggle("on",!!st.au);
+  [].forEach.call($("rlMissQ").querySelectorAll("button"),function(b){b.classList.toggle("on",+b.getAttribute("data-s")===st.miss)});
+  if(sl&&sl.k===st.k){
+    if(syVK!==sl.k){feed.innerHTML='<section class="rl-s">'+sl.html+'</section>';syVK=sl.k;
+      var f=$("rlFill");f.style.transition="none";f.style.width="0";void f.offsetWidth;
+      if(!st.paused&&st.miss){f.style.transition="width "+st.miss+"s linear";f.style.width="100%"}}
+    if(feed.firstChild)feed.firstChild.classList.toggle("rev",!!st.rev)}
+  setTimeout(fitPad,30)}
+function syViewTick(){
+  if(!syLive()){syClose();return}
+  if(syPlaying()||document.hidden){if(syShown)syHide();return}
+  syOpen();
+  var o=syV&&syV.own,st=syV&&syV.st,alive=!!(o&&o.id!==syMe&&Date.now()-syOwnSeen<14000),run=!!(st&&st.open&&st.run);
+  if(syShown&&!alive&&run){syHide();syPull(true);return}   // host went quiet in the middle of a round: continue here
+  if(alive&&run&&!syShown&&!syHidden)syShow();
+  if(syShown&&!run)syHide();
+  if(syShown)syRender()}
+setInterval(syViewTick,1200);
+// ---- two-way: laptop controls the host, settings sync both ways ----
+var SYOK=["rlRestart","rlPrev","rlNext","rlOrd","rlAuto","rlUndo"],syDone={},syCmdES=null,syCfgES=null,syStarting=false,syCfgLast="",syCfgSeen="",syCfgBusy=false;
+var SYK=["rev","miss","missW","miss3","r3On","order","autoScroll","target","setSize","setRandom","knewNeed","pace","missA","missB"];
+function sySub(){var o={};SYK.forEach(function(k){o[k]=cfg[k]});return o}
+function syCfgApply(o){if(!o||!o.v)return;var seen=JSON.stringify(o.v)+o.n;if(seen===syCfgSeen)return;syCfgSeen=seen;
+  SYK.forEach(function(k){if(o.v[k]!==undefined)cfg[k]=o.v[k]});try{cleanCfg()}catch(e){}saveCfg();syCfgLast=JSON.stringify(sySub());try{hud()}catch(e){}}
+function syCfgV(){var o=syV&&syV.cfg;if(o&&o.id!==syMe)syCfgApply(o)}
+function syCfgTick(){if(!syLive()||syCfgBusy)return;var j=JSON.stringify(sySub());
+  if(syCfgLast===""){syCfgBusy=true;fetch(syPath("cfg")).then(function(r){return r.json()}).then(function(o){if(o&&o.v)syCfgApply(o);syCfgLast=JSON.stringify(sySub())}).catch(function(){syCfgLast=j}).then(function(){syCfgBusy=false});return}
+  if(j!==syCfgLast){syCfgLast=j;syPut("cfg",{id:syMe,v:sySub(),n:Date.now()}).catch(function(){})}}
+setInterval(syCfgTick,600);
+function syCmd(c){if(!c||typeof c!=="object")return;try{
+  if(c.t==="act"){if(!R.run)return;if(c.a==="knew")judge("knew",null,true);else if(c.a==="missed")judge("missed",null,true);else if(c.a==="reveal")reveal()}
+  else if(c.t==="click"){var b=c.id==="rlMissQ"?document.querySelector('#rlMissQ button[data-s="'+(+c.s)+'"]'):(c.id==="rlPause"||SYOK.indexOf(c.id)>=0?$(c.id):null);if(b)b.click()}}catch(e){}}
+function syRun(k,c){if(syDone[k])return;syDone[k]=1;fetch(syPath("cmd/"+k),{method:"DELETE"}).catch(function(){});syCmd(c)}
+function syCmdEv(ev){var m;try{m=JSON.parse(ev.data)}catch(e){return}var p=(m.path||"/").split("/").filter(Boolean),d=m.data;if(d==null||typeof d!=="object")return;
+  if(!p.length)Object.keys(d).forEach(function(k){syRun(k,d[k])});else if(p.length===1)syRun(p[0],d)}
+function syStartSend(){syStopSender();syStarting=true;syCfgLast="";syDone={};
+  fetch(syPath("cmd"),{method:"DELETE"}).catch(function(){}).then(function(){syStarting=false;
+    if(!syPlaying())return;
+    try{syCmdES=new EventSource(syPath("cmd"));syCmdES.addEventListener("put",syCmdEv);syCmdES.addEventListener("patch",syCmdEv)}catch(e){}
+    try{syCfgES=new EventSource(syPath("cfg"));var f=function(ev){try{var m=JSON.parse(ev.data);if(m.data&&m.data.id&&m.data.id!==syMe)syCfgApply(m.data)}catch(e){}};syCfgES.addEventListener("put",f);syCfgES.addEventListener("patch",f)}catch(e){}
+    syBeat();syPushSnap(true);syPushLib(true)})}
+function syStopSender(){if(syCmdES){try{syCmdES.close()}catch(e){}syCmdES=null}if(syCfgES){try{syCfgES.close()}catch(e){}syCfgES=null}}
+function syCmdSend(c){if(syLive())fetch(syPath("cmd"),{method:"POST",body:JSON.stringify(c)}).catch(function(){})}
+var syTapT=0;
+function syWatching(e){return document.body.classList.contains("rl-watch")&&e.target&&e.target.closest&&e.target.closest("#rlRoot")}
+window.addEventListener("pointerdown",function(e){if(!syWatching(e))return;var t=e.target,b=t.closest("button");
+  if(b){e.preventDefault();e.stopPropagation();if(e.button>0)return;
+    if(b.parentNode&&b.parentNode.id==="rlMissQ")syCmdSend({t:"click",id:"rlMissQ",s:+b.getAttribute("data-s")});else if(SYOK.indexOf(b.id)>=0)syCmdSend({t:"click",id:b.id});return}
+  if(!t.closest("#rlFeed"))return;e.preventDefault();e.stopPropagation();
+  if(e.pointerType==="mouse"){if(e.button===0)syCmdSend({t:"act",a:"missed"});else if(e.button===2)syCmdSend({t:"act",a:"knew"});else if(e.button===1)syCmdSend({t:"click",id:"rlPause"})}
+  else{var n=Date.now();if(n-syTapT<300){syTapT=0;syCmdSend({t:"act",a:"knew"})}else{syTapT=n;syCmdSend({t:"act",a:"reveal"})}}},true);
+["click","contextmenu","auxclick","mousedown"].forEach(function(n){window.addEventListener(n,function(e){if(syWatching(e)){e.preventDefault();e.stopPropagation()}},true)});
+// ---- setup panel ----
+var syCss=document.createElement("style");syCss.textContent="#rlSyncBtn{position:fixed;left:10px;bottom:10px;z-index:60;border:0;border-radius:20px;padding:7px 11px;background:#23232e;color:#fff;font:600 13px system-ui,sans-serif;opacity:.85}body.reels-open #rlSyncBtn{display:none!important}#rlSyncTools{display:none;position:fixed;right:10px;bottom:10px;z-index:2147483000;gap:8px}body.rl-watch #rlSyncTools{display:flex}#rlSyncTools button{border:0;border-radius:20px;padding:8px 12px;color:#fff;font:600 13px system-ui,sans-serif;background:#2e7d32}#rlSyncTools button+button{background:#555}body.rl-watch #rlRoot #rlTop .rl-row button{display:none!important}body.rl-watch #rlRoot #rlRestart,body.rl-watch #rlRoot #rlPrev,body.rl-watch #rlRoot #rlNext,body.rl-watch #rlRoot #rlOrd,body.rl-watch #rlRoot #rlAuto,body.rl-watch #rlRoot #rlMissQ button{display:inline-block!important}#rlSyncPanel{display:none;position:fixed;inset:0;z-index:2147483100;background:rgba(0,0,0,.7);align-items:center;justify-content:center;padding:14px;box-sizing:border-box}#rlSyncPanel.on{display:flex}#rlSyncPanel .bx{background:#17171f;color:#fff;border-radius:18px;padding:18px;width:100%;max-width:440px;max-height:92dvh;overflow:auto;font:14px system-ui,sans-serif}#rlSyncPanel h2{margin:0 0 6px;font-size:20px}#rlSyncPanel p{margin:0 0 10px;opacity:.7;font-size:12.5px;line-height:1.4}#rlSyncPanel label{display:block;margin:10px 0 4px;font-size:12px;opacity:.8}#rlSyncPanel input{width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid #444;background:#0e0e14;color:#fff;font-size:14px}#rlSyncPanel button{margin:8px 6px 0 0;padding:10px 12px;border:0;border-radius:12px;background:#2b2b3a;color:#fff;font-weight:600;font-size:13px}#rlSyncPanel button.pri{background:#2e7d32}#rlSyncMsg{margin-top:10px;font-size:13px;min-height:18px}";document.head.appendChild(syCss);
+var syBtnEl=mk("button","rlSyncBtn","","\ud83d\udce1");syBtnEl.type="button";
+mk("div","rlSyncTools","",'<button type="button" id="rlSyTake">\u25b6 Take over here</button><button type="button" id="rlSyHide">\u2716 Hide</button>');
+var syPanel=mk("div","rlSyncPanel","",'<div class="bx"><h2>\ud83d\udce1 Phone \u2194 Laptop sync</h2><p>Use the same database link and room code on both devices and turn sync on. Whichever device plays Reels is shown live on the other one. If you stop on one device, the other continues from the same card, and when you come back to the first it continues from where the second stopped. Mark Knew/Missed or change auto-miss on the watching device and the playing one follows.</p><label>Database link</label><input id="rlSyU" placeholder="https://your-project-default-rtdb.firebaseio.com" autocapitalize="off" autocomplete="off" spellcheck="false"><label>Room code (any private word)</label><input id="rlSyR" placeholder="e.g. k7x2pq" autocapitalize="off" autocomplete="off" spellcheck="false"><div><button type="button" id="rlSyOn" class="pri">\u2705 Turn on sync</button><button type="button" id="rlSyOff">\u26d4 Turn off</button></div><div><button type="button" id="rlSyLink">\ud83d\udccb Copy link for the other device</button><button type="button" id="rlSyClose">Close</button></div><div id="rlSyncMsg"></div></div>');
+function syBtn(){syBtnEl.textContent="\ud83d\udce1"+(SY.on?" \u25cf on":"")}
+function syMsg(t,c){var m=$("rlSyncMsg");m.textContent=t;m.style.color=c||"#ccc"}
+function syRead(){SY.url=$("rlSyU").value.trim();SY.room=$("rlSyR").value.trim().replace(/[^A-Za-z0-9_-]/g,"");$("rlSyR").value=SY.room;sySave()}
+syBtnEl.onclick=function(){$("rlSyU").value=SY.url;$("rlSyR").value=SY.room||Math.random().toString(36).slice(2,8);syMsg("");syPanel.classList.add("on")};
+$("rlSyClose").onclick=function(){syPanel.classList.remove("on")};
+$("rlSyOn").onclick=function(){syRead();if(!syBase()||!SY.room){syMsg("Fill in both boxes.","#ff8a80");return}
+  syMsg("Testing\u2026");syNow().then(function(n){
+    if(typeof n!=="number"){syMsg("Database refused. Check the link and that the rules allow read and write.","#ff8a80");return}
+    SY.on=true;sySave();syBtn();syHidden=false;syMsg("\u2713 Sync is on. Play Reels on either device.","#81c784");syPull(false).then(function(){if(!window.__stenoFreeze)syPushLib(true)})}).catch(function(){syMsg("Could not reach the database. Check the link.","#ff8a80")})};
+$("rlSyOff").onclick=function(){SY.on=false;sySave();syBtn();syStopSender();syClose();syMsg("Sync is off.")};
+$("rlSyLink").onclick=function(){syRead();if(!syBase()||!SY.room){syMsg("Fill in both boxes.","#ff8a80");return}
+  var u=location.origin+location.pathname+"#sync/"+encodeURIComponent(SY.room)+"/"+encodeURIComponent(syBase());
+  try{navigator.clipboard.writeText(u).then(function(){syMsg("\u2713 Link copied. Open it once on the other device.","#81c784")},function(){prompt("Copy this link:",u)})}catch(e){prompt("Copy this link:",u)}};
+$("rlSyTake").onclick=function(){syHide();syHidden=false;syPull(true)};
+$("rlSyHide").onclick=function(){syHidden=true;syHide()};
+// other device link: .../#sync/ROOM/DATABASE-LINK turns sync on right away
+var syH=(location.hash||"").match(/^#(?:sync|watch)\/([^\/]+)\/(.+)$/);
+if(syH){SY.room=decodeURIComponent(syH[1]);SY.url=decodeURIComponent(syH[2]);SY.on=true;sySave();try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}}
+syBtn();
+// after a handover reload: carry on with the round, otherwise just catch up with the other device
+var syRes=false;try{syRes=sessionStorage.getItem("stenoSyncResume")==="1";sessionStorage.removeItem("stenoSyncResume")}catch(e){}
+if(syRes)setTimeout(function(){var r=lj("stenoGameRun",null);if(r&&r.target>0&&(r.done||0)<r.target){syBypass=true;var b=$("reelsModeBtn");if(b)b.click();syBypass=false}},1200);
+else if(syLive())setTimeout(function(){if(!syPlaying())syPull(false)},800);
 })();
 
 // ---------------- Progress tab: study hours 7 AM - 11 PM (shared with Game mode and Reels mode) ----------------
