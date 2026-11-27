@@ -2055,6 +2055,266 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
   }catch(e){clearTimeout(timer);go()}
 })();
 </script>
+<script>
+/* ===== Cloud sync (Firebase): keeps laptop and phone in step. Works offline; syncs when online. ===== */
+(function(){
+"use strict";
+var FB_CONFIG={apiKey:"AIzaSyAZPjit4ZV0DCAdpkCBpdfkLQPtrNJWnPM",authDomain:"steno-drill.firebaseapp.com",projectId:"steno-drill",storageBucket:"steno-drill.firebasestorage.app",messagingSenderId:"759097853258",appId:"1:759097853258:web:23189f73d76ec608a52db3"};
+if(location.protocol.indexOf("http")!==0) return; // only on the hosted app
+var SDK="https://www.gstatic.com/firebasejs/10.12.2/";
+var ls=null; try{ls=window.localStorage}catch(e){} if(!ls) return;
+var SP=Storage.prototype, prevSet=SP.setItem, prevRem=SP.removeItem;
+
+/* ---- which keys are shared ---- */
+var KNOWN=["stenoDrillState_v1","stenoDrillState_v1_progress","stenoGameCfg2","stenoGameRun","stenoGameWasLive","stenoGameBlocks","stenoGameStats","stenoGameKnew","stenoReelsCfg2","stenoQuoteBag","stenoPauseStats","stenoPlayToday","stenoGameClean"];
+var LOCAL_ONLY={stenoGamePrev:1,stenoTapSwap:1,stenoProgSchedOpen:1,stenoGameTxtSize:1,stenoGameSchedOpen:1,stenoGameImgSize:1};
+var LIVE={stenoGameRun:1,stenoGameWasLive:1};
+function synced(k){return typeof k==="string"&&k.indexOf("steno")===0&&!LOCAL_ONLY[k]}
+function isLib(k){return k==="stenoDrillState_v1"}
+function isProg(k){return k==="stenoDrillState_v1_progress"}
+var seen={}; KNOWN.forEach(function(k){seen[k]=1});
+
+/* ---- small helpers ---- */
+function hash(s){var h=5381,i=s.length;while(i)h=(h*33)^s.charCodeAt(--i);return (h>>>0).toString(36)+":"+s.length}
+function jget(k,d){try{var v=ls.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+var DEV=(function(){var d=ls.getItem("__syncDev");if(!d){d="d"+Math.random().toString(36).slice(2,10);ls.setItem("__syncDev",d)}return d})();
+var metaL=jget("__syncMeta",{});          // k -> {t:last synced time, h:hash at that time, dt:time of unsynced local change}
+function saveMeta(){try{ls.setItem("__syncMeta",JSON.stringify(metaL))}catch(e){}}
+var follow=ls.getItem("__syncFollow")==="1";
+var applying=false, user=null, fb=null, db=null, uid=null, remote={}, timers={}, lastPush={}, pending={}, gotServer=false, reloadAt=0;function lastReload(){try{return +sessionStorage.getItem("__syncReload")||0}catch(e){return 0}}function markReload(){try{sessionStorage.setItem("__syncReload",String(Date.now()))}catch(e){}}
+
+/* ---- tiny UI ---- */
+var ui={};
+function css(){
+  var st=document.createElement("style");
+  st.textContent="#syncBtn{position:fixed;left:10px;bottom:10px;z-index:99998;width:40px;height:40px;border-radius:50%;border:1px solid rgba(128,128,128,.5);background:#1b1d2b;color:#fff;font-size:18px;cursor:pointer;opacity:.85;display:flex;align-items:center;justify-content:center;padding:0}"+
+  "#syncBtn.ok{box-shadow:0 0 0 2px #2ecc71}#syncBtn.busy{box-shadow:0 0 0 2px #f5b301}#syncBtn.off{box-shadow:0 0 0 2px #e74c3c}"+
+  "#syncPanel{position:fixed;left:10px;bottom:58px;z-index:99999;width:min(310px,calc(100vw - 20px));background:#1b1d2b;color:#fff;border:1px solid #555;border-radius:14px;padding:14px;font:14px/1.4 system-ui,sans-serif;display:none;box-shadow:0 8px 30px rgba(0,0,0,.5)}"+
+  "#syncPanel.open{display:block}#syncPanel button{font:inherit;padding:8px 12px;border-radius:10px;border:1px solid #666;background:#2c2f45;color:#fff;cursor:pointer;margin:4px 4px 0 0}"+
+  "#syncPanel label{display:flex;gap:8px;align-items:flex-start;margin-top:10px;cursor:pointer}#syncPanel small{color:#aab}"+
+  "#syncToast{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:99999;background:#1b1d2b;color:#fff;border:1px solid #3dffa0;border-radius:12px;padding:10px 14px;font:14px system-ui,sans-serif;display:none;max-width:92vw}"+
+  "#syncToast button{margin-left:10px;padding:6px 10px;border-radius:8px;border:0;background:#3dffa0;color:#000;font:inherit;font-weight:700;cursor:pointer}";
+  document.head.appendChild(st);
+  var b=document.createElement("button");b.id="syncBtn";b.type="button";b.textContent="\u2601";b.title="Sync between devices";document.body.appendChild(b);
+  var p=document.createElement("div");p.id="syncPanel";document.body.appendChild(p);
+  var t=document.createElement("div");t.id="syncToast";document.body.appendChild(t);
+  ui.btn=b;ui.panel=p;ui.toast=t;
+  b.onclick=function(){p.classList.toggle("open");draw()};
+}
+var status="Starting\u2026", lastOk=0, state="busy";
+function setState(s,msg){state=s;status=msg;if(ui.btn){ui.btn.className=s}draw()}
+function draw(){
+  if(!ui.panel||!ui.panel.classList.contains("open"))return;
+  var h="<b>Sync between devices</b><br><small>"+status+(lastOk?" \u00b7 last sync "+new Date(lastOk).toLocaleTimeString():"")+"</small><br>";
+  if(!user){h+='<button id="syncIn">Sign in with Google</button>'}
+  else{
+    h+='<small>Signed in: '+(user.email||"")+'</small><br><button id="syncNow">Sync now</button><button id="syncOut">Sign out</button>'+
+    '<label><input type="checkbox" id="syncFollow" '+(follow?"checked":"")+'><span>Mirror the other device (follower)<br><small>Turn this on only on the device that should copy the other one. It refreshes every few seconds, and does not send its own progress.</small></span></label>';
+  }
+  ui.panel.innerHTML=h;
+  var q=function(i){return document.getElementById(i)};
+  if(q("syncIn"))q("syncIn").onclick=signIn;
+  if(q("syncOut"))q("syncOut").onclick=function(){fb.auth.signOut()};
+  if(q("syncNow"))q("syncNow").onclick=function(){setState("busy","Syncing\u2026");pushAllDirty(true);flushPending(true)};
+  if(q("syncFollow"))q("syncFollow").onchange=function(){follow=this.checked;ls.setItem("__syncFollow",follow?"1":"0");if(follow)Object.keys(remote).forEach(function(k){consider(remote[k],false)});flushPending(true)};
+}
+function toast(msg,btn,fn){
+  if(!ui.toast)return;ui.toast.textContent=msg+" ";
+  if(btn){var b=document.createElement("button");b.textContent=btn;b.onclick=fn;ui.toast.appendChild(b)}
+  ui.toast.style.display="block";
+}
+
+/* ---- local change tracking ---- */
+SP.setItem=function(k,v){
+  prevSet.call(this,k,v);
+  if(this===ls&&!applying&&synced(String(k))){seen[k]=1;localChanged(String(k))}
+};
+SP.removeItem=function(k){
+  prevRem.call(this,k);
+  if(this===ls&&!applying&&synced(String(k))){seen[k]=1;localChanged(String(k))}
+};
+function curHash(k){var v=ls.getItem(k);return v===null?"null":hash(v)}
+function localChanged(k){
+  if(follow&&(LIVE[k]||isProg(k)))return;          // a follower does not send live progress
+  var m=metaL[k]||(metaL[k]={t:0,h:null});
+  if(curHash(k)===m.h){delete m.dt;return}
+  if(!m.dt){m.dt=Date.now();saveMeta()}
+  schedule(k);
+}
+function schedule(k){
+  if(!uid||timers[k])return;
+  var gap=isLib(k)?6000:6000, wait=Math.max(1200,gap-(Date.now()-(lastPush[k]||0)));
+  timers[k]=setTimeout(function(){delete timers[k];push(k)},wait);
+}
+function pushAllDirty(){Object.keys(seen).forEach(function(k){if(synced(k)){var m=metaL[k]||(metaL[k]={t:0,h:null});if(curHash(k)!==m.h){if(!m.dt)m.dt=Date.now();if(timers[k]){clearTimeout(timers[k]);delete timers[k]}push(k)}}})}
+
+/* ---- Firestore read/write ---- */
+function mref(k){return fb.doc(db,"users",uid,"kv",encodeURIComponent(k))}
+function cref(k,i){return fb.doc(db,"users",uid,"kvc",encodeURIComponent(k)+"__"+i)}
+async function push(k){
+  if(!uid||!db)return;
+  if(follow&&(LIVE[k]||isProg(k)))return;
+  var m=metaL[k]||(metaL[k]={t:0,h:null});
+  var v=ls.getItem(k), h=v===null?"null":hash(v);
+  if(h===m.h){delete m.dt;return}
+  var t=Math.max(Date.now(),(remote[k]&&remote[k].t||0)+1);
+  lastPush[k]=Date.now();
+  try{
+    setState("busy","Saving\u2026");
+    var old=(remote[k]&&remote[k].n)||0, meta={k:k,t:t,dev:DEV};
+    if(v===null){meta.n=0;meta.del=true}
+    else if(v.length<=200000){meta.n=0;meta.d=v;meta.len=v.length}
+    else{
+      var parts=[];for(var p=0;p<v.length;p+=250000)parts.push(v.slice(p,p+250000));
+      for(var s=0;s<parts.length;s+=8){
+        var b=fb.writeBatch(db);
+        for(var i=s;i<Math.min(s+8,parts.length);i++)b.set(cref(k,i),{k:k,i:i,t:t,d:parts[i]});
+        await b.commit();
+      }
+      meta.n=parts.length;meta.len=v.length;
+    }
+    await fb.setDoc(mref(k),meta);
+    for(var j=meta.n;j<old;j++){try{await fb.deleteDoc(cref(k,j))}catch(e){}}
+    remote[k]=meta;
+    m.t=t;m.h=h;delete m.dt;saveMeta();lastOk=Date.now();
+    setState("ok","Synced");
+    if(curHash(k)!==h)schedule(k);
+  }catch(e){
+    console.warn("sync push failed",k,e);
+    setState("off","Offline or blocked \u2013 will retry");
+    setTimeout(function(){schedule(k)},15000);
+  }
+}
+async function fetchValue(m){
+  if(m.del)return null;
+  if(!m.n)return m.d||"";
+  var snaps=await Promise.all(Array.apply(null,Array(m.n)).map(function(_,i){return fb.getDoc(cref(m.k,i))}));
+  var out=[];
+  for(var i=0;i<snaps.length;i++){if(!snaps[i].exists()||snaps[i].data().t!==m.t)throw new Error("chunks not ready");out.push(snaps[i].data().d)}
+  return out.join("");
+}
+
+/* ---- incoming changes ---- */
+function consider(m,initial){
+  var k=m.k;
+  if(!synced(k)||m.dev===DEV)return;
+  if(LIVE[k]&&!follow)return;                       // live game position only in follower mode
+  var lm=metaL[k]||(metaL[k]={t:0,h:null});
+  var dirty=curHash(k)!==lm.h;
+  if(m.t<=lm.t&&!dirty)return;
+  if(dirty){
+    var lt=lm.dt||0;
+    if(m.t<=lm.t||lt>m.t){schedule(k);return}       // our change is newer: send it
+  }
+  pending[k]=m;
+}
+async function applyPending(){
+  var keys=Object.keys(pending);if(!keys.length)return false;
+  var did=false;
+  for(var i=0;i<keys.length;i++){
+    var k=keys[i],m=pending[k];
+    try{
+      var v=await fetchValue(m);
+      var lm=metaL[k]||(metaL[k]={t:0,h:null});
+      if(m.t<=lm.t)continue;
+      applying=true;
+      try{ if(v===null)ls.removeItem(k); else ls.setItem(k,v) }finally{applying=false}
+      lm.t=m.t;lm.h=v===null?"null":hash(v);delete lm.dt;
+      delete pending[k];did=true;
+    }catch(e){console.warn("sync pull failed",k,e)}
+  }
+  saveMeta();
+  return did;
+}
+function idle(){return !window.stenoGameLive&&!document.body.classList.contains("game-mode")&&!document.body.classList.contains("reels-open")}
+async function flushPending(force){
+  var keys=Object.keys(pending);if(!keys.length){setState(state==="off"?"off":"ok",state==="off"?status:"Synced");return}
+    var wantsNow=force||follow;
+  if(!wantsNow)return;
+  if(Date.now()-lastReload()<5000){setTimeout(function(){flushPending(force)},5200-(Date.now()-lastReload()));return}
+  if(await applyPending()){markReload();location.reload()}
+}
+function onPendingChange(){
+  var libNew=Object.keys(pending).some(function(k){return isLib(k)});
+  if(follow){flushPending(false);return}
+  if(libNew)toast("Your other device changed your cards or settings.","Refresh",function(){flushPending(true)});
+}
+document.addEventListener("visibilitychange",function(){
+  if(document.visibilityState==="visible"&&Object.keys(pending).length&&idle())flushPending(true);
+});
+
+/* ---- start-up: wait for the app, then connect ---- */
+function whenAppReady(fn){var n=0;(function w(){if(window.stenoGameApi||n++>60)fn();else setTimeout(w,200)})()}
+
+async function firstRunChoice(metas){
+  // This device has never synced. If both sides already have cards, ask which to keep.
+  var libK="stenoDrillState_v1", cloudLib=metas.filter(function(m){return m.k===libK&&!m.del})[0];
+  var localLib=ls.getItem(libK);
+  if(cloudLib&&localLib){
+    var useCloud=confirm("This device already has its own cards, and your cloud account also has cards from another device.\n\nOK = use the CLOUD cards (replaces the cards on this device)\nCancel = keep THIS device's cards (replaces the cloud copy)");
+    if(useCloud){Object.keys(seen).forEach(function(k){if(synced(k)){metaL[k]={t:0,h:curHash(k)}}})}
+    else{Object.keys(seen).forEach(function(k){if(synced(k)&&ls.getItem(k)!==null){metaL[k]={t:0,h:null,dt:Date.now()+1e9}}})}
+    saveMeta();
+  }
+}
+
+var unsub=null;
+function listen(){
+  if(unsub){try{unsub()}catch(e){}unsub=null;listen.done=false}
+  var neverSynced=Object.keys(metaL).length===0, decided=!neverSynced;
+  unsub=fb.onSnapshot(fb.collection(db,"users",uid,"kv"),async function(snap){
+    if(!gotServer&&!snap.metadata.fromCache)gotServer=true;
+    if(neverSynced&&!decided){
+      if(snap.metadata.fromCache)return;            // wait for the real cloud answer before deciding
+      decided=true;var all=[];snap.forEach(function(d){all.push(d.data())});
+      await firstRunChoice(all);
+    }
+    var initialPhase=!listen.done;listen.done=true;
+    snap.docChanges().forEach(function(ch){
+      if(ch.type==="removed")return;
+      var m=ch.doc.data();remote[m.k]=m;consider(m,initialPhase);
+    });
+    // our own un-synced local keys (first upload / offline edits)
+    pushAllDirty();
+    if(initialPhase){
+      if(Object.keys(pending).length){if(await applyPending()){markReload();location.reload();return}}
+      lastOk=Date.now();setState("ok","Synced");
+    }else onPendingChange();
+  },function(e){console.warn("sync listen failed",e);setState("off","Sync error: "+(e&&e.code||e))});
+}
+
+async function signIn(){
+  try{
+    var prov=new fb.GoogleAuthProvider();
+    await fb.signInWithPopup(fb.auth,prov);
+  }catch(e){
+    if(e&&(e.code==="auth/popup-blocked"||e.code==="auth/operation-not-supported-in-this-environment"))fb.signInWithRedirect(fb.auth,new fb.GoogleAuthProvider());
+    else{setState("off","Sign-in failed: "+(e&&e.code||e))}
+  }
+}
+
+function boot(){
+  css();setState("busy","Connecting\u2026");
+  Promise.all([import(SDK+"firebase-app.js"),import(SDK+"firebase-auth.js"),import(SDK+"firebase-firestore.js")]).then(function(mods){
+    var A=mods[0],Au=mods[1],F=mods[2];
+    var app=A.initializeApp(FB_CONFIG);
+    var auth=Au.getAuth(app);
+    try{db=F.initializeFirestore(app,{localCache:F.persistentLocalCache({tabManager:F.persistentMultipleTabManager()})})}catch(e){db=F.getFirestore(app)}
+    fb={auth:auth,signOut:Au.signOut,GoogleAuthProvider:Au.GoogleAuthProvider,signInWithPopup:Au.signInWithPopup,signInWithRedirect:Au.signInWithRedirect,
+        doc:F.doc,collection:F.collection,getDoc:F.getDoc,setDoc:F.setDoc,deleteDoc:F.deleteDoc,writeBatch:F.writeBatch,onSnapshot:F.onSnapshot};
+    auth.signOut=function(){return Au.signOut(auth)};
+    Au.getRedirectResult(auth).catch(function(){});
+    Au.onAuthStateChanged(auth,function(u){
+      user=u;
+      if(u){uid=u.uid;setState("busy","Connecting\u2026");whenAppReady(listen)}
+      else{uid=null;setState("off","Not signed in \u2013 tap \u2601 to sign in")}
+      draw();
+    });
+  }).catch(function(e){console.warn("sync unavailable",e);setState("off","Sync unavailable (offline?)")});
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();
+})();
+</script>
 <script type="text/plain" data-app="1">
 // ---------------- Focus mode: mode picker ----------------
 // Kept in its own script *above* the main one on purpose: the main script
