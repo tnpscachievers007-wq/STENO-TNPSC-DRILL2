@@ -8396,8 +8396,8 @@ function boot(){
     if(holding){holding=false;R.holdP=false;arm();return}
     if(moved)return;
     var now=Date.now();
-    if(now-lastTap<300){clearTimeout(tapT);lastTap=0;judge("knew",null,true);return}
-    lastTap=now;clearTimeout(tapT);tapT=setTimeout(function(){togglePause()},300)});
+    if(now-lastTap<300){clearTimeout(tapT);lastTap=0;togglePause();return}   // double tap = pause / resume
+    lastTap=now;clearTimeout(tapT);tapT=setTimeout(function(){lastTap=0;judge("knew",null,true)},300)});   // single tap = knew it
   feed.addEventListener("pointercancel",function(){clearTimeout(downT);if(holding){holding=false;R.holdP=false;arm()}});
   window.addEventListener("keydown",onKey,true);
   // Mouse in Reels mode: scroll button (middle click) = pause / resume, anywhere on the reels screen.
