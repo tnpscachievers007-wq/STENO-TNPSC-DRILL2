@@ -8405,6 +8405,14 @@ function boot(){
     if(!R.open||sheetOn()||e.pointerType!=="mouse"||e.button!==1)return;
     e.preventDefault();e.stopPropagation();togglePause()},true);
   window.addEventListener("mousedown",function(e){if(R.open&&!sheetOn()&&e.button===1)e.preventDefault()},true);
+  // Right click = knew it, wherever the cursor is on the Reels screen (top bar, buttons, edges, cards).
+  // Skipped while a panel is open (settings sheet, editor, stroke viewer, dictation, crop) and in text boxes.
+  window.addEventListener("pointerdown",function(e){
+    if(!R.open||e.pointerType!=="mouse"||e.button!==2)return;
+    if(sheetOn()||ED.on||SV.on||D.on||(A().cropOpen&&A().cropOpen()))return;
+    if(document.body.classList.contains("rl-watch"))return;
+    var t=e.target&&e.target.tagName;if(/INPUT|TEXTAREA|SELECT/.test(t||""))return;
+    e.preventDefault();e.stopPropagation();judge("knew",null,true)},true);
   window.addEventListener("auxclick",function(e){if(R.open&&!sheetOn()&&e.button===1)e.preventDefault()},true);
   // Right click = knew it, so keep the browser menu away while Reels is open (the sheet and its inputs keep the menu).
   window.addEventListener("contextmenu",function(e){if(R.open&&!sheetOn())e.preventDefault()},true);
