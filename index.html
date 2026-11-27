@@ -2040,7 +2040,8 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
     for(var j=0;j<apps.length;j++){ var s=document.createElement("script"); s.textContent=apps[j].textContent; document.body.appendChild(s); }
   }
   try{ if(navigator.storage&&navigator.storage.persist)navigator.storage.persist() }catch(e){}
-  var timer=setTimeout(go,2500);
+  // Wait for the saved copy to finish loading (big libraries with pictures can take a while). Only give up after a long quiet gap.
+  var timer=setTimeout(go,20000);
   try{
     var req=indexedDB.open("steno-store",1);
     req.onupgradeneeded=function(){req.result.createObjectStore("kv")};
@@ -2050,7 +2051,7 @@ body.game-mode .card .answer-text{background:linear-gradient(90deg,#8a3dff,#ff3d
       db=req.result;
       try{
         var st=db.transaction("kv","readonly").objectStore("kv"),cur=st.openCursor();
-        cur.onsuccess=function(){var c=cur.result;if(c){mem[String(c.key)]=c.value;c.continue()}else{clearTimeout(timer);go()}};
+        cur.onsuccess=function(){var c=cur.result;if(c){if(!started)mem[String(c.key)]=c.value;clearTimeout(timer);timer=setTimeout(go,20000);c.continue()}else{clearTimeout(timer);go()}};
         cur.onerror=function(){clearTimeout(timer);go()};
       }catch(e){clearTimeout(timer);go()}
     };
